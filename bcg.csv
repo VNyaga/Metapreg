@@ -1,0 +1,27 @@
+study,bcg,lat,population,cases_tb
+Aronso et al 1958,No,33,17854,29
+Aronson 1948,No,44,139,11
+Coetzee & Berjak 1968,No,27,7277,45
+Comstock & Webster 1969,No,33,2341,3
+Comstock et al 1974,No,18,27338,141
+Ferguson & Simes 1949,No,55,303,29
+Frimodt-Moller et al 1973,No,13,5808,47
+Hart & Sutherland 1977,No,52,12867,248
+Madras 1980,No,13,88391,499
+Rosenthal et al 1960,No,42,220,11
+Rosenthal et al 1961,No,42,1665,65
+Stein & Aronson 1953,No,44,1451,372
+Vandiviere et al 1973,No,19,629,10
+Aronso et al 1958,Yes,33,16913,27
+Aronson 1948,Yes,44,123,4
+Coetzee & Berjak 1968,Yes,27,7499,29
+Comstock & Webster 1969,Yes,33,2498,5
+Comstock et al 1974,Yes,18,50634,186
+Ferguson & Simes 1949,Yes,55,306,6
+Frimodt-Moller et al 1973,Yes,13,5069,33
+Hart & Sutherland 1977,Yes,52,13598,62
+Madras 1980,Yes,13,88391,505
+Rosenthal et al 1960,Yes,42,231,3
+Rosenthal et al 1961,Yes,42,1716,17
+Stein & Aronson 1953,Yes,44,1541,180
+Vandiviere et al 1973,Yes,19,2545,8

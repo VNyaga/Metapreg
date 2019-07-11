@@ -1,0 +1,35 @@
+firstauthor,year,response,arm,missingdata,total
+Simpson,1967,0,Placebo,With missing data,7
+Selman,1976,7,Placebo,With missing data,11
+Vichaiya,1971,0,Placebo,With missing data,29
+Beasley,1996,20,Placebo,With missing data,34
+Arvanitis,1997,18,Placebo,With missing data,51
+Bechelli,1983,2,Placebo,With missing data,30
+Marder,1994,14,Placebo,With missing data,64
+Serafetinides,1972,0,Placebo,With missing data,13
+Garry,1962,4,Placebo,With missing data,25
+Nishikawa 84,1984,0,Placebo,With missing data,13
+Beasley,1996,29,Haloperidol,With missing data,47
+Serafetinides,1972,4,Haloperidol,With missing data,14
+Arvanitis,1997,25,Haloperidol,With missing data,50
+Nishikawa 84,1984,11,Haloperidol,With missing data,34
+Marder,1994,19,Haloperidol,With missing data,64
+Vichaiya,1971,9,Haloperidol,With missing data,29
+Bechelli,1983,12,Haloperidol,With missing data,29
+Simpson,1967,2,Haloperidol,With missing data,16
+Garry,1962,7,Haloperidol,With missing data,25
+Selman,1976,17,Haloperidol,With missing data,18
+Howard,1974,3,Placebo,Without missing data,13
+Nishikawa 82,1982,0,Placebo,Without missing data,10
+Durost,1964,1,Placebo,Without missing data,15
+Borison,1992,0,Placebo,Without missing data,12
+Reschke,1974,2,Placebo,Without missing data,11
+Spencer,1992,1,Placebo,Without missing data,12
+Chouinard,1993,3,Placebo,Without missing data,22
+Spencer,1992,11,Haloperidol,Without missing data,12
+Reschke,1974,20,Haloperidol,Without missing data,29
+Durost,1964,11,Haloperidol,Without missing data,19
+Nishikawa 82,1982,1,Haloperidol,Without missing data,10
+Howard,1974,8,Haloperidol,Without missing data,17
+Chouinard,1993,10,Haloperidol,Without missing data,21
+Borison,1992,3,Haloperidol,Without missing data,12
