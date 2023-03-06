@@ -1,0 +1,34 @@
+v 1.3.0
+d
+p 'metapreg': Stata module to compute fixed and random effects meta-analysis and meta-regression of proportions
+d
+d This routine provides procedures for pooling proportions in a 
+d meta-analysis of multiple studies study and/or displays the results 
+d in a forest plot. The pooled estimates are a weighted averages or 
+d obtained parameter estimates after logistic regression or after 
+d fitting the logistic-normal random model. Metapreg extends the 
+d functionality of metaprop_one by allowing one or more covariates into 
+d the model to explain heterogeneity in the proportions. 
+d With paired data, a model with two additive components of variance can be fitted. 
+d One component represents variance within the units, the other variance between units. 
+d Furthermore, a forest plot of relative ratios can also be presented.
+d KW: meta-analysis
+d KW: meta-regression
+d KW: fixed effects
+d KW: random effects
+d KW: proportions
+d
+d Requires: Stata version 14
+d
+d Distribution-Date: 20230306
+d
+d Author: Victoria Nyawira Nyaga, Belgian Cancer Center/Unit of Cancer Epidemiology, Brussels
+d Support: email Victoria.NyawiraNyaga@sciensano.be
+d 
+f lmetapreg.mlib
+f metapreg.ado	
+f metapreg.sthlp
+f metapreg_examples.ado
+f bcg.dta
+f paired.dta
+f schizo.dta
