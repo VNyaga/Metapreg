@@ -30,5 +30,5 @@ f metapreg.ado
 f metapreg.sthlp
 f metapreg_examples.ado
 f bcg.dta
-f paired.dta
+f matched.dta
 f schizo.dta
