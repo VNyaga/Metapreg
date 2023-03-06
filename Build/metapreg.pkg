@@ -1,6 +1,6 @@
 v 1.3.0
 d
-p 'metapreg': Stata module to compute fixed and random effects meta-analysis and meta-regression of proportions
+d 'metapreg': Stata module to compute fixed and random effects meta-analysis and meta-regression of proportions
 d
 d This routine provides procedures for pooling proportions in a 
 d meta-analysis of multiple studies study and/or displays the results 
@@ -22,7 +22,7 @@ d Requires: Stata version 14
 d
 d Distribution-Date: 20230306
 d
-d Author: Victoria Nyawira Nyaga, Belgian Cancer Center/Unit of Cancer Epidemiology, Brussels
+d Author: Victoria N Nyaga, Belgian Cancer Center/Unit of Cancer Epidemiology, Brussels
 d Support: email Victoria.NyawiraNyaga@sciensano.be
 d 
 f lmetapreg.mlib
