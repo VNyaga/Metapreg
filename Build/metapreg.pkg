@@ -1,5 +1,5 @@
 v 1.3.0
-d 'METAPREG': Stata module to compute fixed and random effects meta-analysis and meta-regression of proportions
+d metapreg Stata module to compute fixed and random effects meta-analysis and meta-regression of proportions
 d This routine provides procedures for pooling proportions in a 
 d meta-analysis of multiple studies study and/or displays the results 
 d in a forest plot. The pooled estimates are a weighted averages or 
