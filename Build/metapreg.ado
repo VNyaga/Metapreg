@@ -61,13 +61,14 @@ version 14.1
 		CIOpts(string) 
 		DIAMopts(string) 
 		DOUBLE 
+		GOF //Goodness of fit
 		DOWNload(string asis) 
 		DP(integer 2) 
 		Level(integer 95) 
 		INTeraction
 		LABEL(string) 
 		LCols(varlist) 
-		Model(string) //model(random|fixed|exact, options)
+		Model(string) //model(random|mixed|fixed|exact, options)
 		noGRaph 
 		noOVerall 
 		noOVLine 
@@ -175,6 +176,7 @@ version 14.1
 	}
 	
 	//General housekeeping
+	//Mixed or random are synonym
 	if 	"`model'" == "" {
 		local model random
 	}
@@ -187,7 +189,7 @@ version 14.1
 	if strpos("`model'", "f") == 1 {
 		local model "fixed"
 	}
-	else if strpos("`model'", "r") == 1 {
+	else if (strpos("`model'", "r") == 1) | (strpos("`model'", "m") == 1) {
 		local model "random"
 	}
 	else if strpos("`model'", "e") == 1 {
@@ -195,7 +197,7 @@ version 14.1
 	}
 	else {
 		di as error "Invalid option `model'"
-		di as error "Specify either fixed, random, or exact"
+		di as error "Specify either fixed, random, mixed, or exact"
 		exit
 	}
 	if "`model'" == "fixed" & strpos("`modelopts'", "ml") != 0 {
@@ -804,7 +806,7 @@ version 14.1
 			preg `event' `total' `strataif', studyid(`studyid') use(`use') regexpression(`regexpression') nu(`nu') ///
 				regressors(`regressors') catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
-				comparator(`Comparator') cimethod(`ocimethod')
+				comparator(`Comparator') cimethod(`ocimethod') `gof'
 	
 			mat `logoddsi' = r(logodds)
 			if "`catreg'" != " " | "`typevarx'" == "i"  {
@@ -1272,13 +1274,14 @@ program define preg, rclass
 		stratify
 		baselevel(passthru)
 		comparator(varname)
+		GOF
 			*];
 
 	#delimit cr
 	marksample touse, strok 
 	
 	tempvar event total invtotal predevent ill
-	tempname coefmat coefvar testlr V logodds absout absoutp rrout nltest hetout mctest absexact newobs
+	tempname coefmat coefvar testlr V logodds absout absoutp rrout nltest hetout mctest absexact newobs matgof
 	
 	tokenize `varlist'
 	qui gen `event' = `1' 
@@ -1336,6 +1339,22 @@ program define preg, rclass
 		local BHET = .
 		local P_BHET = .
 		local DF_BHET = .
+	}
+	qui estat ic
+	mat `matgof' = r(S)
+	local BIC =  `matgof'[1, 6]
+	
+	//Display GOF
+	if ("`gof'" != "") {
+		di as text "Goodness of Fit Criterion"
+		mat `matgof' = `matgof'[1..., 5..6]
+		mat rownames `matgof' = Value
+		#delimit ;
+		noi matlist `matgof',  
+					cspec(& %7s |   %8.`=`dp''f &  %8.`=`dp''f o2&) 
+					rspec(&-&) underscore  nodotz
+		;
+		#delimit cr 
 	}
 
 	estimates store metapreg_modest
@@ -1428,7 +1447,8 @@ program define preg, rclass
 		local ISQ1 = `TAU21'/(`TAU21' + `TAU22')*100
 		local ISQ2 = `TAU22'/(`TAU21' + `TAU22')*100		
 	}
-	if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {	
+	if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {
+		
 		di _n"*********************************** ************* ***************************************" _n
 		di as txt _n "Just a moment - Fitting reduced model(s) for comparison"
 		if "`abnetwork'`interaction'" !="" {
@@ -1485,6 +1505,10 @@ program define preg, rclass
 			}
 			
 			`echo' logitreg `event' `total' if `touse',  modelopts(`modelopts') model(`model') regexpression(`nureduced') sid(`studyid') level(`level')  nested(`first') `abnetwork'
+			
+			qui estat ic
+			mat `matgof' = r(S)
+			local BICmc = `matgof'[1, 6]
 			estimates store metapreg_Null
 			
 			//LR test the model
@@ -1495,10 +1519,10 @@ program define preg, rclass
 			estimates drop metapreg_Null
 			
 			if `initial' == 1  {
-				mat `mctest' = [`lrchi2', `lrdf', `lrp']
+				mat `mctest' = [`lrchi2', `lrdf', `lrp', `=`BICmc'-`BIC'']
 			}
 			else {
-				mat `mctest' =  `mctest' \ [`lrchi2', `lrdf', `lrp']
+				mat `mctest' =  `mctest' \ [`lrchi2', `lrdf', `lrp', `=`BICmc'-`BIC'']
 			}
 			local rownameslr "`rownameslr' `omterm'"
 			
@@ -1520,6 +1544,11 @@ program define preg, rclass
 			}
 			
 			`echo' logitreg `event' `total' if `touse', modelopts(`modelopts') model(`model') regexpression(mu) sid(`studyid') level(`level')  nested(`first') `abnetwork'
+			
+			qui estat ic
+			mat `matgof' = r(S)
+			local BICmc = `matgof'[1, 6]
+			
 			estimates store metapreg_Null
 			
 			qui lrtest metapreg_modest metapreg_Null
@@ -1529,11 +1558,11 @@ program define preg, rclass
 			
 			estimates drop metapreg_Null
 			
-			mat `mctest' = `mctest' \ [`lrchi2', `lrdf', `lrp']
+			mat `mctest' = `mctest' \ [`lrchi2', `lrdf', `lrp', `=`BICmc'-`BIC'']
 			local rownameslr "`rownameslr' All"
 		}
 		mat rownames `mctest' = `rownameslr'
-		mat colnames `mctest' =  chi2 df p
+		mat colnames `mctest' =  chi2 df p Delta_BIC
 	}
 		//LOG ODDS
 		estp, estimates(metapreg_modest) `interaction' catreg(`catreg') contreg(`contreg') level(`level') model(`model') ///
@@ -1589,7 +1618,7 @@ program define preg, rclass
 		}
 		else {
 			mat `hetout' = (`DF_BHET', `BHET' ,`P_BHET', `TAU21')
-			mat colnames `hetout' = DF Chisq p tau2
+			mat colnames `hetout' = DF Chisq p tau2 
 		}
 	}
 	mat rownames `hetout' = Model
@@ -2783,7 +2812,7 @@ program define printmat
 			local rownamesmaxlen = max(`rownamesmaxlen', 15) //Check if there is a longer name
 			#delimit ;
 			noi matlist `matrixout', rowtitle(Excluded Effect) 
-				cspec(& %`=`rownamesmaxlen' + 2's |  %8.`=`dp''f &  %8.0f &  %8.`=`dp''f o2&) 
+				cspec(& %`=`rownamesmaxlen' + 2's |  %8.`=`dp''f &  %8.0f &  %8.`=`dp''f &  %15.`=`dp''f o2&) 
 				rspec(`rspec') underscore nodotz
 			;
 		
@@ -2794,6 +2823,8 @@ program define printmat
 			else {
 				di as txt "*NOTE: Model with and without main effect(s)"
 			}
+			
+			di as txt "*NOTE: Delta BIC = Difference in BIC between the specified model and reduced model. "
 		}
 		
 		if ("`continuous'" != "") {
@@ -2841,13 +2872,14 @@ syntax, marginlist(string) [varx(varname) by(varname) confounders(varlist) level
 			
 			forvalues l = 1/`nlevels' {
 				if `l' != `baselevel' {
-					if `init' == 1 {
+					/*if `init' == 1 {
 						local test_`c' = "_b[`c'_`l']"
 						local init 0
 					}
 					else {
 						local test_`c' = "_b[`c'_`l'] = `test_`c''"
-					}
+					}*/
+					local test_`c' = "_b[`c'_`l'] = `test_`c''"
 				}
 				local EstRlnexpression = "`EstRlnexpression' (`c'_`l': ln(invlogit(_b[`l'.`c'])) - ln(invlogit(_b[`baselevel'.`c'])))"	
 			}
