@@ -984,7 +984,7 @@ version 14.1
 			groupvar(`groupvar') `prediction'  ///
 			outplot(`outplot') lcols(`lcols') rcols(`rcols') ///
 			ciopts(`ciopts') astext(`astext') diamopts(`diamopts') ///
-			olineopts(`olineopts') sumstat(`sumstat') pointopt(`pointopts') ///
+			olineopts(`olineopts') sumstat(`sumstat') pointopt(`pointopts') boxopt(`boxopts') ///
 			`double' `subline' texts(`texts') `xlabel' `xtick' ///
 			`ovline' `stats'  graphsave(`graphsave')`fopts' `xline' `logscale' `design' `wt' `box'
 	}
