@@ -122,8 +122,9 @@ version 14.1
 		}
 	}
 	qui {
-		gen mu = 1
-		gen _ESAMPLE = 0
+		cap gen mu = 1
+		cap gen _ESAMPLE = 0
+		cap drop _WT
 		gen _WT = .
 	}
 	
@@ -1405,8 +1406,9 @@ program define preg, rclass
 		}
 	}
 	else {
-		qui gen `predevent' = `absexact'[1, 1]*`event' if (_ESAMPLE == 1)
+		qui gen `predevent' = `absexact'[1, 1]*`total' if (_ESAMPLE == 1)
 	}
+	
 	
 	//compute the likelihood contribution
 	qui gen `ill' = `event'*ln(`predevent'/`total') + (`total' - `event')*ln(1 - (`predevent'/`total')) if (_ESAMPLE == 1)
@@ -3288,6 +3290,26 @@ end
 
 	end
 	
+/*==================================== GETWIDTH  ================================================*/
+/*===============================================================================================*/
+capture program drop getlen
+program define getlen
+version 14.1
+//From metaprop
+
+qui{
+
+	gen `2' = 0
+	count
+	local N = r(N)
+	forvalues i = 1/`N'{
+		local this = `1'[`i']
+		local width: _length "`this'"
+		replace `2' =  `width' in `i'
+	}
+} 
+
+end
 
 /*	SUPPORTING FUNCTIONS: FPLOT ++++++++++++++++++++++++++++++++++++++++++++++++
 			The forest plot
@@ -3740,19 +3762,19 @@ end
 		local leftWDtotNoTi = 0
 
 		forvalues i = 1/`lcolsN'{
-			getWidth `leftLB`i'' `leftWD`i''
+			getlen `leftLB`i'' `leftWD`i''
 			qui summ `leftWD`i'' if `use' != 3 	// DON'T INCLUDE OVERALL STATS AT THIS POINT
 			local maxL = r(max)
 			local leftWDtotNoTi = `leftWDtotNoTi' + `maxL'
 			replace `leftWD`i'' = `maxL'
 		}
 		tempvar titleLN				// CHECK IF OVERALL LENGTH BIGGER THAN REST OF LCOLS
-		getWidth `leftLB1' `titleLN'	
+		getlen `leftLB1' `titleLN'	
 		qui summ `titleLN' if `use' == 3
 		local leftWDtot = max(`leftWDtotNoTi', r(max))
 
 		forvalues i = 1/`rcolsN'{
-			getWidth `rightLB`i'' `rightWD`i''
+			getlen `rightLB`i'' `rightWD`i''
 			qui summ `rightWD`i'' if  `use' != 3
 			
 			replace `rightWD`i'' = r(max)
@@ -3764,7 +3786,7 @@ end
 		// LOOK FOR EDGE OF DIAMOND summ `lci' if `use' == ...
 
 		tempvar maxLeft
-		getWidth `leftLB1' `maxLeft'
+		getlen `leftLB1' `maxLeft'
 		qui count if `use' == 2 | `use' == 3 
 		if r(N) > 0 {
 			summ `maxLeft' if `use' == 2 | `use' == 3 	// NOT TITLES THOUGH!
@@ -4196,24 +4218,5 @@ end
 		}
 end
 
-/*==================================== GETWIDTH  ================================================*/
-/*===============================================================================================*/
-capture program drop getWidth
-program define getWidth
-version 14.1
-//From metaprop
 
-qui{
-
-	gen `2' = 0
-	count
-	local N = r(N)
-	forvalues i = 1/`N'{
-		local this = `1'[`i']
-		local width: _length "`this'"
-		replace `2' =  `width' in `i'
-	}
-} 
-
-end
 
