@@ -38,9 +38,8 @@ DATE:						DETAILS:
 11.02.2023					change network to abnetwork, paired to pcbnetwork, matched to mcbnetwork							
 							Work on: hetout, stratify marginal results with 1 study
 07.03.2023					change independent to general
-21.03.2023					Compute weights from the maximizied log likelihood
+21.03.2023					Compute weights from the maximized log likelihood
 							Exact inference in few studies
-
 */
 
 
@@ -2824,7 +2823,7 @@ program define printmat
 				di as txt "*NOTE: Model with and without main effect(s)"
 			}
 			
-			di as txt "*NOTE: Delta BIC = Difference in BIC between the specified model and reduced model. "
+			di as txt "*NOTE: Delta BIC = BIC (specified model) - BIC (reduced model) "
 		}
 		
 		if ("`continuous'" != "") {
@@ -3864,7 +3863,7 @@ end
 	}
 	
 	if `"`diamopts'"' == "" {
-		local diamopts "lcolor("0 0 100")"
+		local diamopts "lcolor(red)"
 	}
 	else {
 		if strpos(`"`diamopts'"',"hor") != 0 | strpos(`"`diamopts'"',"vert") != 0 {
@@ -3946,7 +3945,7 @@ end
 	}
 	// PREDCI options
 	if `"`predciopts'"' == "" {
-		local predciopts "lcolor("0 0 0") lpattern(solid)"
+		local predciopts "lcolor(red) lpattern(solid)"
 	}
 	else {
 		if strpos(`"`predciopts'"',"hor") != 0 | strpos(`"`predciopts'"',"vert") != 0{
@@ -3961,7 +3960,7 @@ end
 			local predciopts = `"`predciopts' lpattern(solid)"' 
 		}
 		if `"`predciopts'"' != "" & strpos(`"`predciopts'"',"lc") == 0{
-			local predciopts = `"`predciopts' lcolor("0 0 0")"' 
+			local predciopts = `"`predciopts' lcolor(red)"' 
 		}
 		local predciopts `"`predciopts'"'
 	}
@@ -3988,7 +3987,7 @@ end
 	tempvar tempOv overrallLine ovMin ovMax h0Line
 	
 	if `"`olineopts'"' == "" {
-		local olineopts "lwidth(thin) lcolor(maroon) lpattern(shortdash)"
+		local olineopts "lwidth(thin) lcolor(red) lpattern(shortdash)"
 	}
 	qui summ `id'
 	local DYmin = r(min)
