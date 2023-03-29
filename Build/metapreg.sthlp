@@ -33,7 +33,7 @@ of proportions with binomial distribution, logistic and logistic-normal regressi
 [{it:{help metapreg##options_table:options}}]
 
 {p 8 8 2}
-{it:{depvars}} has the form {cmd: n N} in a {cmd: general/comparative/abnetwork} meta-analysis, {cmd: a b c d} in matched({cmd:mcbnetwork}) studies, and {cmd: ab ac N} in {cmd:pcbnetwork} studies.{p_end}
+{it:{depvars}} has the form {cmd: n N} in a {cmd: basic/comparative/abnetwork} meta-analysis, {cmd: a b c d} in matched({cmd:mcbnetwork}) studies, and {cmd: ab ac N} in {cmd:pcbnetwork} studies.{p_end}
 
 {p 8 8 2}
 {it:studyid} is a variable identifying each study.{p_end}
@@ -159,7 +159,7 @@ be comma separated.{p_end}
 {synopthdr :design}
 {synoptline}
 
-{synopt :{opt general}} notifies the program to perform a general/typical meta-analysis. The program expects atleast {cmd: n N} to be specified {p_end}
+{synopt :{opt basic}} notifies the program to perform a basic/typical meta-analysis. The program expects atleast {cmd: n N} to be specified {p_end}
 {synopt :{opt comparative}} notifies the program that the data is from comparative studies. The program expects atleast {cmd: n N bicat} to be specified {p_end}
 {synopt :{opt pcbnetwork}} notifies the program that the data is from paired studies. The program expects atleast {cmd: a b c d index comparator} to be is supplied{p_end}
 {synopt :{opt mcbnetwork}} notifies the program that the data is from matched studies. The program expects atleast {cmd: ab ac n index comparator} to be is supplied{p_end}
@@ -260,11 +260,11 @@ the maximization process during refinement of starting values
 
 {phang}
 {opt design(type, baselevel(label))} specifies the type of the studies or design of the meta-analysis to perform. 
-{it:design} is one of the following {cmd:general},
+{it:design} is one of the following {cmd:basic},
 {cmd:comparative}, {cmd:mcbnetwork}, {cmd:pcbnetwork} and {cmd:abnetwork}. 
 
 {pmore}
-{cmd:design(general)} request for a general meta-analysis. The required {it:{vars}} has the form {cmd: n N}.
+{cmd:design(basic)} request for a basic meta-analysis. The required {it:{vars}} has the form {cmd: n N}.
 
 {pmore}
 {cmd:design(comparative)} indicates that the data is from comparative studies i.e there are two rows of data per each {cmd: studyid}. The required {it:{vars}} has the form {cmd: n N bicat} 
