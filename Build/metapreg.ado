@@ -37,7 +37,7 @@ DATE:						DETAILS:
 							stratify + comparative + outplot(RR) 
 11.02.2023					change network to abnetwork, paired to pcbnetwork, matched to mcbnetwork							
 							Work on: hetout, stratify marginal results with 1 study
-07.03.2023					change independent to general
+07.03.2023					change independent to basic
 21.03.2023					Compute weights from the maximized log likelihood
 							Exact inference in few studies
 */
@@ -79,7 +79,7 @@ version 14.1
 		OLineopts(string) 
 		outplot(string)
 		SUMTable(string) //none|logit|abs|rr|all
-		DESign(string) //design(general|matched-mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string))
+		DESign(string) //design(basic|matched-mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string))
 		POINTopts(string) 
 		BOXopts(string) 
 		POwer(integer 0)
@@ -138,7 +138,7 @@ version 14.1
 		global by_index_ 
 	}
 	if "`design'" == "" {
-		local design = "general"
+		local design = "basic"
 	}
 	else {
 		tokenize "`design'", parse(",")
@@ -267,7 +267,7 @@ version 14.1
 	}
 	
 	tokenize `varlist'
-	if "`design'" == "general" | "`design'" == "comparative" | "`design'" == "abnetwork"  {
+	if "`design'" == "basic" | "`design'" == "comparative" | "`design'" == "abnetwork"  {
 		gen `event' = `1'
 		gen `total' = `2'
 		
@@ -397,7 +397,7 @@ version 14.1
 	}
 	else {
 		if "`outplot'" == "rr" {
-			cap assert "`design'" != "general"
+			cap assert "`design'" != "basic"
 			if _rc != 0 {
 				di as error "Option outplot(rr) only avaialable for comparative/mcbnetwork/pcbnetwork/abnetwork designs with first covariate as string"
 				di as error "Specify the first string covariate and the appropriate design(comparative/mcbnetwork/pcbnetwork/abnetwork)"
@@ -553,7 +553,7 @@ version 14.1
 	}
 	
 	/*Model presenations*/
-	if "`design'" == "general" | "`design'" == "comparative" {
+	if "`design'" == "basic" | "`design'" == "comparative" {
 		local nu = "mu"
 	}
 	else if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" {
@@ -593,7 +593,7 @@ version 14.1
 			macro shift
 			local catregs "`*'"
 		}
-		if "`design'" == "general" {
+		if "`design'" == "basic" {
 			local catregs "`catreg'"
 		}
 	}
@@ -755,7 +755,7 @@ version 14.1
 		di as res _n "*********************************** Fitted model`stratalab' ***************************************"  _n
 		
 		tokenize `depvars'
-		if "`design'" == "general" | "`design'" == "abnetwork" {
+		if "`design'" == "basic" | "`design'" == "abnetwork" {
 				di "{phang} `1' ~ binomial(p, `2'){p_end}"
 		}
 		else if "`design'" == "mcbnetwork"  {
@@ -1036,7 +1036,7 @@ program define metapregci, rclass
 	#delimit ;
 	syntax varlist(min=2 max=4), studyid(varname) [es(name) se(name) uci(name) lci(name)
 		id(name) rid(varname) regressors(varlist) outplot(string) level(integer 95) by(varname)
-		cimethod(string) lcols(varlist) rcols(varlist) mcbnetwork pcbnetwork sortby(varlist) comparative abnetwork general
+		cimethod(string) lcols(varlist) rcols(varlist) mcbnetwork pcbnetwork sortby(varlist) comparative abnetwork basic
 		];
 	#delimit cr
 	tempvar uniq event event1 event2 total total1 total2 a b c d idpair
@@ -1724,7 +1724,7 @@ end
 cap program drop logitreg
 program define logitreg
 	version 14.1
-	syntax varlist [if] [in], [ model(string) modelopts(string asis) regexpression(string) sid(varname) level(integer 95) mcbnetwork pcbnetwork abnetwork general comparative nested(string)]
+	syntax varlist [if] [in], [ model(string) modelopts(string asis) regexpression(string) sid(varname) level(integer 95) mcbnetwork pcbnetwork abnetwork basic comparative nested(string)]
 	
 	marksample touse, strok 
 	
@@ -1908,7 +1908,7 @@ cap program drop longsetup
 program define longsetup
 version 14.1
 
-syntax varlist, rid(name) assignment(name) event(name) total(name) idpair(name) [ mcbnetwork pcbnetwork abnetwork general comparative ]
+syntax varlist, rid(name) assignment(name) event(name) total(name) idpair(name) [ mcbnetwork pcbnetwork abnetwork basic comparative ]
 
 	qui {
 	
@@ -1960,7 +1960,7 @@ end
 	program define widesetup, rclass
 	version 14.1
 
-	syntax varlist, sid(varlist) idpair(varname) [sortby(varlist) jvar(varname) mcbnetwork pcbnetwork abnetwork general comparative]
+	syntax varlist, sid(varlist) idpair(varname) [sortby(varlist) jvar(varname) mcbnetwork pcbnetwork abnetwork basic comparative]
 
 		qui{
 			tokenize `varlist'
@@ -2012,7 +2012,7 @@ version 14.1
 	syntax varlist, [rrout(name) absout(name) absoutp(name) sortby(varlist) by(varname) hetout(name) model(string) prediction
 		groupvar(varname) summaryonly nooverall nosubgroup outplot(string) grptotal(name) download(string asis) 
 		indvars(varlist) depvars(varlist) dp(integer 2) stratify pcont(integer 0) level(integer 95)
-		comparative abnetwork general pcbnetwork mcbnetwork]
+		comparative abnetwork basic pcbnetwork mcbnetwork]
 	;
 	#delimit cr
 	tempvar  expand 
@@ -2306,7 +2306,7 @@ end
 	program define buildregexpr, rclass
 	version 13.1
 		
-		syntax varlist, [interaction alphasort mcbnetwork pcbnetwork abnetwork general comparative ipair(varname) baselevel(string)]
+		syntax varlist, [interaction alphasort mcbnetwork pcbnetwork abnetwork basic comparative ipair(varname) baselevel(string)]
 		
 		tempvar holder
 		tokenize `varlist'
@@ -2346,7 +2346,7 @@ end
 		local catreg " "
 		local contreg " "
 		
-		if "`general'`comparative'" != "" {
+		if "`basic'`comparative'" != "" {
 			local regexpression = "mu"
 		}
 		else if "`mcbnetwork'`pcbnetwork'" != "" {
@@ -2435,7 +2435,7 @@ end
 	program define estp, rclass
 	version 14.1
 		syntax, estimates(string) [expit DP(integer 2) model(string) varx(varname) typevarx(string) regexpression(string) comparator(varname) ///
-				mcbnetwork pcbnetwork abnetwork general comparative stratify interaction catreg(varlist) contreg(varlist) power(integer 0) level(integer 95) by(varname)]
+				mcbnetwork pcbnetwork abnetwork basic comparative stratify interaction catreg(varlist) contreg(varlist) power(integer 0) level(integer 95) by(varname)]
 		
 		tempname coefmat outmatrix outmatrixp matrixout bycatregmatrixout catregmatrixout contregmatrixout row outmatrixr overall Vmatrix byVmatrix
 		
@@ -2728,7 +2728,7 @@ end
 cap program drop printmat
 program define printmat
 	version 13.1
-	syntax, matrixout(name) type(string) [sumstat(string) dp(integer 2) power(integer 0) mcbnetwork pcbnetwork abnetwork general comparative continuous]
+	syntax, matrixout(name) type(string) [sumstat(string) dp(integer 2) power(integer 0) mcbnetwork pcbnetwork abnetwork basic comparative continuous]
 	
 		local nrows = rowsof(`matrixout')
 		local ncols = colsof(`matrixout')
@@ -2969,7 +2969,7 @@ end
 	program define estr, rclass
 	version 13.1
 		syntax, estimates(string) [catreg(varlist) typevarx(string) varx(varname) comparator(varname) ///
-			level(integer 95) DP(integer 2) mcbnetwork pcbnetwork abnetwork general comparative stratify power(integer 0) by(varname) ///
+			level(integer 95) DP(integer 2) mcbnetwork pcbnetwork abnetwork basic comparative stratify power(integer 0) by(varname) ///
 			regexpression(string) baselevel(integer 1)  interaction ]
 		
 		local ZOVE -invnorm((100-`level')/200)
@@ -3365,7 +3365,7 @@ end
 		abnetwork
 		pcbnetwork
 		mcbnetwork
-		general
+		basic
 		*
 	  ];
 	#delimit cr
