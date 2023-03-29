@@ -15,45 +15,40 @@ set more off
 use "https://github.com/VNyaga/Metapreg/blob/master/margins.dta?raw=true", clear
 
 metapreg tpos n, studyid(study) sumtable(abs) dp(2) power(2) /// 
-	plotregion(color(white)) graphregion(color(white)) by(treatment) stratify ///
+	graphregion(color(white)) by(treatment) stratify ///
 	xlab(0, 25, 50, 75, 100) xtick(0, 25, 50, 75, 100) ///
 	sumstat(Positive Margins (%)) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) texts(1.2)
+	texts(1.2)
 
 **Figure 1
 set more off
 metapreg tpos n if treatment=="CKC", studyid(study) sumtable(abs) dp(2) power(2) /// 
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(0, 25, 50, 75, 100) xtick(0, 25, 50, 75, 100) ///
 	sumstat(+ve Margins) tit("CKC") fysize(35) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) texts(1.65) graphsave("f1.gph")
+	texts(1.65) astext(80) graphsave("f1.gph")
 
 *Graph 2 	
 set more off
 metapreg tpos n if treatment=="LC", studyid(study) sumtable(abs) dp(2) power(2) /// 
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(0, 25, 50, 75, 100) xtick(0, 25, 50, 75, 100) ///
 	sumstat(+ve Margins) tit("LC") ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) texts(1.75) graphsave("f2.gph")
+	texts(1.75) astext(80) graphsave("f2.gph")
 
 set more off
 metapreg tpos n if treatment=="LLETZ", studyid(study) sumtable(abs) dp(2) power(2) /// 
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(0, 25, 50, 75, 100) xtick(0, 25, 50, 75, 100) ///
 	sumstat(+ve Margins) tit("LLETZ")	 ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) texts(1.5)	 graphsave("f3.gph")
+	texts(1.5) astext(80) graphsave("f3.gph")
 
 set more off
 metapreg tpos n if treatment=="Mixed", studyid(study) sumtable(abs) dp(2) power(2) /// 
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(0, 25, 50, 75, 100) xtick(0, 25, 50, 75, 100) ///
 	sumstat(+ve Margins) tit("Mixed") ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) texts(1.75) graphsave("f4.gph")
+	texts(1.75) astext(80) graphsave("f4.gph")
 
 
 gr combine f1.gph f3.gph, graphregion(color(white)) cols(1)  imargin(0 0 0 0)
@@ -67,15 +62,14 @@ gr combine 13.gph 24.gph, cols(2) graphregion(color(white))  iscale(1)
 **Codesnippet 3
 set more off
 metapreg tpos n treatment, studyid(study) sumtable(abs rr) dp(4)  /// 
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(0, .25, .50, .75, 1) xtick(0, .25, .50, .75, 1) ///
 	sumstat(+ve Margins (%)) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) texts(1.2)
+	texts(1.2)
 
 
 **Codesnippet 4
-use "https://github.com/VNyaga/Metapreg/blob/master/bcg.dta?raw=true", clear
+use "https://github.com/VNyaga/Metapreg/blob/master/Build/bcg.dta?raw=true", clear
 
 //Random - Adjusted
 set more off
@@ -83,19 +77,13 @@ metapreg cases_tb population bcg lat, ///
 	studyid(study) sortby(lat) ///
 	sumtable(all) design(comparative) ///
 	outplot(rr) interaction ///
-	plotregion(color(white)) ///
 	graphregion(color(white)) ///
 	xlab(0.1, 1, 2) xtick(0.1, 1, 2) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) ///
 	lcols(lat) rcols(cases_tb population) ///
-	astext(80) texts(2) logscale ///
+	astext(80) texts(1.5) logscale ///
 	sumstat(TB risk ratio)  ///
-	xline(1, lcolor(black))
+	xline(1, lcolor(black)) gof
 	
-estimates restore metapreg_modest
-estimates replay
-estat ic
 
 //Random - Unadjusted
 set more off
@@ -103,38 +91,25 @@ metapreg cases_tb population bcg, ///
 	studyid(study) sortby(lat) ///
 	sumtable(all) design(comparative) ///
 	outplot(rr) ///
-	plotregion(color(white)) ///
 	graphregion(color(white)) ///
 	xlab(0.1, 1, 2) xtick(0.1, 1, 2) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) ///
 	lcols(lat) rcols(cases_tb population) ///
-	astext(80) texts(2) logscale ///
+	astext(80) texts(1.5) logscale ///
 	sumstat(TB risk ratio)  ///
-	xline(1, lcolor(black))
+	xline(1, lcolor(black)) gof
 	
-estimates restore metapreg_modest
-estimates replay
-estat ic
 
 //Fixed - Adjusted
 metapreg cases_tb population bcg lat, model(fixed) ///
 	studyid(study) sortby(lat) ///
 	sumtable(all) design(comparative) ///
 	outplot(rr) interaction ///
-	plotregion(color(white)) ///
 	graphregion(color(white)) ///
 	xlab(0.1, 1, 2) xtick(0.1, 1, 2) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) ///
 	lcols(lat) rcols(cases_tb population) ///
-	astext(80) texts(2) logscale ///
+	astext(80) texts(1.5) logscale ///
 	sumstat(TB risk ratio)  ///
-	xline(1, lcolor(black))	
-
-estimates restore metapreg_modest
-estimates replay
-estat ic
+	xline(1, lcolor(black))	gof
 
 //Fixed - Unadjusted
 set more off
@@ -142,19 +117,13 @@ metapreg cases_tb population bcg, model(fixed) ///
 	studyid(study) sortby(lat) ///
 	sumtable(all) design(comparative) ///
 	outplot(rr) ///
-	plotregion(color(white)) ///
 	graphregion(color(white)) ///
 	xlab(0.1, 1, 2) xtick(0.1, 1, 2) ///
-	olineopt(lcolor(red) lpattern(shortdash)) ///
-	diamopt(lcolor(red)) ///
 	lcols(lat) rcols(cases_tb population) ///
-	astext(80) texts(2) logscale ///
+	astext(80) texts(1.5) logscale ///
 	sumstat(TB risk ratio)  ///
-	xline(1, lcolor(black))
+	xline(1, lcolor(black)) gof
 	
-estimates restore metapreg_modest
-estimates replay
-estat ic
 
 **Codesnippet 5
 use "https://github.com/VNyaga/Metapreg/blob/master/ivmg_acute_myo_infarct_wide.dta?raw=true", clear
@@ -172,31 +141,28 @@ reshape long event noevent total, i(study) j(group) string
 sort at year study group 
 set more off
 
+//Fixed
 metapreg event total group at, model(fixed) ///
 studyid(study) sumtable(all) design(comparative) outplot(rr) ///
 xlab(0, 1, 3) xtick(0, 1, 3) sortby(year) ///
-texts(2) logscale sumstat(RR of death) ///
-rcols(event total) astext(80)
+texts(1.5) logscale sumstat(RR of death) ///
+rcols(event total) astext(80) gof ///
+graphregion(color(white)) 
 
-estimates restore metapreg_modest
-estat ic
 
-//Something wrong in the model comparison stats
+//Random
 set more off
 metapreg event total group at,  ///
 studyid(study) sumtable(all) design(comparative) outplot(rr) ///
 xlab(0, 1, 3) xtick(0, 1, 3) sortby(year) ///
 texts(2) logscale sumstat(RR of death) ///
-astext(80) by(at) ///
+astext(80)	///
 rcols(event total) ///
-plotregion(color(white)) ///
-graphregion(color(white)) 
+graphregion(color(white)) gof
 
-estimates restore metapreg_modest
-estat ic
 	
 **Codesnippet 6 - contrast based network
-use "https://github.com/VNyaga/Metapreg/blob/master/matched.dta?raw=true", clear
+use "https://github.com/VNyaga/Metapreg/blob/master/Build/matched.dta?raw=true", clear
 
 netplot comparator index, label arrows type(circle)
 
@@ -209,42 +175,32 @@ metapreg a b c d index comparator,  l(90) ///
     design(mcbnetwork)  ///
 	by(index) ///
     outplot(rr) ///
-    plotregion(color(white)) /// 
     graphregion(color(white)) /// 
     xlab(0.9, 1, 1.1) /// 
     xtick(0.9, 1, 1.1)  ///
-    olineopt(lcolor(red) lpattern(shortdash)) /// 
-    diamopt(lcolor(red)) /// 
     lcols(a b c d comparator) /// 
     astext(80) texts(1.5) logscale ///
 	sumstat(Rel. Sensitivity)	///
-	xline(.9, lcolor(black)) dp(3)
+	xline(.9, lcolor(black)) dp(3) gof
 	
-	estimates restore metapreg_modest
-	estat ic
 
     //random
 	set more off
-metapreg a b c d index comparator,  l(90) /// 
+	metapreg a b c d index comparator,  l(90) /// 
     studyid(study) ///
     model(random)  /// 
     sumtable(all) ///
     design(mcbnetwork)  ///
 	by(index) ///
     outplot(rr) ///
-    plotregion(color(white)) /// 
     graphregion(color(white)) /// 
     xlab(0.9, 1, 1.1) /// 
     xtick(0.9, 1, 1.1)  ///
-    olineopt(lcolor(red) lpattern(shortdash)) /// 
-    diamopt(lcolor(red)) /// 
     lcols(a b c d comparator) /// 
     astext(80) texts(1.5) logscale ///
 	sumstat(Rel. Sensitivity)	///
-	xline(.9, lcolor(black)) dp(3)
+	xline(.9, lcolor(black)) dp(3) gof
 	
-	estimates restore metapreg_modest
-	estat ic	
 
 **Codesnippet 7 - stratified analysis
 use "https://github.com/VNyaga/Metapreg/blob/master/maniacefficacy.dta?raw=true", clear
@@ -252,7 +208,7 @@ use "https://github.com/VNyaga/Metapreg/blob/master/maniacefficacy.dta?raw=true"
 set more off
 metapreg event total, stratify by(drug) ///
 	studyid(study) model(random) sumtable(all) ///
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(0, .5, 1) xtick(0, .5, 1)  texts(2.25) xline(0.5) ///
 	sumstat(Response Rate) summaryonly nooverall
 
@@ -295,10 +251,9 @@ metapreg event total drug if PLA, ///
 	studyid(study) nomc  ///
 	model(random) design(comparative) sumtable(all) ///
 	outplot(rr) stratify by(treatment) ///
-	plotregion(color(white)) ///
-graphregion(color(white) margin(zero)) ///
+	graphregion(color(white) margin(zero)) ///
 	xlab(.5, 1, 2, 2.5) xtick(.5, 1, 2, 2.5) ///
-	sumstat(Response Rate Ratio) diamopt(lcolor(red)) ///
+	sumstat(Response Rate Ratio)  ///
 	texts(1.5) logscale xline(1) astext(40) xsize(7) ysize(10)
 
 **Codesnippet 10 - arm based netwrok meta-analysis
@@ -309,7 +264,7 @@ set more off
 metapreg event total drug, studyid(study) ///
 	sumtable(all) outplot(rr) ///
 	design(abnetwork, baselevel(PLA)) ///
-	plotregion(color(white)) graphregion(color(white)) ///
+	graphregion(color(white)) ///
 	xlab(.5, 1, 1.5, 2) xtick(.5, 1, 1.5, 2) ///
 	sumstat(Response Rate Ratio) ///
 	texts(1.5) logscale xline(1)
