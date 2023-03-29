@@ -209,6 +209,11 @@ version 14.1
 		exit
 	}
 	
+	//Avoid Incosistencies & Redundancies
+	if "`stratify'" != "" & "`summaryonly'" != "" {
+		local wt nowt
+	}
+	
 	//CI method
 	if "`cimethod'" == "" {
 		local icimethod "exact"
@@ -2190,6 +2195,8 @@ version 14.1
 			drop if `use' == 1 | `use' == -2
 			replace `use' = 1 if `use' == 2
 		}
+		//Remove weight if 1 study
+		qui replace _WT= . if (`use' == 1) & (`grptotal' == 1) 
 		
 		gsort `groupvar' `sortby' `id' 
 		
@@ -3000,9 +3007,11 @@ end
 		local marginlist
 		while "`catreg'" != "" {
 			tokenize `catreg'
-			local marginlist = `"`marginlist' `1'`idpairconcat'"'
+			local first "`1'"
 			macro shift 
 			local catreg `*'
+			
+			local marginlist = `"`marginlist' `first'`idpairconcat'"'
 		}
 		
 		tempname lcoef lV outmatrix row outmatrixr overall  nltest rowtestnl testmat2print bymat ///
