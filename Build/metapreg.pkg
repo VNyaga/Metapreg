@@ -1,4 +1,4 @@
-v 1.3.0
+v 1.4.0
 d metapreg Stata module to perform fixed, random and mixed effects meta-analysis, meta-regression and network meta-analysis of proportions
 d This routine provides procedures for pooling proportions in a 
 d meta-analysis of multiple studies study and/or displays the results 
