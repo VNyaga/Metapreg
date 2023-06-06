@@ -420,6 +420,7 @@ void U0(real scalar a, real scalar r, real rowvector v){
 	}
 }
 //************************************************************************	
+/*
 void numint_fe(real scalar len) {
 	nu = st_data(., ("nu_b"))
 	Ocoef = st_matrix("e(b)")
@@ -437,8 +438,9 @@ void numint_fe(real scalar len) {
 
 	st_store(., "pi_int", pi)
 }
+*/
 //************************************************************************
-void numint_re(real scalar len) {
+/*void numint_re(real scalar len) {
 	nu = st_data(., ("nu_b"))
 	Ocoef = st_matrix("e(b)")
 	ncols = cols(Ocoef)
@@ -456,7 +458,8 @@ void numint_re(real scalar len) {
 	}
 
 	st_store(., "pi_int", pi)
-}
+}*/
+
 	mata mlib add lmetapreg *()
 	mata mlib index
 end
