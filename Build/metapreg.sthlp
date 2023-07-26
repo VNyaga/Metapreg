@@ -4,6 +4,9 @@
 {vieweralsosee "[ME] meqrlogit" "help meqrlogit"}{...}
 {vieweralsosee "[ME] meqrlogit" "mansection ME meqrlogit"}{...}
 {vieweralsosee "" "--"}{...}
+{vieweralsosee "[ME] melogit" "help melogit"}{...}
+{vieweralsosee "[ME] melogit" "mansection ME melogit"}{...}
+{vieweralsosee "" "--"}{...}
 {vieweralsosee "[R] binreg" "help binreg"}{...}
 {vieweralsosee "[R] binreg" "mansection R binreg"}{...}
 {viewerjumpto "Syntax" "metapreg##syntax"}{...}
@@ -47,7 +50,7 @@ The first covariate must be a binary variable in {cmd: comparative} analysis, an
 In {cmd:mcbnetwork} or {cmd:pcbnetwork} studies, two first string covariates required are; {it: index} variable (multi-category; with at least 2 levels) and the {it:comparator} variable.
 
 {p 8 8 2}
-{cmd:The variable names should not contain underscores}.{p_end}
+{cmd:The variable names and the group names in the string variables should not contain underscores}.{p_end}
 
 {marker description}{...}
 {title:Description}
@@ -89,7 +92,7 @@ The command requires Stata 14.1 or later versions.
 
 {synopt :{opth m:odel(metapreg##modeltype:type[, modelopts])}}specifies the type of model to fit; default is {cmd:model(random)}. 
 {help metapreg##optimization_options:modelopts} control the control the optimization process{p_end}
-{synopt :{opth des:ign(metapreg##designtype:design[, baselevel(label)])}}specifies the type of the studies or design of meta-analysis; default is {cmd:design(independent)}. 
+{synopt :{opth des:ign(metapreg##designtype:design[, baselevel(label)])}}specifies the type of the studies or design of meta-analysis; default is {cmd:design(basic)}. 
 {cmd:baselevel(label)}is relevant in abnetwork meta-analysis and indicates the label of the reference level of the covariate of interest. {p_end}
 {synopt :{opt nomc}}informs the program not to perform {cmd:m}odel {cmd:c}omparison with likelihood-ratio tests comparison for the specified model with other simpler models{p_end}
 {synopt :{opth by:(varname:byvar)}}specificies the stratifying variable for which the margins are estimated {p_end}
@@ -114,6 +117,7 @@ for the individuals({it:icytpe}) studies or the overall({it:ociytpe}) summaries 
 {synopt :{opt summary:only}}requests to show only the summary estimates{p_end}
 {synopt :{opth outp:lot(metapreg##outplot:abs|rr)}}specifies to display/plot absolute/relative measures; default is {cmd:outplot(abs)}{p_end}
 {synopt :{opth down:load(path)}}specify the location where a copy of data used to plot the forest plot should be stored {p_end}
+{synopt :{opt smooth}requests the study-specific smooth estimates {p_end}
 
 {synoptline}
 {syntab:Table}
@@ -173,7 +177,7 @@ be comma separated.{p_end}
 
 {synopt :{opt random|mixed}}fits a {cmd:random}-effects or {cmd:mixed}-effects logistic-normal model{p_end}
 {synopt :{opt fixed}}fits a {cmd:fixed}-effects logistic regression model{p_end}
-{synopt :{opt exact}}uses the exact binomial distribution{p_end}
+{synopt :{opt hexact}}uses the exact binomial distribution{p_end}
 
 {synoptline}
 
@@ -264,7 +268,7 @@ the maximization process during refinement of starting values
 {cmd:comparative}, {cmd:mcbnetwork}, {cmd:pcbnetwork} and {cmd:abnetwork}. 
 
 {pmore}
-{cmd:design(basic)} request for a basic meta-analysis. The required {it:{vars}} has the form {cmd: n N}.
+{cmd:design(basic)} requests for a basic meta-analysis. The required {it:{vars}} has the form {cmd: n N}.
 
 {pmore}
 {cmd:design(comparative)} indicates that the data is from comparative studies i.e there are two rows of data per each {cmd: studyid}. The required {it:{vars}} has the form {cmd: n N bicat} 
@@ -290,10 +294,10 @@ first covariate which should be a string with atleast two levels. There should b
 {dlgtab:Model}
 
 {phang}
-{opt model(type, modelopts)} specifies the type of model to fit. {it:type} is either {cmd:fixed},  {cmd:random}, {cmd:mixed} or {cmd:exact}. 
+{opt model(type, modelopts)} specifies the type of model to fit. {it:type} is either {cmd:fixed},  {cmd:random}, {cmd:mixed} or {cmd:hexact}. 
 
 {pmore}
-{cmd:model(exact)} uses the exact binomial distribution. The model assumes that the studies are homogeneous.
+{cmd:model(hexact)} uses the exact binomial distribution. The model assumes that the studies are homogeneous.
 
 {pmore}
 {cmd:model(fixed)} fits a fixed-effects logistic regression model to the data. The model assumes that the studies are homogeneous.
@@ -307,7 +311,7 @@ first covariate which should be a string with atleast two levels. There should b
 more control on the optimization process. The appropriate options 
 feed into the {cmd:binreg}(see {it:{help binreg##maximize_options:maximize_options}}) 
 or {cmd:meqrlogit} (see {it:{help meqrlogit##maximize_options:maximize_options}} and 
-{it:{help meqrlogit##laplace:integration_options}}). 
+{it:{help meqrlogit##laplace:integration_options}}) or {cmd:melogit} (see {it:{help melogit##maximize_options:maximize_options}}) for stata version 16 or higher. 
 
 {pmore}
 The fixed-effects model is maximized using Stata's {help ml} command. This implies that
@@ -411,6 +415,9 @@ enforces the {cmd: nowt} option.
 {phang}
 {opt summaryonly} requests to show only the summary estimates. Useful when there are many studies in the groups.
 
+{phang}
+{opt smooth} requests for the model-based study-specific estimates.
+
 
 {dlgtab:Table}
 {phang}
@@ -419,7 +426,7 @@ enforces the {cmd: nowt} option.
 {pmore}
 {opt sumtable(rr)} requests that the summary relative ratios be presented in the table. This options is whenever there are categorical covariates in the model.
 
-{synopt :{opt gof}}display the goodfness of fit statistics; Akaike information and Bayesian information criterion.{p_end}
+{opt gof} display the goodfness of fit statistics; Akaike information and Bayesian information criterion.{p_end}
 
 {dlgtab:Forest plot}
 {phang}
@@ -521,7 +528,7 @@ etc., control of margins, plot regions, graph size, aspect ratio, and the use of
 {marker remarks}{...}
 {title:Remarks}
 {pstd}
-{helpb meqrlogit} is used for the random-effects model and {helpb binreg} for the fixed-effects model. 
+{helpb meqrlogit} or {helpb melogit} is used for the random-effects model and {helpb binreg} for the fixed-effects model. 
 The binomial distribution is used to model the within-study variability ({help metapreg##Hamza2008:Hamza et al. 2008}).
 The weighting is implicit and parameter estimation is an iterative procedure. 
 The method of maximum likelihood chooses as estimates the values of the parameters that are most consistent with the data. 
@@ -1086,7 +1093,9 @@ Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
 {synoptset 24 tabbed}{...}
 {p2col 5 15 19 2: Matrices}{p_end}
 {synopt:{cmd:e(rrout)}}summary relative ratios when there categorical covariates{p_end}
+{synopt:{cmd:e(poprrout)}}population-averaged summary relative ratios when there categorical covariates{p_end}
 {synopt:{cmd:e(absout)}}summary proportions{p_end}
+{synopt:{cmd:e(popabsout)}}population-averaged summary proportions{p_end}
 {synopt:{cmd:e(hetout)}}heterogeneity test statistics after a fitting a random-effects model{p_end}
 {synopt:{cmd:e(absoutp)}}summary proportions predictive intervals{p_end}
 {synopt:{cmd:e(logodds)}}summary log-odds{p_end}
