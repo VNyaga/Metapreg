@@ -297,7 +297,6 @@ program define metapreg_example_five_one
 	di "	texts(1.5) logscale  "
 	
 	set more off
-
 	
 	metapreg a b c d index comparator, /// 
 		studyid(study) ///
@@ -311,7 +310,7 @@ program define metapreg_example_five_one
 		sumstat(Ratio) ///
 		lcols(a b c d comparator index) /// 
 		astext(80) /// 
-		texts(1.5) logscale  
+		texts(1.5) logscale 
 			
 	restore
 end
