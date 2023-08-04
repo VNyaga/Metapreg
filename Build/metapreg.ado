@@ -579,7 +579,7 @@ version 14.1
 		}
 	}
 	
-	buildregexpr `varlist', `interaction' `alphasort' `design' ipair(`ipair') `baselevel' `constant'
+	buildregexpr `varlist', `interaction' `alphasort' `design' ipair(`ipair') `baselevel' `constant' studyid(`studyid')
 	
 	local regexpression = r(regexpression)
 	local catreg = r(catreg)
@@ -1056,7 +1056,7 @@ version 14.1
 		printmat, matrixout(`absout') type(abs) p(`p') dp(`dp') power(`power') `continuous'  model(`model')
 	}
 	//Pop p 
-	if  (("`sumtable'" == "all") |(strpos("`sumtable'", "abs") != 0)) {
+	if  (("`sumtable'" == "all") |(strpos("`sumtable'", "abs") != 0)) & "`model'" !="hexact" {
 		printmat, matrixout(`popabsout') type(popabs) dp(`dp') power(`power') 
 	}
 	//het
@@ -1391,7 +1391,7 @@ program define preg, rclass
 	#delimit cr
 	marksample touse, strok 
 	
-	tempvar event total invtotal predevent ill
+	tempvar event total invtotal predevent ill iw
 	tempname coefmat coefvar testlr V logodds absout absoutp rrout nltest hetout mctest absexact newobs matgof popabsout poprrout
 	
 	tokenize `varlist'
@@ -1522,13 +1522,21 @@ program define preg, rclass
 		qui gen `predevent' = `absexact'[1, 1]*`total' if (_ESAMPLE == 1)
 	}
 	
-	//compute the likelihood contribution
-	qui gen `ill' = `event'*ln(`predevent'/`total') + (`total' - `event')*ln(1 - (`predevent'/`total')) if (_ESAMPLE == 1)	
-	qui sum `ill' if (_ESAMPLE == 1)
-	local ll = r(sum)
+	//compute the weight
+	if "`model'" == "random" {
+		qui gen `iw' = `total'*(`predevent'/`total')*(1 - `predevent'/`total')
+	}
+	else {
+		qui gen `iw' = `total'
+	}
+	
+	//compute the relative weight
+	*qui gen `ill' = `event'*ln(`predevent'/`total') + (`total' - `event')*ln(1 - (`predevent'/`total')) if (_ESAMPLE == 1)	
+	qui sum `iw' if (_ESAMPLE == 1)
+	local W = r(sum)
 	
 	//compute the weights
-	qui replace _WT = (`ill'/`ll')*100 if (_ESAMPLE == 1) & (_WT == .)
+	qui replace _WT = (`iw'/`W')*100 if (_ESAMPLE == 1) & (_WT == .)
 
 	if "`model'" == "random" {
 		local npar = colsof(`coefmat')
@@ -2221,17 +2229,17 @@ version 14.1
 			local nlevels = r(max)
 			forvalues l = 1/`nlevels' {
 				if "`outplot'" == "abs" {
-					/*if "`model'" != "random" {
+					if "`model'" == "hexact" {
 					local S_1 = `absout'[`=`pcont' +`l'', 1]
 					local S_3 = `absout'[`=`pcont' +`l'', 5]
 					local S_4 = `absout'[`=`pcont' +`l'', 6]
 					}
-					else { */
+					else { 
 					
 					local S_1 = `popabsout'[`l', 1]
 					local S_3 = `popabsout'[`l', 3]
 					local S_4 = `popabsout'[`l', 4]
-					*}
+					}
 					if "`prediction'" != "" {
 						local S_5 = `absoutp'[`l', 1]
 						local S_6 = `absoutp'[`l', 2]
@@ -2282,19 +2290,19 @@ version 14.1
 			replace `id' = `id' + 1 if _n==_N-2 //blank
 			//Fill in the right info
 			if "`outplot'" == "abs" {
-				/*
-				if "`model'" != "random" {
+				
+				if "`model'" == "hexact" {
 					local nrows = rowsof(`absout')
 					local S_1 = `absout'[`nrows', 1]
 					local S_3 = `absout'[`nrows', 5]
 					local S_4 = `absout'[`nrows', 6]
 				}
-				else {*/
+				else {
 					local nrows = rowsof(`popabsout')
 					local S_1 = `popabsout'[`nrows', 1]
 					local S_3 = `popabsout'[`nrows', 3]
 					local S_4 = `popabsout'[`nrows', 4]
-				*}
+				}
 				//predictions
 				if "`prediction'" != "" {
 					local nrows = rowsof(`absoutp')
@@ -2553,7 +2561,7 @@ end
 	program define buildregexpr, rclass
 	version 13.1
 		
-		syntax varlist, [noconstant interaction alphasort mcbnetwork pcbnetwork abnetwork basic comparative ipair(varname) baselevel(string)]
+		syntax varlist, [noconstant interaction alphasort mcbnetwork pcbnetwork abnetwork basic comparative ipair(varname) baselevel(string) studyid(varname) ]
 		
 		tempvar holder
 		tokenize `varlist'
@@ -2650,6 +2658,10 @@ end
 			
 			if `i' > 1 & "`interaction'" != "" {
 				local regexpression = "`regexpression' `prefix_`i''.``i''#`prefix_1'.`1'"	
+			}
+			
+			if "``i''" == "`studyid'" {
+				continue
 			}
 			//Pick out the interactor variable
 			if `i' == 1 & "`interaction'" != "" {
@@ -3697,7 +3709,7 @@ program define printmat
 			
 		}
 		if ("`type'" == "logit") | ("`type'" == "abs") | ("`type'" == "rr")  {
-			if ("`model'" == "random" & `p' < 1) {
+			if ("`model'" == "random") {
 				local typeinf "Conditional"
 			}
 			else {
