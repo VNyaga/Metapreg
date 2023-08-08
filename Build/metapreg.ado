@@ -2396,8 +2396,8 @@ version 14.1
 		//Remove weight if 1 study - Show the weight; otherwise gives the impression the study did not contribute
 		*qui replace _WT= . if (`use' == 1) & (`grptotal' == 1) 
 		
-		gsort `groupvar' `sortby' `id' 
-		
+		gsort `groupvar' `sortby' `id'
+				
 		replace `id' = _n
 		gsort `id' 
 	}
@@ -3109,13 +3109,15 @@ version 14.1
 		sort `insample' `orderid'
 		*egen `rid' = seq() if `insample'==1  //rowid
 		
-		if ("`comparative'" != "" | "`mcbnetwork'" != "") {
+		if "`comparative'`mcbnetwork'`abnetwork'" != ""  {
 			egen `gid' = group(`studyid' `by') if `insample'==1  
 			sort `gid' `orderid' `varx'
 			by `gid': egen `idpair' = seq()
 			egen `rid' = seq() if `insample'==1  //rowid
 			
-			gen `modelrr' = `modelp'[_n] / `modelp'[_n-1] if (`gid'[_n]==`gid'[_n-1]) & (`idpair' == 2)
+			if "`abnetwork'" == "" {
+				gen `modelrr' = `modelp'[_n] / `modelp'[_n-1] if (`gid'[_n]==`gid'[_n-1]) & (`idpair' == 2)
+			}
 		}
 		else {
 			egen `rid' = seq() if `insample'==1  //rowid
@@ -3278,7 +3280,7 @@ version 14.1
 		forvalues j=1(1)`nobs' { 
 			tempvar phat`j' 
 				
-			if "`comparative'`mcbnetwork'" == "" {
+			if "`comparative'`mcbnetwork'`abnetwork'" == "" {
 				tempvar restudy`j' phat`j' 
 			
 				if "`model'" == "random" {
@@ -3297,7 +3299,7 @@ version 14.1
 					gen `phat`j'' = invlogit(`festudy`j'')
 				}
 			}
-			if "`comparative'" != "" | "`mcbnetwork'" != "" {
+			if "`comparative'" != "" | "`mcbnetwork'" != "" | "`abnetwork'" != "" {
 				sum `gid' if `rid' == `j'
 				local index = r(min)
 				
@@ -3326,12 +3328,14 @@ version 14.1
 				else {
 					gen `phat`j'' = invlogit(`festudy`j'')
 				}
-				//Create the pairs
-				gen `phat_`pair'`index'' = `phat`j''
-				
-				if `pair' == 2 {
-					tempvar rrhat`index'
-					gen `rrhat`index'' = `phat_2`index'' / `phat_1`index''
+				if "`abnetwork'" == "" {
+					//Create the pairs
+					gen `phat_`pair'`index'' = `phat`j''
+					
+					if `pair' == 2 {
+						tempvar rrhat`index'
+						gen `rrhat`index'' = `phat_2`index'' / `phat_1`index''
+					}
 				}
 			}	
 		}
