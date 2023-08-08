@@ -233,6 +233,10 @@ version 14.1
 		local box "nobox"
 	}
 	
+	if "`outplot'" == "abs" & "`design'" == "comparative" & "`model'" == "fixed" {
+		local design "basic" 	
+	}
+	
 	qui count
 	if `=r(N)' < 2 {
 		di as err "Insufficient data to perform meta-analysis"
@@ -419,7 +423,7 @@ version 14.1
 		else {
 			local sumstat = "Proportion Ratio"
 		}
-	}
+	}	
 		//CI method
 	if "`outplot'" == "rr" {
 		if "`cimethod'" != "" {
@@ -807,7 +811,7 @@ version 14.1
 				exit _rc
 			}
 		}		
-		if `Nobs' < 3 & "`modeli'" != "hexact"  {
+		if (`Nobs' < 3 & "`modeli'" != "hexact" & "`design'" != "comparative") | ((`Nobs' < 5 ) & ("`modeli'" == "random") & ("`design'" == "comparative")) {
 			local modeli hexact //If less than 3 studies, use exact model
 			if "`modeloptsi'" != "" {
 				local modeloptsi
@@ -1354,7 +1358,7 @@ program define metapregci, rclass
 	if "`lcols'" =="" {
 		local lcols = " "
 	}
-	if "`sortby'" =="" {
+	if "`sortby'" == "" {
 		local sortby = " "
 	}
 	return local regressors = "`regressors'"
@@ -2728,6 +2732,7 @@ end
 			if "`catreg'" == "" {
 				local catreg = "`varx'"
 			}
+			
 		}
 		else {
 			if "`contreg'" == "" {
@@ -2738,11 +2743,21 @@ end
 		//Expression for logodds prediction
 		local expression "predict(xb)"
 						
-		local marginlist
+		
+		if "`idpairconcat'" != ""{
+			local marginlist = `"`varx'"'
+		}
+		else {
+			local marginlist
+		}
 		while "`catreg'" != "" {
 			tokenize `catreg'
 			if ("`1'" != "`by'" & "`by'" != "") | "`by'" =="" {
 				if ("`1'" != "`studyid'") {
+				
+					if "`idpairconcat'" != ""{
+						local marginlist = `"`marginlist' `1'"'
+					}
 					local marginlist = `"`marginlist' `1'`idpairconcat'"'
 				}
 			}
@@ -3027,7 +3042,7 @@ version 14.1
 	tempvar feff sfeff reff sreff reff1 sreff1 reff2 sreff2 eta insample newobs idpair gid rid hold holdleft holdright ///
 			simmu sumphat meanphat subset subsetid subsetid1 sumphat1 ///
 			meanphat1 gid1 modelp modelrr modelse sumrrhat meanrrhat
-		
+	
 	//Restore 
 	qui {
 		estimates restore `estimates'
@@ -3094,7 +3109,7 @@ version 14.1
 		sort `insample' `orderid'
 		*egen `rid' = seq() if `insample'==1  //rowid
 		
-		if "`comparative'" != "" | "`mcbnetwork'" != ""  {
+		if ("`comparative'" != "" | "`mcbnetwork'" != "") {
 			egen `gid' = group(`studyid' `by') if `insample'==1  
 			sort `gid' `orderid' `varx'
 			by `gid': egen `idpair' = seq()
@@ -3421,10 +3436,12 @@ version 14.1
 			local nrows = rowsof(`rrout') //length of the vector
 			local rnames :rownames `rrout'
 			local eqnames :roweq  `rrout'
+			local newnrows 0
 			
 			if "`comparative'`mcbnetwork'" == "" {
 				local catvars : list uniq eqnames	
-				foreach vari of local catvars {	
+				foreach vari of local catvars {
+					
 					cap drop `hold'	
 					decode `vari', gen(`hold')
 					label list `vari'
@@ -3433,7 +3450,7 @@ version 14.1
 					
 					//count in basegroup
 					tempvar meanphat`baselevel' meanrrhat`baselevel' gid`baselevel' sumphat`baselevel' subsetid`baselevel'
-					tempname poprrout`baselevel'
+					tempname poprrouti`baselevel'
 					
 					count if `vari' == `baselevel' & `insample' == 1
 					local ngroup`baselevel' = r(N)
@@ -3455,15 +3472,15 @@ version 14.1
 					sum `modelp' if `vari' == `baselevel' & `insample' == 1
 					local meanmodelp`baselevel' = r(mean)
 					
-					mat `poprrout`baselevel'' = (1, 0, 1, 1)
+					mat `poprrouti`baselevel'' = (1, 0, 1, 1)
 					local baselab = ustrregexra("`baselab'", " ", "_")
-					mat rownames `poprrout`baselevel'' = `vari':`baselab'
+					mat rownames `poprrouti`baselevel'' = `vari':`baselab'
 					
 					//Other groups
 					forvalues g=1(1)`ngroups' {
 						if `g' != `baselevel' {
 							tempvar meanphat`g' meanrrhat`g' gid`g' sumphat`g' subsetid`g'
-							tempname poprrout`g'
+							tempname poprrouti`g'
 							
 							local glab:label `vari' `g'
 							count if `vari' == `g' & `insample' == 1
@@ -3498,17 +3515,25 @@ version 14.1
 							local lowerp = r(c_1) //Lower centile
 							local upperp = r(c_2) //Upper centile
 													
-							mat `poprrout`g'' = (`meanmodelrr`g'', `postse', `lowerp', `upperp')
+							mat `poprrouti`g'' = (`meanmodelrr`g'', `postse', `lowerp', `upperp')
 							local glab = ustrregexra("`glab'", " ", "_")
-							mat rownames `poprrout`g'' = `vari':`glab'
+							mat rownames `poprrouti`g'' = `vari':`glab'
 						}
 						if `g' == 1 {
-							mat `poprrout' = `poprrout`g''
+							mat `poprrouti' = `poprrouti`g''
 						}
 						else {
 							//Stack the matrices
-							mat `poprrout' = `poprrout'	\  `poprrout`g''
+							mat `poprrouti' = `poprrouti'	\  `poprrouti`g''
 						}
+					}
+					//Stack the matrices
+					local ++newnrows
+					if `newnrows' == 1 {
+						mat `poprrout' = `poprrouti'	
+					}
+					else {
+						mat `poprrout' = `poprrout'	\  `poprrouti'
 					}
 				}
 			}
@@ -4153,10 +4178,10 @@ end
 		}
 		
 		if "`cimethod'" == "wald" {
-			mat colnames `outmatrix' = `sumstat' SE(lor) z(lor) P>|z| Lower Upper
+			mat colnames `outmatrix' = `sumstat' SE(lrr) z(lor) P>|z| Lower Upper
 		}
 		else {
-			mat colnames `outmatrix' = `sumstat' SE(lor) t(lor) P>|t| Lower Upper
+			mat colnames `outmatrix' = `sumstat' SE(lrr) t(lor) P>|t| Lower Upper
 		}
 			
 		if `nrowsnl' > 0 {
@@ -5098,7 +5123,12 @@ end
 	}
 	// Arrow options
 	if `"`arrowopts'"' == "" {
-		local arrowopts "mcolor("0 0 0") lstyle(none)"
+		if "`smooth'" != "" {
+			local arrowopts "mcolor(red) lstyle(none)"
+		}
+		else {
+			local arrowopts "mcolor("0 0 0") lstyle(none)"
+		}
 	}
 	else {
 		local forbidden "connect horizontal vertical lpattern lwidth lcolor lsytle"
@@ -5212,7 +5242,17 @@ end
 		replace `lci' = . if (round(`uci', 0.001) < round(`DXmin' , 0.001)) & (`uci' !=. ) & (`use' == 1 | `use' == 4) 
 		replace `uci' = . if (round(`lci', 0.001) > round(`DXmax' , 0.001)) & (`lci' !=. ) & (`use' == 1 | `use' == 4)
 		replace `es' = . if (round(`es', 0.001) < round(`DXmin' , 0.001)) & (`use' == 1 | `use' == 4) 
-		replace `es' = . if (round(`es', 0.001) > round(`DXmax' , 0.001)) & (`use' == 1 | `use' == 4) 		
+		replace `es' = . if (round(`es', 0.001) > round(`DXmax' , 0.001)) & (`use' == 1 | `use' == 4) 
+
+		if "`smooth'" != "" {
+			replace `modellci' = `DXmin'  if (round(`modellci', 0.001) < round(`DXmin' , 0.001)) & (`use' == 1 | `use' == 4) 
+			replace `modeluci' = `DXmax'  if (round(`modeluci', 0.001) > round(`DXmax' , 0.001)) & (`uci' !=.) & (`use' == 1 | `use' == 4) 
+			
+			replace `modellci' = . if (round(`modeluci', 0.001) < round(`DXmin' , 0.001)) & (`modeluci' !=. ) & (`use' == 1 | `use' == 4) 
+			replace `modeluci' = . if (round(`modellci', 0.001) > round(`DXmax' , 0.001)) & (`modellci' !=. ) & (`use' == 1 | `use' == 4)
+			replace `modeles' = . if (round(`modeles', 0.001) < round(`DXmin' , 0.001)) & (`use' == 1 | `use' == 4) 
+			replace `modeles' = . if (round(`modeles', 0.001) > round(`DXmax' , 0.001)) & (`use' == 1 | `use' == 4)
+		}
 		
 		summ `id'
 		local xaxislineposition = r(max)
