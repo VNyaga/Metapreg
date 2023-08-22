@@ -42,7 +42,7 @@ DATE:						DETAILS:
 18.04.2023					Use t-distribution for summaries
 05.06.2023					Simulate posterior distributions
 							smooth:Option to generate smooth estimates							
-26.07.2023 					if ersion 16; use melogit instead of meqrlogit							
+26.07.2023 					if version 16; use melogit instead of meqrlogit							
 */
 
 
@@ -922,12 +922,12 @@ version 14.1
 		*if 1 study or exact inference
 		else {
 			mat `logoddsi' = J(1, 6, .)
-			mat `popabsouti' = J(1, 4, .)
+			mat `popabsouti' = J(1, 5, .)
 			mat `absouti' = J(1, 6, .)
 			mat `absoutpi' = J(1, 2, .)
 			mat `hetouti' = J(1, `hetdim', .)		
 			mat `rrouti' = J(1, 6, 1)
-			mat `poprrouti' = J(1, 4, 1)			
+			mat `poprrouti' = J(1, 5, 1)			
 			qui replace `use' = 1 `strataif'
 		}
 		
@@ -991,9 +991,6 @@ version 14.1
 	}
 	if "`outplot'" == "rr" & "`design'" == "abnetwork" {
 		local summaryonly "summaryonly"
-	}
-	//nullify smooth if summaries only
-	if "`summaryonly'" != "" {
 		local smooth
 	}
 	
@@ -1576,7 +1573,7 @@ program define preg, rclass
 		local ISQ2 = `TAU22'/(`TAU21' + `TAU22')*100		
 	}
 	local redindex 0
-	if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {
+	if ((`p' > 1 & "`abnetwork'" != "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {
 		
 		di _n"*********************************** ************* ***************************************" _n
 		di as txt _n "Just a moment - Fitting reduced model(s) for comparison"
@@ -1759,13 +1756,13 @@ program define preg, rclass
 				mat `absout'[`r', `c']	 = `absexact'[1, `c']	
 			}			
 		}
-		mat colnames `absout' = Proportion SE z(score) P>|z| Lower Upper
+		mat colnames `absout' = Mean SE z(score) P>|z| Lower Upper
 	}
 	//===================================================================================
 	//Return the matrices
 	if "`abnetwork'" != "" {
 		mat `hetout' = (`DF_BHET', `BHET' ,`P_BHET', `TAU21', `TAU22', `ISQ1', `ISQ2')
-		mat colnames `hetout' = DF Chisq p tau2 sigma2 I2tau Isqsigma 
+		mat colnames `hetout' = DF Chisq p tau2 sigma2 I2tau I2sigma 
 	}
 	else {
 		if (`p' == 0) & ("`model'" == "random") & "`pcbnetwork'`mcbnetwork'" == "" {
@@ -2241,8 +2238,8 @@ version 14.1
 					else { 
 					
 					local S_1 = `popabsout'[`l', 1]
-					local S_3 = `popabsout'[`l', 3]
-					local S_4 = `popabsout'[`l', 4]
+					local S_3 = `popabsout'[`l', 4]
+					local S_4 = `popabsout'[`l', 5]
 					}
 					if "`prediction'" != "" {
 						local S_5 = `absoutp'[`l', 1]
@@ -2257,8 +2254,8 @@ version 14.1
 				}
 				else {
 					local S_1 = `poprrout'[`l', 1]
-					local S_3 = `poprrout'[`l', 3]
-					local S_4 = `poprrout'[`l', 4]
+					local S_3 = `poprrout'[`l', 4]
+					local S_4 = `poprrout'[`l', 5]
 				}
 				local lab:label `groupvar' `l'
 				replace `label' = "`lab'" if `use' == -2 & `groupvar' == `l'
@@ -2304,8 +2301,8 @@ version 14.1
 				else {
 					local nrows = rowsof(`popabsout')
 					local S_1 = `popabsout'[`nrows', 1]
-					local S_3 = `popabsout'[`nrows', 3]
-					local S_4 = `popabsout'[`nrows', 4]
+					local S_3 = `popabsout'[`nrows', 4]
+					local S_4 = `popabsout'[`nrows', 5]
 				}
 				//predictions
 				if "`prediction'" != "" {
@@ -2317,8 +2314,8 @@ version 14.1
 			else {
 				local nrows = rowsof(`poprrout')
 				local S_1 = `poprrout'[`nrows', 1]
-				local S_3 = `poprrout'[`nrows', 3]
-				local S_4 = `poprrout'[`nrows', 4]
+				local S_3 = `poprrout'[`nrows', 4]
+				local S_4 = `poprrout'[`nrows', 5]
 			}
 			if "`model'" == "random" & "`indvars'" == ""  & "`outplot'" == "abs" {
 				local nrows = rowsof(`hetout')
@@ -2999,18 +2996,18 @@ end
 					
 		if "`expit'" == "" {
 			if "`cimethod'" == "t" { 
-				mat colnames `matrixout' = Logit SE t P>|t| Lower Upper
+				mat colnames `matrixout' = Mean SE t P>|t| Lower Upper
 			}
 			else {
-				mat colnames `matrixout' = Logit SE z P>|z| Lower Upper
+				mat colnames `matrixout' = Mean SE z P>|z| Lower Upper
 			}
 		}
 		else {
 			if "`cimethod'"== "t" {
-				mat colnames `matrixout' = Proportion SE(logit) t(logit) P>|t| Lower Upper
+				mat colnames `matrixout' = Mean SE(logit) t(logit) P>|t| Lower Upper
 			}
 			else{
-				mat colnames `matrixout' = Proportion SE(logit) z(logit) P>|z| Lower Upper
+				mat colnames `matrixout' = Mean SE(logit) z(logit) P>|z| Lower Upper
 			}
 			
 		}
@@ -3417,11 +3414,12 @@ version 14.1
 				local postse = r(sd)
 				
 				//Obtain the quantiles
-				centile `meanphat', centile(`=(100-`level')/2' `=100 - (100-`level')/2')
-				local lowerp = r(c_1) //Lower centile
-				local upperp = r(c_2) //Upper centile
+				centile `meanphat', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+				local median = r(c_1) //Median
+				local lowerp = r(c_2) //Lower centile
+				local upperp = r(c_3) //Upper centile
 				
-				mat `popabsouti' = (`meanmodelp', `postse', `lowerp', `upperp')
+				mat `popabsouti' = (`meanmodelp', `postse', `median', `lowerp', `upperp')
 				mat rownames `popabsouti' = `vari':`group'
 				
 				//Stack the matrices
@@ -3476,7 +3474,7 @@ version 14.1
 					sum `modelp' if `vari' == `baselevel' & `insample' == 1
 					local meanmodelp`baselevel' = r(mean)
 					
-					mat `poprrouti`baselevel'' = (1, 0, 1, 1)
+					mat `poprrouti`baselevel'' = (1, 0, 1, 1, 1)
 					local baselab = ustrregexra("`baselab'", " ", "_")
 					mat rownames `poprrouti`baselevel'' = `vari':`baselab'
 					
@@ -3515,11 +3513,12 @@ version 14.1
 							local postse = r(sd)
 							
 							//Obtain the quantiles
-							centile `meanrrhat`g'', centile(`=(100-`level')/2' `=100 - (100-`level')/2')
-							local lowerp = r(c_1) //Lower centile
-							local upperp = r(c_2) //Upper centile
+							centile `meanrrhat`g'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+							local median = r(c_1) //Median
+							local lowerp = r(c_2) //Lower centile
+							local upperp = r(c_3) //Upper centile
 													
-							mat `poprrouti`g'' = (`meanmodelrr`g'', `postse', `lowerp', `upperp')
+							mat `poprrouti`g'' = (`meanmodelrr`g'', `postse', `median', `lowerp', `upperp')
 							local glab = ustrregexra("`glab'", " ", "_")
 							mat rownames `poprrouti`g'' = `vari':`glab'
 						}
@@ -3594,11 +3593,12 @@ version 14.1
 					local postse = r(sd)
 					
 					//Obtain the quantiles
-					centile `meanrrhat' , centile(`=(100-`level')/2' `=100 - (100-`level')/2')
-					local lowerp = r(c_1) //Lower centile
-					local upperp = r(c_2) //Upper centile
+					centile `meanrrhat' , centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+					local median = r(c_1) //Median
+					local lowerp = r(c_2) //Lower centile
+					local upperp = r(c_3) //Upper centile
 					
-					mat `poprrouti' = (`meanmodelrr', `postse', `lowerp', `upperp')
+					mat `poprrouti' = (`meanmodelrr', `postse', `median', `lowerp', `upperp')
 					mat rownames `poprrouti' = `vari':`group'
 					
 					//Stack the matrices
@@ -3639,9 +3639,10 @@ version 14.1
 					local index = r(min)
 					
 					//Obtain the quantiles
-					centile `rrhat`index'', centile(`=(100-`level')/2' `=100 - (100-`level')/2')
-					local lowerp = r(c_1) //Lower centile
-					local upperp = r(c_2) //Upper centile
+					centile `rrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+					local median = r(c_1) //Median
+					local lowerp = r(c_2) //Lower centile
+					local upperp = r(c_3) //Upper centile
 					
 					replace `modellci' = `lowerp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
 					replace `modeluci' = `upperp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
@@ -3654,11 +3655,11 @@ version 14.1
 		
 	//Return matrices
 	if "`todo'" =="abs" {
-		mat colnames `popabsout' = Estimate SE Lower Upper
+		mat colnames `popabsout' = Mean SE Median Lower Upper
 		return matrix outmatrix = `popabsout'
 	}
 	if "`todo'" == "rr" {
-		mat colnames `poprrout' = Estimate SE Lower Upper
+		mat colnames `poprrout' = Mean SE Median Lower Upper
 		return matrix outmatrix = `poprrout'
 	}
 
@@ -3719,8 +3720,9 @@ program define printmat
 				mat `mat2print'[`r', 1] = `mat2print'[`r', 1]*10^`power'
 				mat `mat2print'[`r', 3] = `mat2print'[`r', 3]*10^`power'
 				mat `mat2print'[`r', 4] = `mat2print'[`r', 4]*10^`power'
+				mat `mat2print'[`r', 5] = `mat2print'[`r', 5]*10^`power'
 						
-				forvalues c = 1(1)4 {
+				forvalues c = 1(1)5 {
 					local cell = `mat2print'[`r', `c'] 
 					if "`cell'" == "." {
 						mat `mat2print'[`r', `c'] == .z
@@ -3730,7 +3732,7 @@ program define printmat
 			
 			#delimit ;
 			noi matlist `mat2print', rowtitle(Parameter) 
-						cspec(& %`rownamesmaxlen's |  %8.`=`dp''f &  %8.`=`dp''f & %8.`=`dp''f & %8.`=`dp''f o2&) 
+						cspec(& %`rownamesmaxlen's |  %8.`=`dp''f &  %8.`=`dp''f & %8.`=`dp''f & %8.`=`dp''f & %8.`=`dp''f o2&) 
 						rspec(`rspec') underscore nodotz
 			;
 			#delimit cr		
@@ -4182,10 +4184,10 @@ end
 		}
 		
 		if "`cimethod'" == "wald" {
-			mat colnames `outmatrix' = `sumstat' SE(lrr) z(lor) P>|z| Lower Upper
+			mat colnames `outmatrix' = Mean SE(lrr) z(lor) P>|z| Lower Upper
 		}
 		else {
-			mat colnames `outmatrix' = `sumstat' SE(lrr) t(lor) P>|t| Lower Upper
+			mat colnames `outmatrix' = Mean SE(lrr) t(lor) P>|t| Lower Upper
 		}
 			
 		if `nrowsnl' > 0 {
