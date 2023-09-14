@@ -1,4 +1,4 @@
-v 1.5.0
+v 1.5.1
 d metapreg Stata module to perform fixed, random and mixed effects meta-analysis, meta-regression and network meta-analysis of proportions
 d This routine provides procedures for pooling proportions in a 
 d meta-analysis of multiple studies study and/or displays the results 
@@ -16,11 +16,12 @@ d KW: fixed effects
 d KW: random effects
 d KW: mixed effects
 d KW: proportions
+d KW: binomial
 d KW: network meta-analysis
 d
 d Requires: Stata version 14
 d
-d Distribution-Date: 20230726
+d Distribution-Date: 20230914
 d
 d Author: Victoria N Nyaga, Belgian Cancer Center/Unit of Cancer Epidemiology, Brussels
 d Support: email Victoria.NyawiraNyaga@sciensano.be
