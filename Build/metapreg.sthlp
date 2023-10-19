@@ -74,7 +74,7 @@ A random-effects model accounts for and allows the quantification of heterogenei
 By default, the exact binomial distribution is used when there are less than {cmd:3} studies.
 
 {pstd}
-In a comparative/mcbnetwork/pcbnetwork meta-analysis, the study-specific relative proportions can be tabulated and/or plotted.
+In a comparative/mcbnetwork/pcbnetwork meta-analysis, the study-specific proportion ratios or odds ratios can be tabulated and/or plotted.
 
 {pstd}
 When there are no covariates, heterogeneity is also quantified using the I-squared measure({help metapreg##ZD2014:Zhou and Dendukuri 2014}).
@@ -115,7 +115,7 @@ for the individuals({it:icytpe}) studies or the overall({it:ociytpe}) summaries 
 {synopt :{opt nosub:group}}prevents the display of within-group summary estimates. By default both within-group and overall summaries are displayed{p_end}
 {synopt : {opt nowt:}}suppresses the display of the weights from the tables and forest plots.{p_end}
 {synopt :{opt summary:only}}requests to show only the summary estimates{p_end}
-{synopt :{opth outp:lot(metapreg##outplot:abs|rr)}}specifies to display/plot absolute/relative measures; default is {cmd:outplot(abs)}{p_end}
+{synopt :{opth outp:lot(metapreg##outplot:abs|rr|or)}}specifies to display/plot absolute/relative measures; default is {cmd:outplot(abs)}{p_end}
 {synopt :{opth down:load(path)}}specify the location where a copy of data used to plot the forest plot should be stored {p_end}
 {synopt :{opt sm:ooth}}requests the study-specific smooth estimates {p_end}
 
@@ -124,8 +124,8 @@ for the individuals({it:icytpe}) studies or the overall({it:ociytpe}) summaries 
 {synoptline}
 {synopt :{opt noita:ble}}suppresses the table with the study-specific estimates{p_end}
 {synopt :{opt gof}}display the Akaike information and Bayesian information criterion{p_end}
-{synopt :{opth sumt:able(metapreg##sumtable:none|logit|abs|rr|all)}}specifies to display the which tables to display {cmd:logits}, 
-{cmd:proportions} and/or the {cmd:ratios} of proportions; by default all the summary tables are displayed{p_end}
+{synopt :{opth sumt:able(metapreg##sumtable:none|logit|abs|rr|or|all)}}specifies to display the which tables to display {cmd:logits}, 
+{cmd:proportions} and/or the {cmd:ratios} of proportions or odds; by default all the summary tables are displayed{p_end}
 
 
 {synoptline}
@@ -197,13 +197,21 @@ be comma separated.{p_end}
 {synopt :{opt koopman}}computes Koopman asymptotic score confidence intervals; the {cmd:default} for comparative/paired studies. These intervals have better coverage even for small sample size{p_end}
 {synopt :{opt cml}}computes constrained maximum likelihood (cml) confidence intervals; the {cmd:default} for matched data. These intervals have better coverage even for small sample size{p_end}
 
+{dlgtab:or}
+
+{synopt :{opt e:xact}}computes the exact CI of the study odds ratio by inverting two one-sided Fishers exact tests. These {cmd:default} intervals are overly convservative. {p_end}
+{synopt :{opt w:oolf}}use Woolf approximation to calculate CI of the study odds ratio.{p_end}
+{synopt :{opt co:rnfield}} use Cornfield approximation to calculate CI of the study odds ratio. These intervals have better coverage even for small sample size{p_end}
+
+
 {synoptline}
 {marker sumtable}{...}
 {synopthdr :sumtable}
 {synoptline}
-{synopt :{opt abs}}requests the display of the (adjusted)marginal absolute measures in a table{p_end}
-{synopt :{opt rr}}requests the display of the (adjusted) marginal relative ratios in a table{p_end}
-{synopt :{opt logit}}requests the display of (adjusted) marginal log-odds estimates of the fitted model in a table{p_end}
+{synopt :{opt abs}}requests the display of the conditional and population-averaged proportions in a table{p_end}
+{synopt :{opt rr}}requests the display of the conditional and population-averaged risk ratios in a table{p_end}
+{synopt :{opt or}}requests the display of the conditional and population-averaged odds ratios in a table{p_end}
+{synopt :{opt logit}}requests the display of the conditional log-odds estimates of the fitted model in a table{p_end}
 {synopt :{opt none}}requests the suppression of the summary tables{p_end}
 
 {synoptline}
@@ -211,7 +219,8 @@ be comma separated.{p_end}
 {synopthdr :outplot}
 {synoptline}
 {synopt :{opt abs}}requests the display of the study-specific and overall absolute measures in a table and /or a graph; the default{p_end} 
-{synopt :{opt rr}}requests the display of the study-specific and overall relative ratios in a table and /or a graph. This is an option when studies are comparative or in abnetwork analysis{p_end}
+{synopt :{opt rr}}requests the display of the study-specific and summary risk ratios in a table and /or a graph. This is an option when studies are comparative, abnetwork or cbnetwork analysis{p_end}
+{synopt :{opt or}}requests the display of the study-specific and summary odds ratios in a table and /or a graph. This is an option when studies are comparative, abnetwork or cbnetwork analysis{p_end}
 
 {synoptline}
 
@@ -295,7 +304,6 @@ for the correlation when computing the confidence intervals for the individual s
 first covariate which should be a string with atleast two levels. 
 There should be atleast two rows of data per {cmd:studyid}. {cmd:baselevel(label)} is relevant in abnetwork meta-analysis 
 and indicates the label of the reference level of the covariate of interest. The correct use is {cmd:design(abnetwork, baselevel(label))} 
-
 
 {dlgtab:Model}
 
@@ -410,13 +418,16 @@ enforces the {cmd: nowt} option.
 {opt nosubgroup} prevents the display of within-group summary estimates. By default both within-group and overall summaries are displayed{p_end}
 
 {phang}
-{opt outplot(abs|rr)} specifies to plot absolute/relative measures; default is {cmd:outplot(abs)}. 
+{opt outplot(abs|rr|or)} specifies to plot absolute/relative proportions; default is {cmd:outplot(abs)}. 
 
 {pmore} 
-{opt outplot(abs)} is the default and specifies that the absolute measures be presented in the table and/or in the graph. 
+{opt outplot(abs)} is the default and specifies that the proportions be presented in the table and/or in the graph. 
 
 {pmore}
-{opt outplot(rr)} requests that the relative ratios be presented in the table and/or in the graph. This options is relevant with matched, pcbnetwork or comparative data. 
+{opt outplot(rr)} requests that the proportion ratios be presented in the table and/or in the graph. This options is relevant with abnetwork, matched, pcbnetwork or comparative data. 
+
+{pmore}
+{opt outplot(or)} requests that the odds ratios be presented in the table and/or in the graph. This options is relevant with abnetwork, matched, pcbnetwork or comparative data. 
 
 {phang}
 {opt summaryonly} requests to show only the summary estimates. Useful when there are many studies in the groups.
@@ -427,10 +438,13 @@ enforces the {cmd: nowt} option.
 
 {dlgtab:Table}
 {phang}
-{opt sumtable(none|logit|abs|rr|all)} requests no summary table, summary log odds, summary proportions and summary relative ratios from the the fitted model be presented in a table. 
+{opt sumtable(none|logit|abs|rr|or|all)} requests no summary table, summary log odds, summary proportions, summary proportion ratios, and summary odds ratios from the the fitted model be presented in a table. 
 
 {pmore}
-{opt sumtable(rr)} requests that the summary relative ratios be presented in the table. This options is whenever there are categorical covariates in the model.
+{opt sumtable(rr)} requests that the summary proportion ratios be presented in the table. This options is whenever there are categorical covariates in the model.
+
+{pmore}
+{opt sumtable(or)} requests that the summary odds ratios be presented in the table. This options is whenever there are categorical covariates in the model.
 
 {pmore}
 {opt gof} display the goodfness of fit statistics; Akaike information and Bayesian information criterion.{p_end}
