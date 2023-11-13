@@ -1,3 +1,4 @@
+global dir "C:\DATA\WIV\Projects\Stata\Metapreg\Graphs\Revision8\"
 
 *Codesnippet 1
 use "https://github.com/VNyaga/Metapreg/blob/master/dolmanrcog2014.dta?raw=true", clear
@@ -5,7 +6,7 @@ use "https://github.com/VNyaga/Metapreg/blob/master/dolmanrcog2014.dta?raw=true"
 *Codesnippet 2 - hexact
 set more off
 metapreg cured treated, model(hexact) ///
-	studyid(study) cimethod(exact, exact) ///
+	studyid(study) cimethod(exact, wald) ///
 	sumtable(all) graphregion(color(white)) ///
 	texts(2) astext(80)  ///
 	xlab(0.5, 0.75, 1) xtick(0.5, 0.75, 1) ///
@@ -15,13 +16,14 @@ metapreg cured treated, model(hexact) ///
 	
 *Codesnippet 3 - random
 set more off
+
 metapreg cured treated, model(random)  ///
 	studyid(study) cimethod(exact)  ///
 	 sumtable(all) graphregion(color(white)) ///
 	texts(2) astext(80)  ///
 	xlab(0.5, 0.75, 1) xtick(0.5, 0.75, 1) ///
 	smooth gof  lcols(cured treated)  ///
-	name(random, replace) ysize(10) xsize(10) subti("RE") 
+	name(random, replace) ysize(10) xsize(10) subti("RE")  
 
 *Figure 1
 gr combine hexact  random , graphregion(color(white)) rows(1)   imargin(0 0 0 0) ysize(10) xsize(20) name(ex1, replace)
@@ -35,21 +37,31 @@ graph export "$dir\Fig1.png", as(png) replace
 *Codesnippet 4
 use "https://github.com/VNyaga/Metapreg/blob/master/margins.dta?raw=true", clear
 
+//Mixed-effects
 set more off
-metapreg tpos n treatment, studyid(study) sumtable(abs rr) power(2) /// 
+metapreg tpos n treatment, studyid(study) sumtable(abs rr or) power(2) /// 
 	graphregion(color(white)) ///
 	xlab(0, 20, 40) xtick(0, 20, 40) ///
 	sumstat(+ve Margins (%)) nowt ///
 	texts(2)  gof summaryonly name(re, replace) ysize(10) xsize(10) subti("ME") 
-	
+
+//Fixed-effects
 set more off
-metapreg tpos n treatment, model(fixed) studyid(study) sumtable(abs rr) power(2) /// 
+metapreg tpos n treatment, model(fixed) studyid(study) sumtable(abs rr or) power(2) /// 
 	graphregion(color(white))  ///
 	xlab(0, 20, 40) xtick(0, 20, 40) ///
 	sumstat(+ve Margins (%)) ///
-	texts(2)  gof summaryonly name(ce, replace) ysize(10) xsize(10) subti("FE") nowt
+	texts(2)  gof summaryonly name(fe, replace) ysize(10) xsize(10) subti("FE") nowt
 
-gr combine re  ce, graphregion(color(white)) rows(1)   imargin(0 0 0 0) ysize(10) xsize(20) name(cere, replace)
+
+gr combine re  fe, graphregion(color(white)) rows(1)   imargin(0 0 0 0) ysize(10) xsize(20) name(fere, replace)
+
+//stratified analysis - CE models
+set more off
+metapreg tpos n, studyid(study) sumtable(none) power(2) /// 
+	graphregion(color(white)) by(treatment) stratify ///
+	xlab(0, 50, 100) xtick(0, 50, 100) nowt sumstat(+ve Margins (%)) ///
+	texts(2) summaryonly name(re, replace) ysize(10) xsize(20) subti("CE") 
 
 *Figure 2
 graph save Fig2.gph, replace	
@@ -58,12 +70,6 @@ graph export "$dir\Fig2.pdf", as(pdf) replace
 graph export "$dir\Fig2.eps", as(eps) replace
 graph export "$dir\Fig2.png", as(png) replace
 
-//stratified analysis
-set more off
-metapreg tpos n, studyid(study) sumtable(none) power(2) /// 
-	graphregion(color(white)) by(treatment) stratify ///
-	xlab(0, 50, 100) xtick(0, 50, 100) nowt sumstat(+ve Margins (%)) ///
-	texts(2) summaryonly name(re, replace) ysize(10) xsize(20) subti("ME") 
 
 
 **Codesnippet 7
@@ -111,35 +117,60 @@ graph export "$dir\Fig3.png", as(png) replace
 use "https://github.com/VNyaga/Metapreg/blob/master/ivmg_acute_myo_infarct_long.dta?raw=true", clear
 sort study group 
 
-//Fixed baselines + common OR 
+//Fixed baselines + common OR  - irr
 set more off
 metapreg event total group  study, model(fixed) ///
 studyid(study) sumtable(all) design(comparative) outplot(rr) ///
 xlab(0, 1, 3, 5) xtick(0, 1, 3, 5)  ///
 texts(1.75) logscale sumstat(Relative risk of death) ///
-lcols(event total) astext(80) gof boxopts(mcolor(green)) ///
-graphregion(color(white)) smooth subtit("FE") name(fixedrr, replace) 
+lcols(event total) astext(80) gof boxopts(mcolor(green)) nowt ///
+graphregion(color(white)) smooth  name(fixedrr, replace) 
 
 
-//random baselines + common OR 
+//Fixed baselines + common OR - ior
 set more off
-metapreg event total group, model(mixed)  ///
-studyid(study) sumtable(all) design(comparative) outplot(rr) ///
-xlab(0, 1, 3, 5) xtick(0, 1, 3, 5)   ///
-texts(1.75) logscale sumstat(Relative risk of death) ///
+metapreg event total group  study, model(fixed) ///
+studyid(study) sumtable(all) design(comparative) outplot(or) ///
+xlab(0, 1, 3, 5) xtick(0, 1, 3, 5)  ///
+texts(1.75) logscale sumstat(Relative odds of death) ///
 astext(80) gof boxopts(mcolor(green)) ///
-graphregion(color(white))  smooth  subtit("ME") name(mixedrr, replace) 
-
-
-estimates replay metapreg_modest , or cformat("%4.2f")
+graphregion(color(white)) smooth  name(fixedor, replace) 
 
 *Figure 4
-gr combine fixedrr mixedrr, graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(rr, replace)
+gr combine fixedrr fixedor, subtit("Fixed intercepts & constant slope") graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(feorr, replace)
+
 graph save Fig4.gph, replace	
 graph export "$dir\Fig4.tif", as(tif) replace
 graph export "$dir\Fig4.pdf", as(pdf) replace
 graph export "$dir\Fig4.eps", as(eps) replace
 graph export "$dir\Fig4.png", as(png) replace
+
+//random baselines + common OR - irr
+set more off
+metapreg event total group, model(mixed)  ///
+studyid(study) sumtable(all) design(comparative) outplot(rr) ///
+xlab(0, 1, 3, 5) xtick(0, 1, 3, 5)   ///
+texts(1.75) logscale sumstat(Relative risk of death) ///
+lcols(event total) astext(80) gof boxopts(mcolor(green)) nowt ///
+graphregion(color(white))  smooth  name(mixedrr, replace) 
+
+//random baselines + common OR - ior
+set more off
+metapreg event total group, model(mixed)  ///
+studyid(study) sumtable(all) design(comparative) outplot(or) ///
+xlab(0, 1, 3, 5) xtick(0, 1, 3, 5)   ///
+texts(1.75) logscale sumstat(Relative odds of death) ///
+astext(80) gof boxopts(mcolor(green)) ///
+graphregion(color(white))  smooth  name(mixedor, replace) 
+
+
+*Figure 5
+gr combine mixedrr mixedor, subtit("Varying intercepts & constant slope") graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(meorr, replace)
+graph save Fig5.gph, replace	
+graph export "$dir\Fig5.tif", as(tif) replace
+graph export "$dir\Fig5.pdf", as(pdf) replace
+graph export "$dir\Fig5.eps", as(eps) replace
+graph export "$dir\Fig5.png", as(png) replace
 
 
 //Fixed baselines + varying OR == Saturated model
@@ -148,55 +179,68 @@ metapreg event total group study,  ///
 model(fixed) design(comparative) interaction outplot(rr) ///
 studyid(study) sumtable(all) nograph noitable gof
 
-//random baselines + random OR 
+//random baselines + random OR - irr
 set more off
 metapreg event total group, model(mixed)  ///
 studyid(study) sumtable(all) design(comparative, cov(independent)) outplot(rr) ///
 xlab(0, 1, 3) xtick(0, 1, 3)   ///
 texts(1.75) logscale sumstat(Relative risk of death) ///
 astext(80) lcols(event total) gof boxopts(mcolor(green)) ///
-graphregion(color(white))  smooth  subtit("Independent covariance") name(mixedindrr, replace)  
-
-estimates replay metapreg_modest , or cformat("%4.2f")
+graphregion(color(white))  smooth   name(mixedindrr, replace)  
 
 
-//random baselines + random OR ; correlated
+//random baselines + random OR - iabs
 set more off
+metapreg event total group, model(mixed)  ///
+studyid(study) sumtable(all) design(comparative, cov(independent)) outplot(abs) ///
+xlab(0, .2, .4) xtick(0, .2, .4) ///
+texts(1.5) sumstat(Risk of death) ///
+astext(80) lcols(event total) gof boxopts(mcolor(green)) ///
+graphregion(color(white))  smooth  name(mixedindabs, replace)  
+
+*Figure 6
+gr combine mixedindabs mixedindrr, subtit("Varying intercepts & varying slopes") graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(mixedind, replace)
+
+graph save Fig6.gph, replace	
+graph export "$dir\Fig6.tif", as(tif) replace
+graph export "$dir\Fig6.pdf", as(pdf) replace
+graph export "$dir\Fig6.eps", as(eps) replace
+graph export "$dir\Fig6.png", as(png) replace
+
+//random baselines + random OR ; correlated - irr
+set more off
+
 metapreg event total group, model(mixed)  ///
 studyid(study) sumtable(all) design(comparative, cov(unstructured)) outplot(rr) ///
 xlab(0, 1, 3) xtick(0, 1, 3)  ///
 texts(1.75) logscale sumstat(Relative risk of death) ///
 astext(80) gof boxopts(mcolor(green))  ///
-graphregion(color(white))  smooth  subtit("Unstructured covariance") name(mixedcorr, replace) 
+graphregion(color(white))  smooth  name(mixedcorr, replace) 
 
-estimates replay metapreg_modest , or cformat("%4.2f")
-
-*Figure 5
-gr combine mixedindrr mixedcorr, graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(rr, replace)
-
-graph save Fig5.gph, replace	
-graph export "$dir\Fig5.tif", as(tif) replace
-graph export "$dir\Fig5.pdf", as(pdf) replace
-graph export "$dir\Fig5.eps", as(eps) replace
-graph export "$dir\Fig5.png", as(png) replace
-
-
+//random baselines + random OR ; correlated - iabs
 set more off
+
 metapreg event total group, model(mixed)  ///
 studyid(study) sumtable(all) design(comparative, cov(unstructured)) outplot(abs) ///
 xlab(0, .2, .4) xtick(0, .2, .4) ///
-texts(1.35)  sumstat(Risk of death) ///
-astext(80) lcols(event total) gof boxopts(mcolor(green))  ///
-graphregion(color(white))  smooth  subtit("Unstructured covariance") name(mixedcorrabs, replace)  
- 
-estimates replay metapreg_modest , or cformat("%4.2f")
+texts(1.75) sumstat(Risk of death) ///
+astext(80) gof boxopts(mcolor(green))  ///
+graphregion(color(white))  smooth  name(mixedcorrabs, replace) 
 
+
+*Figure 7
+gr combine mixedcorrabs mixedcorr,  subtit("Correlated intercepts & slopes") graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(mixedcorr, replace)
+
+graph save Fig7.gph, replace	
+graph export "$dir\Fig7.tif", as(tif) replace
+graph export "$dir\Fig7.pdf", as(pdf) replace
+graph export "$dir\Fig7.eps", as(eps) replace
+graph export "$dir\Fig7.png", as(png) replace
 
 //Dealing with discrepant studies
 gen discrepant = "No"
 
 replace discrepant = "Yes" if study=="ISIS-4 1995b" |study=="MAGIC 2000" | study=="ISIS-4 1995a"
-
 
 //random baselines + random OR ; correlated + interaction
 set more off
@@ -207,38 +251,37 @@ texts(1.75) logscale sumstat(Relative risk of death) ///
 astext(80) gof boxopts(mcolor(green))  interaction ///
 graphregion(color(white))  smooth  subtit("ME") name(mixedcorr, replace) 
 
-estimates replay metapreg_modest , or cformat("%4.2f")
 
-//random baselines + interaction
-sort discrepant study group
+//random baselines + interaction - irr
+gsort -discrepant study group
 set more off
 metapreg event total group discrepant, model(mixed)  ///
 studyid(study) sumtable(all) design(comparative) outplot(rr) ///
-xlab(0, 1, 3) xtick(0, 1, 3)  sortby(study) ///
+xlab(0, 1, 3) xtick(0, 1, 3)   ///
 texts(1.75) logscale sumstat(Relative risk of death) ///
 astext(80) gof boxopts(mcolor(green)) lcols(event total)  interaction ///
-graphregion(color(white)) nooverall smooth  subtit("ME") name(mixedrr, replace)
-
-estimates replay metapreg_modest , or cformat("%4.2f")
+graphregion(color(white)) nooverall smooth   name(mixedrr, replace)
 
 
-//random baselines + interaction
+//random baselines + interaction - iabs
 gsort -discrepant study group
 set more off
 metapreg event total group discrepant, model(mixed)  ///
 studyid(study) sumtable(all) design(comparative) outplot(abs) ///
-xlab(0, .2, .4) xtick(0, .2, .4) sortby(study) ///  
+xlab(0, .2, .4) xtick(0, .2, .4) sortby(discrepant study) ///  
 texts(1.5) sumstat(Risk of death) ///
 astext(80) gof boxopts(mcolor(green)) interaction ///
-graphregion(color(white))  smooth  subtit("Working model") name(mixedabs, replace)
+graphregion(color(white))  smooth   name(mixedabs, replace)
 
-gr combine mixedcorrabs mixedabs, graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(rr, replace)
-*Figure 6
-graph save Fig6.gph, replace	
-graph export "$dir\Fig6.tif", as(tif) replace
-graph export "$dir\Fig6.pdf", as(pdf) replace
-graph export "$dir\Fig6.eps", as(eps) replace
-graph export "$dir\Fig6.png", as(png) replace
+gr combine mixedabs mixedrr, subtit("Varying intercepts & varying slopes (via interactions)") graphregion(color(white)) cols(2)  imargin(0 .5 0 0)ysize(10) xsize(20) name(rr, replace)
+
+
+*Figure 8
+graph save Fig8.gph, replace	
+graph export "$dir\Fig8.tif", as(tif) replace
+graph export "$dir\Fig8.pdf", as(pdf) replace
+graph export "$dir\Fig8.eps", as(eps) replace
+graph export "$dir\Fig8.png", as(png) replace
 
 
 //constant baselines + interaction
@@ -271,7 +314,6 @@ nlcom (largertrial: exp(ln(invlogit(_b[1.largertrial#2.treatment])) - ln(invlogi
 	  cformat("%4.2f")
 
 
-
 **Codesnippet 6
 use "https://github.com/VNyaga/Metapreg/blob/master/Build/bcg.dta?raw=true", clear
 
@@ -289,25 +331,25 @@ metapreg cases_tb population bcg lat, ///
 	sumstat(Relative risk of TB)  gof ///
 	xline(1, lcolor(black)) smooth ysize(10) xsize(20) name(random, replace)
 
-*Figure 7
-graph save Fig7.gph, replace	
-graph export "$dir\Fig7.tif", as(tif) replace
-graph export "$dir\Fig7.pdf", as(pdf) replace
-graph export "$dir\Fig7.eps", as(eps) replace
-graph export "$dir\Fig7.png", as(png) replace
+*Figure 9
+graph save Fig9.gph, replace	
+graph export "$dir\Fig9.tif", as(tif) replace
+graph export "$dir\Fig9.pdf", as(pdf) replace
+graph export "$dir\Fig9.eps", as(eps) replace
+graph export "$dir\Fig9.png", as(png) replace
 	
 	
 **Codesnippet 10 - contrast based network
 use "https://github.com/VNyaga/Metapreg/blob/master/Build/matched.dta?raw=true", clear
 
-*Figure 8
+*Figure 10
 netplot comparator index, label arrows type(circle) 
 
-graph save Fig8.gph, replace	
-graph export "$dir\Fig8.tif", as(tif) replace
-graph export "$dir\Fig8.pdf", as(pdf) replace
-graph export "$dir\Fig8.eps", as(eps) replace
-graph export "$dir\Fig8.png", as(png) replace
+graph save Fig10.gph, replace	
+graph export "$dir\Fig10.tif", as(tif) replace
+graph export "$dir\Fig10.pdf", as(pdf) replace
+graph export "$dir\Fig10.eps", as(eps) replace
+graph export "$dir\Fig10.png", as(png) replace
 
  //random
 	set more off
@@ -342,21 +384,22 @@ metapreg a b c d index comparator,  l(90) ///
 	sumstat(Relative Sensitivity)	///
 	xline(.9, lcolor(black))  gof smooth subtit("FE") name(fixed, replace)
 	
+	
 
-*Figure 9
+*Figure 11
 gr combine fixed mixed, graphregion(color(white)) cols(2)  imargin(0 0 0 0) ysize(10) xsize(20) name(cbnet, replace)
 
-graph save Fig9.gph, replace	
-graph export "$dir\Fig9.tif", as(tif) replace
-graph export "$dir\Fig9.pdf", as(pdf) replace
-graph export "$dir\Fig9.eps", as(eps) replace
-graph export "$dir\Fig9.png", as(png) replace
+graph save Fig11.gph, replace	
+graph export "$dir\Fig11.tif", as(tif) replace
+graph export "$dir\Fig11.pdf", as(pdf) replace
+graph export "$dir\Fig11.eps", as(eps) replace
+graph export "$dir\Fig11.png", as(png) replace
 
 
 **Codesnippet 12 - stratified analysis
 use "https://github.com/VNyaga/Metapreg/blob/master/maniacefficacy_expanded.dta?raw=true", clear
 
-*Network plots Figure 10
+*Network plots Figure 12
 netplot drug treatment if drug!=treatment & PLA, label arrows type(circle)  
 graph rename PLA, replace
 
@@ -365,11 +408,11 @@ graph rename ALL, replace
 
 gr combine ALL PLA, graphregion(color(white)) cols(2)  imargin(0 0 3 3) ysize(10) xsize(20) name(network, replace)
 
-graph save Fig10.gph, replace	
-graph export "$dir\Fig10.tif", as(tif) replace
-graph export "$dir\Fig10.pdf", as(pdf) replace
-graph export "$dir\Fig10.eps", as(eps) replace
-graph export "$dir\Fig10.png", as(png) replace
+graph save Fig12.gph, replace	
+graph export "$dir\Fig12.tif", as(tif) replace
+graph export "$dir\Fig12.pdf", as(pdf) replace
+graph export "$dir\Fig12.eps", as(eps) replace
+graph export "$dir\Fig12.png", as(png) replace
 
 **Codesnippet 11 - stratified analysis
 use "https://github.com/VNyaga/Metapreg/blob/master/maniacefficacy.dta?raw=true", clear
@@ -462,30 +505,30 @@ metapreg event total drug, studyid(study) ///
 	sumstat(Relative response rate) ///
 	texts(2) logscale xline(1) nooverall  name(abnetrr, replace) subtit("AB Network") 
 
-*Figure 12
+*Figure 13
 gr combine rrpla abnetrr, graphregion(color(white)) cols(2)  imargin(0 0 0 0) ysize(10) xsize(20) name(abnet, replace)
 
-graph save Fig12.gph, replace	
-graph export "$dir\Fig12.tif", as(tif) replace
-graph export "$dir\Fig12.pdf", as(pdf) replace
-graph export "$dir\Fig12.eps", as(eps) replace
-graph export "$dir\Fig12.png", as(png) replace
+graph save Fig13.gph, replace	
+graph export "$dir\Fig13.tif", as(tif) replace
+graph export "$dir\Fig13.pdf", as(pdf) replace
+graph export "$dir\Fig13.eps", as(eps) replace
+graph export "$dir\Fig13.png", as(png) replace
 
 gsort study drug 
 set more off
 metapreg event total drug, studyid(study) ///
 	sumtable(all) outplot(abs)  ///
 	design(abnetwork, baselevel(PLA)) ///
-	graphregion(color(white)) ///
+	graphregion(color(white)) astext(70) ///
 	xlab(0, .5, 1) xtick(0, .5, 1)  texts(2) xline(0.5) ///
 	sumstat(Response rate) summaryonly nooverall  name(abnetabs, replace) subtit("AB Network")  smooth nowt/* ysize(10) xsize(10)*/
 
 
-*Figure 11
+*Figure 14
 gr combine abs abnetabs, graphregion(color(white)) cols(2)  imargin(0 0 0 0) ysize(10) xsize(20) name(abnet, replace)
 
-graph save Fig11.gph, replace	
-graph export "$dir\Fig11.tif", as(tif) replace
-graph export "$dir\Fig11.pdf", as(pdf) replace
-graph export "$dir\Fig11.eps", as(eps) replace
-graph export "$dir\Fig11.png", as(png) replace
+graph save Fig14.gph, replace	
+graph export "$dir\Fig14.tif", as(tif) replace
+graph export "$dir\Fig14.pdf", as(pdf) replace
+graph export "$dir\Fig14.eps", as(eps) replace
+graph export "$dir\Fig14.png", as(png) replace
