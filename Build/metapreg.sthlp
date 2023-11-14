@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 3.0.1 14Sep2023}{...}
+{* *! version 3.0.2 14Nov2023}{...}
 {viewerdialog metapreg "dialog metapreg"}{...}
 {vieweralsosee "[ME] meqrlogit" "help meqrlogit"}{...}
 {vieweralsosee "[ME] meqrlogit" "mansection ME meqrlogit"}{...}
