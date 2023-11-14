@@ -2,7 +2,7 @@
 CREATED:	8 Sep 2017
 AUTHOR:		Victoria N Nyaga
 PURPOSE: 	Generalized linear fixed, mixed & random effects modelling of binomial data.
-VERSION: 	3.0.0
+VERSION: 	3.0.2
 NOTES
 1. Variable names and group names should not contain underscore(_)
 2. Data should be sorted and no duplicates
