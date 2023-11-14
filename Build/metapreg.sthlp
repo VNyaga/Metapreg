@@ -979,9 +979,15 @@ The interaction term from {cmd:metapreg} and the coefficient for lat using {cmd:
 {cmd : 4.1 Meta-regression - Comparative studies - Sparse data}
 {pmore}
 Using {help metan}, {help metapreg##Chaimani_etal2014:Chaimani et al. (2014)} informaly assessed the difference in treatment effect of haloperidol compared to placebo in treating schizophrenia.
+{p_end}
 
 {pmore}
-The analysis is more appropriately perfomed using {cmd:metapreg} by including {cmd:arm} and {cmd:missingdata} as covariates. The interaction term allows to test whether the risk-ratios for arm differ between the group with  and without missing data.
+The analysis is more appropriately perfomed using {cmd:metapreg} by including {cmd:arm} and {cmd:missingdata} as covariates. 
+{p_end}
+
+{pmore}
+The interaction term allows to test whether the risk-ratios for arm differ between the group with and without missing data.
+{p_end}
 
 {pmore2}
 {stata `"use "http://fmwww.bc.edu/repec/bocode/s/schizo.dta""':. use "http://fmwww.bc.edu/repec/bocode/s/schizo.dta"}
