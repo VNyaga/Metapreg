@@ -7,6 +7,9 @@
 {vieweralsosee "[ME] melogit" "help melogit"}{...}
 {vieweralsosee "[ME] melogit" "mansection ME melogit"}{...}
 {vieweralsosee "" "--"}{...}
+{vieweralsosee "[ME] mecloglog" "help mecloglog"}{...}
+{vieweralsosee "[ME] mecloglog" "mansection ME mecloglog"}{...}
+{vieweralsosee "" "--"}{...}
 {vieweralsosee "[R] binreg" "help binreg"}{...}
 {vieweralsosee "[R] binreg" "mansection R binreg"}{...}
 {viewerjumpto "Syntax" "metapreg##syntax"}{...}
@@ -20,7 +23,7 @@
 {title:Title}
 {p2colset 5 18 25 2}{...}
 {p2col :{opt metapreg} {hline 2}} Fixed-effects, random-effects and mixed-effects meta-analysis, meta-regression and network meta-analysis
-of proportions with binomial distribution, logistic and logistic-normal regression{p_end}
+of proportions with binomial distribution and logit, loglog and cloglog links{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
@@ -57,7 +60,7 @@ In {cmd:mcbnetwork} or {cmd:pcbnetwork} studies, two first string covariates req
 
 {pstd}
 {cmd:metapreg} is a routine for meta-analysis of proportions 
-from binomial data; the exact binomial distrubtion or a generalized linear model for the binomial family with a logit link is fitted. 
+from binomial data; the exact binomial distrubtion or a generalized linear model for the binomial family with a logit, loglog or the cloglog link is fitted. 
 
 {pstd}
 The program fits fixed or a random-effects model. The data can be from independent studies; where each row contains data from seperate studies, 
@@ -92,6 +95,7 @@ The command requires Stata 14.1 or later versions.
 
 {synopt :{opth m:odel(metapreg##modeltype:type[, modelopts])}}specifies the type of model to fit; default is {cmd:model(random)}. 
 {help metapreg##optimization_options:modelopts} control the control the optimization process{p_end}
+{synopt :{opt li:nk(logit|loglog|cloglog)}} specifies the function to transform the probabilities to a continuous scale that is unbounded. By default, the {cmd:logit} link is employed.{p_end}
 {synopt :{opth des:ign(metapreg##designtype:design[, designopts])}}specifies the type of the studies or design of meta-analysis; default is {cmd:design(basic)}. 
 {help metapreg##design_options:designopts} are relevant in abnetwork and comparative meta-analysis.{p_end}
 {synopt :{opt nomc}}informs the program not to perform {cmd:m}odel {cmd:c}omparison with likelihood-ratio tests comparison for the specified model with other simpler models{p_end}
@@ -222,46 +226,6 @@ be comma separated.{p_end}
 {synopt :{opt rr}}requests the display of the study-specific and summary risk ratios in a table and /or a graph. This is an option when studies are comparative, abnetwork or cbnetwork analysis{p_end}
 {synopt :{opt or}}requests the display of the study-specific and summary odds ratios in a table and /or a graph. This is an option when studies are comparative, abnetwork or cbnetwork analysis{p_end}
 
-{synoptline}
-
-{marker optimization_options}{...}
-{synoptline}
-{synopthdr :optimization options}
-{synoptline}
-{syntab:Maximization}
-{synopt :{opt fisher(#)}}Fisher scoring steps{p_end}
-{synopt :{opt search}}search for good starting values{p_end}
-{synopt :{opt other options}}{opth tech:nique(maximize##algorithm_spec:algorithm_spec)},
-	[{cmd:{ul:no}}]{opt lo:g},{opt tr:ace},{opt grad:ient},
-	{opt showstep},
-	{opt hess:ian},
-	{opt showtol:erance},
-	{opt dif:ficult},
-	{opt iter:ate(#)}, 
-	{opt tol:erance(#)},
-	{opt ltol:erance(#)},
-	{opt nrtol:erance(#)},{opt nonrtol:erance}, and
-	{opt from(init_specs)}; see {manhelp maximize R}. These options are seldom used{p_end}
-
-{syntab:Random-effects integration}
-{synopt :{opt intp:oints(# [# ...])}}sets the number of 
-integration (quadrature) points; default is {cmd:intpoints(7)}{p_end}
-{synopt :{opt lap:lace}}use Laplacian approximation; equivalent to 
-{cmd:intpoints(1)}{p_end}
-
-{syntab :Random-effects maximization}
-{synopt :{opt retol:erance(#)}}tolerance for random-effects estimates; default 
-is {cmd:retolerance(1e-8)}; seldom used{p_end}
-{synopt :{opt reiter:ate(#)}}maximum number of iterations for random-effects
-estimation; default is {cmd:reiterate(50)}; seldom used{p_end}
-{synopt :{opt matsqrt}}parameterize variance components using matrix square
-roots; the default{p_end}
-{synopt :{opt matlog}}parameterize variance components using matrix logarithms
-{p_end}
-{synopt :{opth refine:opts(meqrlogit##maximize_options:maximize_options)}}control
-the maximization process during refinement of starting values
-{p_end}
-{synoptline}
 
 {synoptline}
 {p2colreset}{...}
@@ -336,9 +300,25 @@ Examples, {cmd: model(random, intpoint(9))} to increase the integration points,
 {cmd: model(random, technique(bfgs))} to specify Stata's BFGS maximiztion algorithm.
 
 {phang}
+{cmd:link(link)} specifies the function to transform the probabilities to a continuous scale that is unbounded. {it:link} is one of the following: {cmd:logit}, {cmd:loglog} and {cmd:cloglog}.
+
+{pmore}{cmd:link(logit)} is the default link function resulting to the logistic regression i.e. {it: p = exp(xb)/(1 + exp(xb))}.
+
+{pmore}{cmd:link(loglog)} request the use of the log-log link i.e. {it:p = exp(-exp(xb))}.
+
+{pmore}{cmd:link(cloglog)} request the use of the complementary log-log link i.e. {it:p = 1 - exp(-exp(xb))}.
+
+{pmore} The logit link is symmetric because the probabilities approach zero or one at the same rate. 
+The log-log  and complementary log-log  links are asymmetric. Complementary log-log link approaches zero slowly and one quickly. Log-log link approaches zero quickly and one slowly. 
+Either the log-log or complementary log-log link will tend to fit better than logistic and are frequently used when the probability of an event is small or large. The reason that logit is so prevalent is because logistic parameters can be interpreted as odds ratios.
+When the complementary log-log model holds for the probability of a success, the log-log model holds for the probability
+of a failure.
+
+{phang}
 {cmd:by(byvar)} specifies that the summary etsimates be stratified/grouped according to the variable declared. This is useful in meta-regression with more than one covariate,
 and the {cmd:byvar} is not one of the covariates or when there are interactions and the first covariate is not an ideal grouping variable. By default, results are grouped according to the 
 levels of the first categorical variable in the regression equation.
+
 
 {pmore}
 This option is not the same as the Stata {help by} prefix which repeates the analysis for each group of observation for which the values of the prefixed variable are the same.
@@ -354,7 +334,6 @@ presented in one table and one forest plot
 
 {phang}
 {opth level(level)} sets confidence level for confidence and prediction intervals; default is {cmd: level(95)}
-
 
 {phang}
 {opt power(#)} sets the exponentiating power with base 10; default is {cmd: power(0)}. Any real value is allowed. 
@@ -605,7 +584,7 @@ with specified x-axis label, e.t.c.
 {cmd :graphregion(color(white)) }
 {p_end}
 {pmore3}
-{cmd :texts(1.5) prediction smooth gof;}	
+{cmd :texts(1.5)  smooth gof;}	
 {p_end}
 
 {pmore2}
@@ -659,7 +638,7 @@ with specified x-axis label, Wilson confidence intervals for the studies, e.t.c.
 {cmd:subti(Atypical cervical cytology, size(4)) }
 {p_end}
 {pmore3}
-{cmd:texts(1.5) prediction smooth;}
+{cmd:texts(1.5)  smooth;}
 {p_end}
 {pmore3}
 
@@ -714,7 +693,7 @@ Triage group as a covariate, display all summary tables, e.t.c.
 {cmd:graphregion(color(white))  ///}
 {p_end}
 {pmore3}
-{cmd:texts(1.5) prediction summaryonly }
+{cmd:texts(1.5)  summaryonly }
 {p_end}
 
 {pmore2}		
@@ -722,7 +701,7 @@ Triage group as a covariate, display all summary tables, e.t.c.
 
 {synoptline}
 {marker example_two_one}{...}
-{cmd : 2.1 Proportions near 0 - Intercept-only model}
+{cmd : 2.1 Proportions near 0 - Intercept-only model - Logit link}
 
 {pmore}
 Logistic regression correctly handles the extreme cases appropriately without need for transformation. Options for the forest plot; specified x-axis label, ticks on x-axis added,
@@ -767,10 +746,57 @@ The dataset used in this example produced the top-left graph in figure two in
 {cmd: graphregion(color(white))  ///}
 {p_end}
 {pmore3}
-{cmd: texts(1.5) smooth}
+{cmd: texts(1.5) smooth gof}
 {p_end}
 {pmore}
 {it:({stata "metapreg_examples metapreg_example_two_one":click to run})}
+
+{synoptline}
+{marker example_two_two}{...}
+{cmd : 2.2 Proportions near 0 - Intercept-only model - loglog link}
+
+{pmore}
+The loglog regression is an extension of the logistic regression model and is particularly useful when the probability of an event is very small. 
+
+{pmore2}
+{stata "use http://fmwww.bc.edu/repec/bocode/t/tsoumpou2009cancertreatrevfig2WNL.dta":. use http://fmwww.bc.edu/repec/bocode/t/tsoumpou2009cancertreatrevfig2WNL.dta}
+{p_end}
+
+{pmore2}
+{cmd:.	metapreg p16p p16tot, link(loglog) ///}
+{p_end}
+{pmore3}
+{cmd: studyid(study) ///}
+{p_end}
+{pmore3}
+{cmd: label(namevar=author, yearvar=year) ///}
+{p_end}
+{pmore3}
+{cmd: sortby(year author) ///}
+{p_end}
+{pmore3}
+{cmd: xlab(0, .2, 0.4, 0.6, 0.8, 1) ///}
+{p_end}
+{pmore3}
+{cmd: xline(0, lcolor(black)) ///}
+{p_end}
+{pmore3}
+{cmd: ti(Positivity of p16 immunostaining, size(4) color(blue)) ///}
+{p_end}
+{pmore3}
+{cmd: subti("Cytology = WNL", size(4) color(blue)) ///}
+{p_end}
+{pmore3}
+{cmd: pointopt(msymbol(X) msize(2)) ///}
+{p_end}
+{pmore3}
+{cmd: graphregion(color(white))  ///}
+{p_end}
+{pmore3}
+{cmd: texts(1.5) smooth gof}
+{p_end}
+{pmore}
+{it:({stata "metapreg_examples metapreg_example_two_two":click to run})}
 
 
 {synoptline}
@@ -878,7 +904,7 @@ We investigate whether altitude has an effect on the vaccination by including {c
 {cmd: astext(80) /// }
 {p_end}
 {pmore3}
-{cmd: texts(1.5) prediction smooth}
+{cmd: texts(1.5)  smooth}
 {p_end}
 
 {pmore2} 
@@ -969,7 +995,7 @@ The analysis is more appropriately perfomed using {cmd:metapreg} by including {c
 {cmd:. metapreg response total arm missingdata,  ///}
 {p_end}
 {pmore3}
-{cmd:studyid(firstauthor) ///}
+{cmd:studyid(firstauthor) link(loglog) ///}
 {p_end}
 {pmore3}
 {cmd:sortby(year) ///}
@@ -1041,7 +1067,7 @@ Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
 
 
 {pmore2}
-{stata `"use "https://github.com/VNyaga/Metapreg/blob/master/Build/matched.dta?raw=true""':. use "https://github.com/VNyaga/Metapreg/blob/master/Build/matched.dta?raw=true"}
+{stata `"use "http://fmwww.bc.edu/repec/bocode/m/matched.dta""':. use "http://fmwww.bc.edu/repec/bocode/m/matched.dta"}
 {p_end}
 
 {pmore2}
@@ -1090,6 +1116,8 @@ Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
 {p2col 5 15 19 2: Matrices}{p_end}
 {synopt:{cmd:e(rrout)}}summary relative ratios when there categorical covariates{p_end}
 {synopt:{cmd:e(poprrout)}}population-averaged summary relative ratios when there categorical covariates{p_end}
+{synopt:{cmd:e(orout)}}summary odds ratios when there categorical covariates{p_end}
+{synopt:{cmd:e(poporout)}}population-averaged summary odds ratios when there categorical covariates{p_end}
 {synopt:{cmd:e(absout)}}summary proportions{p_end}
 {synopt:{cmd:e(popabsout)}}population-averaged summary proportions{p_end}
 {synopt:{cmd:e(hetout)}}heterogeneity test statistics after a fitting a random-effects model{p_end}
