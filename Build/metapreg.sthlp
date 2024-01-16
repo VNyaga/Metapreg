@@ -74,7 +74,7 @@ The fitted models assumes exchangeability of the treatments effects and that the
 
 {pstd}
 A random-effects model accounts for and allows the quantification of heterogeneity between (and within) studies while a fixed-effects model assumes homogeneity in studies. 
-By default, the exact binomial distribution is used when there are less than {cmd:3} studies.
+By default, the exact binomial distribution is used when there are less than {cmd:3} studies. After fitting a random-effects, the posterior distributions are simulated to propagate uncertainity about the estimates({help metapreg##GH2007:Gelman and Hill 2006}). 
 
 {pstd}
 In a comparative/mcbnetwork/pcbnetwork meta-analysis, the study-specific proportion ratios or odds ratios can be tabulated and/or plotted.
@@ -1166,6 +1166,12 @@ Belgium.{p_end}
 Agresti, A., and Coull, B. A. 1998. Approximate is better than 'exact'
 for interval estimation of binomial proportions. {it:The American Statistician.}
 52:119-126. 
+
+{marker GH2007}{...}
+{phang}
+Gelman A., and Hill J. 2006. Simulation of probability models and statistical inferences. In: Data analysis using regression and multilevel/hierachical models.
+Cambridge university press.
+
 
 {marker ZD2014}{...}
 {phang}
