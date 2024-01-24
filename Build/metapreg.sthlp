@@ -1128,7 +1128,7 @@ Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
 {synopt:{cmd:e(popabsout)}}population-averaged summary proportions{p_end}
 {synopt:{cmd:e(hetout)}}heterogeneity test statistics after a fitting a random-effects model{p_end}
 {synopt:{cmd:e(absoutp)}}summary proportions predictive intervals{p_end}
-{synopt:{cmd:e(logodds)}}summary log-odds{p_end}
+{synopt:{cmd:e(rawest)}}raw summary estimates in the log-odds/log-log/complementary log-log scale depending on the link specified{p_end}
 {synopt:{cmd:e(mctest)}}model compariston statistics after meta-regression{p_end}
 {synopt:{cmd:e(nltest)}}hypothesis test statistics for equality of  relative ratio{p_end}
 {p2colreset}{...}
