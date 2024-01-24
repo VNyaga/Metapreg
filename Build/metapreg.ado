@@ -686,6 +686,7 @@ version 14.1
 
 		qui gen `ipair' = "Yes"
 		qui replace `ipair' = "No" if `idpair'
+		qui gen `nonevent' = `total' - `event'
 	}
 	else {
 		qui gen `rid' = _n
@@ -980,7 +981,7 @@ version 14.1
 		
 		*Run model if more than 1 study
 		if (`Nobs' > 1) {
-			preg `event' `total' `strataif', rid(`rid') studyid(`studyid') use(`use') regexpression(`regexpression') nu(`nu') ///
+			preg `event' `total' `strataif', rid(`rid') studyid(`studyid') use(`use') regexpression(`regexpression') nu(`nu') nonevent(`nonevent') ///
 				regressors(`regressors') catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 				comparator(`Comparator') cimethod(`ocimethod') `gof' nsims(`nsims') link(`link')   ///
@@ -1007,9 +1008,10 @@ version 14.1
 			else{
 				local rr "norr"
 			}
+			/*
 			if (`p' > 0) & ("`mc'" =="") { 
 				mat `mctest' = r(mctest) 
-			}
+			}*/
 			
 			mat `absouti' = r(absout)
 			mat `absoutpi' = r(absoutp)
@@ -1108,7 +1110,7 @@ version 14.1
 		}
 		*if 1 study or exact inference
 		else {
-			mat `logoddsi' = J(1, 6, .)
+			mat `rawesti' = J(1, 6, .)
 			mat `popabsouti' = J(1, 5, .)
 			mat `exactabsouti' = J(1, 5, .)
 			mat `absouti' = J(1, 6, .)
@@ -1120,7 +1122,7 @@ version 14.1
 			mat `poporouti' = J(1, 5, 1)
 			mat `poplorouti' = J(1, 5, 1)
 			
-			mat rownames `logoddsi' = Overall
+			mat rownames `rawesti' = Overall
 			mat rownames `popabsouti' = Overall
 			mat rownames `exactabsouti' = Overall
 			mat rownames `absouti' = Overall
@@ -1142,7 +1144,7 @@ version 14.1
 			mat roweq `popabsouti' = `byrowname'
 			mat roweq `exactabsouti' = `byrowname'
 			mat roweq `absoutpi' = `byrowname'
-			mat roweq `logoddsi' = `byrowname'
+			mat roweq `rawesti' = `byrowname'
 			if "`rr'" == "" {
 				mat roweq `rrouti' = `byrowname'
 				mat roweq `poprrouti' = `byrowname'
@@ -1322,17 +1324,22 @@ version 14.1
 					display `"{stata "estimates replay metapreg_modest":Click to show the raw estimates}"'
 				}
 			}
+			
+			if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {
+				capture mcpreg `event' `total' `strataif', studyid(`studyid')  regexpression(`regexpression') nu(`nu') nonevent(`nonevent') ///
+					regressors(`regressors') level(`level') varx(`varx') typevarx(`typevarx')  `progress' /// 
+					`progress' model(`modeli') modelopts(`modeloptsi')  `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
+					comparator(`Comparator')  link(`link')   ///
+					 cov(`cov') 
+					 
+				if _rc == 0{		
+					mat `mctest' = r(mctest) 
+				}
+			}
 		}
-
 		local ++i
 	}
 	*End of loop
-	//Replace model with fitted model in ran once
-	if `i' == 2 {
-		local model "`getmodel'"
-	}
-	
-	
 	
 	//rownames for the matrix
 	if "`stratify'" != "" & `i' > 1 {
@@ -1438,8 +1445,12 @@ version 14.1
 		
 		
 	//Extra tables
-	if ("`sumtable'" != "none") {
+	/*if ("`sumtable'" != "none") {
 		di as res _n "****************************************************************************************"
+	}*/
+	//het
+	if "`model'" =="random" {			
+		printmat, matrixout(`hetout') type(het) dp(`dp') `design'
 	}
 	//Raw estimates
 	if  (("`sumtable'" == "all") |(strpos("`sumtable'", "logit") != 0)) {
@@ -1453,11 +1464,6 @@ version 14.1
 	if  (("`sumtable'" == "all") |(strpos("`sumtable'", "abs") != 0)) & "`model'" !="hexact" {
 		printmat, matrixout(`popabsout') type(popabs) dp(`dp') power(`power') nsims(`nsims')
 	}
-	//het
-	if "`model'" =="random" {			
-		printmat, matrixout(`hetout') type(het) dp(`dp') `design'
-	}
-	
 	//rr
 	if (("`sumtable'" == "all") | (strpos("`sumtable'", "rr") != 0)) & (("`catreg'" != " ") | ("`typevarx'" == "i"))   {
 		//rr
@@ -1501,11 +1507,6 @@ version 14.1
 		
 	}
 	
-	//model comparison
-	if ((`p' > 0 & "`design'" != "abnetwork") | (`p' > 1 & "`design'" == "abnetwork")) & ("`mc'" =="") {
-		printmat, matrixout(`mctest') type(mc) dp(`dp')  
-	}
-	
 	if "`itable'" == "" {
 		disptab `id'  `use' `neolabel' `es' `lci' `uci' `grptotal' `modeles' `modellci' `modeluci', ///
 			`itable' dp(`dp') power(`power') `design' `summaryonly' ///
@@ -1525,6 +1526,71 @@ version 14.1
 			`ovline' `stats'  graphsave(`graphsave') `fopts' `xline' `logscale' `design' `wt' `box' `smooth' varxlabs(`varxlabs')
 	}
 	
+	//model comparison
+	if ((`p' > 0 & "`design'" != "abnetwork") | (`p' > 1 & "`design'" == "abnetwork")) & ("`mc'" =="") {
+		cap confirm matrix `mctest'
+		if _rc == 0 {
+			printmat, matrixout(`mctest') type(mc) dp(`dp') 
+			//Just initialize
+			gettoken first confounders : regressors
+			local p: word count `regressors'
+			
+			local redindex 0
+		
+			di as txt _n "Fitted reduced model(s) for comparison"
+			if "`abnetwork'`interaction'" !="" {
+				if "`mcbnetwork'`pcbnetwork'" != "" {
+					local confariates "`comparator'"	
+				}
+				else {
+					local confariates "`confounders'"
+				}
+			}
+			else {
+				local confariates "`regressors'"
+			}
+			local initial 1
+			foreach c of local confariates {
+				
+				if ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "")  {
+						local omterm = "`c'*`ipair'"
+						gettoken start end : regexpression
+						local eqreduced = "Ipair + `end'"
+						
+				}
+				else {						
+					foreach term of local regexpression {
+						if "`interaction'" != "" {
+							if strpos("`term'", "`c'#") != 0 & strpos("`term'", "`first'") != 0 {
+								local omterm = "`c'*`first'"
+							}
+						}
+						else{
+							if ("`term'" == "i.`c'")|("`term'" == "c.`c'")|("`term'" == "`c'") {
+								local omterm = "`c'"
+							} 
+						}
+					}
+					local eqreduced = subinstr("`nu'", "+ `omterm'", "", 1)
+				}
+				
+				local ++redindex
+				di as res _n "`redindex'. Ommitted `omterm' in `link'(p)"
+				if "`model'"  == "random" {
+					di as res "{phang} `link'(p) = `eqreduced' + `studyid'{p_end}"
+				}
+				else {
+					di as res "{phang} `link'(p) = `eqreduced'{p_end}"
+				}
+				//Ultimate null model
+				if (`p' > 1 & "`abnetwork'" == "") | (`p' > 2 & "`abnetwork'" != "")  {
+					local ++redindex 
+					di as res _n "`redindex'. Ommitted all covariate effects in `link'(p)"
+				}
+			}
+		}		
+	}
+		
 	cap ereturn clear
 
 	cap confirm matrix `mctest'
@@ -1877,7 +1943,7 @@ program define metapregci, rclass
 	return local sortby = "`sortby'"
 end
 /**************************************************************************************************
-							PREG - REGRESSIONS 
+							PREG - MAIN REGRESSION 
 **************************************************************************************************/
 capture program drop preg
 program define preg, rclass
@@ -1887,7 +1953,7 @@ program define preg, rclass
 
 	syntax varlist(min=2) [if] [in], studyid(varname) use(varname) [
 		regexpression(string) nu(string) baselevel(passthru) rid(varname)
-		regressors(varlist) varx(varname) typevarx(string) comparator(varname) catreg(varlist) contreg(varlist)
+		regressors(varlist) varx(varname) nonevent(varname) typevarx(string) comparator(varname) catreg(varlist) contreg(varlist)
 		cimethod(string) cov(string)
 		level(integer 95)
 		DP(integer 2)
@@ -1909,11 +1975,14 @@ program define preg, rclass
 			 hetout mctest absexact newobs matgof popabsout poprrout poporout poplorout rosevar rawvar rawest
 	
 	tokenize `varlist'
-	qui {
+	local event = "`1'"
+	local total = "`2'"
+	
+	/*qui {
 		gen `event' = `1' 
 		gen `total' = `2'
 		gen `nonevent' = `total' - `event'
-	}
+	}*/
 		//fit the model
 	if "`progress'" != "" {
 		local echo noi
@@ -2109,145 +2178,6 @@ program define preg, rclass
 		local ISQ2 = `TAU22'/(`TAU21' + `TAU22')*100		
 	}
 	
-	qui estat ic
-	mat `matgof' = r(S)
-	local BIC =  `matgof'[1, 6]
-
-	local redindex 0
-	if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {
-		
-		di _n"*********************************** ************* ***************************************" _n
-		di as txt _n "Just a moment - Fitting reduced model(s) for comparison"
-		if "`abnetwork'`interaction'" !="" {
-			if "`mcbnetwork'`pcbnetwork'" != "" {
-				local confariates "`comparator'"	
-			}
-			else {
-				local confariates "`confounders'"
-			}
-		}
-		else {
-			local confariates "`regressors'"
-		}
-		local initial 1
-		foreach c of local confariates {
-			local nureduced	
-			if ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "")  {
-					local omterm = "`c'*`ipair'"
-					
-					gettoken start end : regexpression
-					
-					local nureduced "mu i.`ipair' `end'"
-					local eqreduced = "Ipair + `end'"
-					
-			}
-			else {						
-				foreach term of local regexpression {
-					if "`interaction'" != "" {
-						if strpos("`term'", "`c'#") != 0 & strpos("`term'", "`first'") != 0 {
-							local omterm = "`c'*`first'"
-						}
-						else {
-							local nureduced "`nureduced' `term'"
-						}
-					}
-					else{
-						if ("`term'" == "i.`c'")|("`term'" == "c.`c'")|("`term'" == "`c'") {
-							local omterm = "`c'"
-						} 
-						else {
-							local nureduced "`nureduced' `term'"
-						}
-					}
-				}
-				local eqreduced = subinstr("`nu'", "+ `omterm'", "", 1)
-			}
-			local ++redindex
-			di as res _n "`redindex'. Ommitted `omterm' in `link'(p)"
-			if "`model'"  == "random" {
-				di as res "{phang} `link'(p) = `eqreduced' + `studyid'{p_end}"
-			}
-			else {
-				di as res "{phang} `link'(p) = `eqreduced'{p_end}"
-			}
-			if "`omterm'" == "`first'" {
-				local newcov 
-			}
-			else {
-				local newcov "`cov'"
-			}
-			
-			`echo' fitmodel `outcome' `total' if `touse',  modelopts(`modelopts') model(`model') ///
-				regexpression(`nureduced') sid(`studyid') level(`level')  nested(`first') `abnetwork' cov(`newcov') link(`link') p(`p')
-			
-			qui estat ic
-			mat `matgof' = r(S)
-			local BICmc = `matgof'[1, 6]
-			estimates store metapreg_Null
-			
-			//LR test the model
-			capture lrtest metapreg_modest metapreg_Null
-			if _rc == 0 {
-				local lrp :di %10.`dp'f chi2tail(r(df), r(chi2))
-				local lrchi2 = r(chi2)
-				local lrdf = r(df)
-			}
-			else {
-				local lrp = .
-				local lrchi2 = .
-				local lrdf = .
-			}
-			estimates drop metapreg_Null
-			
-			if `initial' == 1  {
-				mat `mctest' = [`lrchi2', `lrdf', `lrp', `=`BIC' -`BICmc'']
-			}
-			else {
-				mat `mctest' =  `mctest' \ [`lrchi2', `lrdf', `lrp', `=`BIC' -`BICmc'']
-			}
-			local rownameslr "`rownameslr' `omterm'"
-			
-			local initial 0
-		}
-		//Ultimate null model
-		if (`p' > 1 & "`abnetwork'" == "") | (`p' > 2 & "`abnetwork'" != "")  {
-			local ++redindex 
-			di as res _n "`redindex'. Ommitted all covariate effects in `link'(p)"
-			
-			
-			if "`abnetwork'" != ""  {
-				local regexpression "ibn.`first'"
-			}
-			else if "`pcbnetwork'`mcbnetwork'" != "" {
-				local regexpression "mu i.`ipair' i.`index'"
-			}
-			else {
-				local regexpression "mu"
-			}
-			
-			`echo' fitmodel `outcome' `total' if `touse', modelopts(`modelopts') model(`model') regexpression(mu) ///
-				sid(`studyid') level(`level')  nested(`first') `abnetwork' link(`link') p(`p')
-			
-			qui estat ic
-			mat `matgof' = r(S)
-			local BICmc = `matgof'[1, 6]
-			
-			estimates store metapreg_Null
-			
-			qui lrtest metapreg_modest metapreg_Null
-			local lrchi2 = r(chi2)
-			local lrdf = r(df)
-			local lrp :di %10.`dp'f r(p)
-			
-			estimates drop metapreg_Null
-			
-			mat `mctest' = `mctest' \ [`lrchi2', `lrdf', `lrp', `=`BIC' -`BICmc'']
-			local rownameslr "`rownameslr' All"
-		}
-		mat rownames `mctest' = `rownameslr'
-		mat colnames `mctest' =  chi2 df p Delta_BIC
-	}
-	
 	//Raw estimates in logit/cloglog scale
 	estp, studyid(`studyid') estimates(metapreg_modest) `interaction' catreg(`catreg') contreg(`contreg') level(`level') model(`getmodel') cimethod(`cimethod')  ///
 		varx(`varx') typevarx(`typevarx') by(`by') regexpression(`regexpression') `mcbnetwork' `comparative' `pcbnetwork' `abnetwork' `stratify'  ///
@@ -2400,16 +2330,229 @@ program define preg, rclass
 		return matrix nltestRR = `nltestRR'
 		return matrix nltestOR = `nltestOR'
 	}
-	cap confirm matrix `mctest'
-	if _rc == 0 {
-		return matrix mctest = `mctest'
-	}
+
 	return scalar mdf = `mdf'
 	return local model = "`getmodel'"
 	return local rrsuccess ="`rrsuccess'"
 end
 
+/**************************************************************************************************
+								MCPREG - BREGRESSIONS FOR MODEL COMPARISON
+**************************************************************************************************/
+capture program drop mcpreg
+program define mcpreg, rclass
 
+	version 14.1
+	#delimit ;
+
+	syntax varlist(min=2) [if] [in], studyid(varname)  [
+		regexpression(string) nu(string) baselevel(passthru) 
+		regressors(varlist) varx(varname) nonevent(varname)  typevarx(string) comparator(varname) catreg(varlist) contreg(varlist)
+		cimethod(string) cov(string)
+		level(integer 95)
+		DP(integer 2)
+		progress
+		model(string) modelopts(string) 
+		noMC noCONstant
+		interaction	
+		comparative mcbnetwork pcbnetwork abnetwork
+		link(string)
+			*];
+
+	#delimit cr
+	marksample touse, strok 
+	
+	tempvar event nonevent total 
+	tempname coefmat coefvar testlr V logodds absout absoutp rrout orout nltestRR nltestOR  ///
+			 hetout mctest absexact newobs matgof popabsout poprrout poporout poplorout rosevar rawvar rawest
+			 
+	tokenize `varlist'
+	
+	local event = "`1'"
+	local total = "`2'"
+	//fit the model
+	if "`progress'" != "" {
+		local echo noi
+	}
+	else {
+		local echo qui
+	}
+	//Just initialize
+	gettoken first confounders : regressors
+	local p: word count `regressors'
+	
+	
+	if "`mcbnetwork'`pcbnetwork'" != "" {		
+		tokenize `regexpression'
+		local one "`1'"
+		local two "`2'"
+		local three "`3'"
+		
+		if "`interaction'" != "" {
+			tokenize `one', parse("#")
+			tokenize `1', parse(".")
+			local ipair "`3'"
+			
+			tokenize `two', parse(".")
+			local index "`3'"
+		}
+		else {
+			tokenize `two', parse(".")
+			local ipair "`3'"
+		
+			tokenize `three', parse(".")
+			local index "`3'"
+		}
+	}
+	//Which outcome to model
+	if "`link'" == "loglog" {
+		local outcome "`nonevent'"
+	}
+	else {
+		local outcome "`event'"
+	}
+	
+	qui estimates restore metapreg_modest
+	qui estat ic
+	mat `matgof' = r(S)
+	local BIC =  `matgof'[1, 6]
+	
+	local redindex 0
+	
+	if "`abnetwork'`interaction'" !="" {
+		if "`mcbnetwork'`pcbnetwork'" != "" {
+			local confariates "`comparator'"	
+		}
+		else {
+			local confariates "`confounders'"
+		}
+	}
+	else {
+		local confariates "`regressors'"
+	}
+	local initial 1
+	foreach c of local confariates {
+		local nureduced	
+		if ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "")  {
+				local omterm = "`c'*`ipair'"
+				
+				gettoken start end : regexpression
+				
+				local nureduced "mu i.`ipair' `end'"
+				
+		}
+		else {						
+			foreach term of local regexpression {
+				if "`interaction'" != "" {
+					if strpos("`term'", "`c'#") != 0 & strpos("`term'", "`first'") != 0 {
+						local omterm = "`c'*`first'"
+					}
+					else {
+						local nureduced "`nureduced' `term'"
+					}
+				}
+				else{
+					if ("`term'" == "i.`c'")|("`term'" == "c.`c'")|("`term'" == "`c'") {
+						local omterm = "`c'"
+					} 
+					else {
+						local nureduced "`nureduced' `term'"
+					}
+				}
+			}
+		}
+		
+		if "`omterm'" == "`first'" {
+			local newcov 
+		}
+		else {
+			local newcov "`cov'"
+		}
+		
+		`echo' fitmodel `outcome' `total' if `touse',  modelopts(`modelopts') model(`model') ///
+			regexpression(`nureduced') sid(`studyid') level(`level')  nested(`first') `abnetwork' cov(`newcov') link(`link') p(`p')
+		
+		qui estat ic
+		mat `matgof' = r(S)
+		local BICmc = `matgof'[1, 6]
+		estimates store metapreg_Null
+		
+		//LR test the model
+		capture lrtest metapreg_modest metapreg_Null
+		if _rc == 0 {
+			local lrp :di %10.`dp'f chi2tail(r(df), r(chi2))
+			local lrchi2 = r(chi2)
+			local lrdf = r(df)
+		}
+		else {
+			local lrp = .
+			local lrchi2 = .
+			local lrdf = .
+		}
+		estimates drop metapreg_Null
+		
+		if `initial' == 1  {
+			mat `mctest' = [`lrchi2', `lrdf', `lrp', `=`BIC' -`BICmc'']
+		}
+		else {
+			mat `mctest' =  `mctest' \ [`lrchi2', `lrdf', `lrp', `=`BIC' -`BICmc'']
+		}
+		local rownameslr "`rownameslr' `omterm'"
+		
+		local initial 0
+	}
+	//Ultimate null model
+	if (`p' > 1 & "`abnetwork'" == "") | (`p' > 2 & "`abnetwork'" != "")  {
+		
+		if "`abnetwork'" != ""  {
+			local regexpression "ibn.`first'"
+		}
+		else if "`pcbnetwork'`mcbnetwork'" != "" {
+			local regexpression "mu i.`ipair' i.`index'"
+		}
+		else {
+			local regexpression "mu"
+		}
+		
+		`echo' fitmodel `outcome' `total' if `touse', modelopts(`modelopts') model(`model') regexpression(mu) ///
+			sid(`studyid') level(`level')  nested(`first') `abnetwork' link(`link') p(`p')
+		
+		qui estat ic
+		mat `matgof' = r(S)
+		local BICmc = `matgof'[1, 6]
+		
+		estimates store metapreg_Null
+		
+		capture lrtest metapreg_modest metapreg_Null
+		
+		if _rc == 0 {
+			local lrchi2 = r(chi2)
+			local lrdf = r(df)
+			local lrp :di %10.`dp'f r(p)
+		}
+		else {
+			local lrp = .
+			local lrchi2 = .
+			local lrdf = .
+		}
+		
+		local lrchi2 = r(chi2)
+		local lrdf = r(df)
+		local lrp :di %10.`dp'f r(p)
+		
+		estimates drop metapreg_Null
+		
+		mat `mctest' = `mctest' \ [`lrchi2', `lrdf', `lrp', `=`BIC' -`BICmc'']
+		local rownameslr "`rownameslr' All"
+	}
+	mat rownames `mctest' = `rownameslr'
+	mat colnames `mctest' =  chi2 df p Delta_BIC
+	
+	cap confirm matrix `mctest'
+	if _rc == 0 {
+		return matrix mctest = `mctest'
+	}
+end
 /*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: myncod +++++++++++++++++++++++++
 								Decode by order of data
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/	
@@ -5097,12 +5240,26 @@ program define printmat
 			di as res _n "****************************************************************************************"
 			di as txt _n "Model comparison(s): Leave-one-out LR Test(s)"
 			local rownamesmaxlen = max(`rownamesmaxlen', 17) //Check if there is a longer name
+			
+			tempname mat2print
+			mat `mat2print' = `matrixout'
+			local nrows = rowsof(`mat2print')
+			local flag 0
+			forvalues r = 1(1)`nrows' {					
+				local pcell = `mat2print'[`r', 3] 
+				if "`pcell'" == "." {
+					local flag 1
+				}
+				if `flag' {
+					continue, break
+				}
+			}
+			
 			#delimit ;
 			noi matlist `matrixout', rowtitle(Omitted Parameter) 
 				cspec(& %`=`rownamesmaxlen' + 2's |  %8.`=`dp''f &  %8.0f &  %8.`=`dp''f &  %15.`=`dp''f o2&) 
 				rspec(`rspec') underscore nodotz
 			;
-		
 			#delimit cr
 			if "`interaction'" !="" {
 				di as txt "*NOTE: Model with and without interaction parameter(s)"
@@ -5110,7 +5267,9 @@ program define printmat
 			else {
 				di as txt "*NOTE: Model with and without main parameter(s)"
 			}
-			
+			if `flag' {
+				di as txt "*NOTE: Some p-value are missing because one or more assumptions of the LR test were violated"
+			}
 			di as txt "*NOTE: Delta BIC = BIC (specified model) - BIC (reduced model) "
 		}
 		
