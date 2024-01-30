@@ -48,6 +48,7 @@ DATE:						DETAILS:
 31.10.2023					clolog ink (might be better if p > .9)	lolog ink (might be better if p < .1)	
 10.01.2024					Fit FE/Hexact if RE fails.
 							If isq = ., suppress the text in the graph
+29.01.2024					Introduce penalized logistic regression							
 */
 
 
@@ -75,7 +76,7 @@ version 14.1
 		INTeraction
 		LABEL(string) 
 		LCols(varlist) 
-		Model(string) //model(random|mixed|fixed|hexact, options)
+		Model(string) //model(random|mixed|fixed|hexact|penlogit, options)
 		noGRaph 
 		noOVerall 
 		noOVLine 
@@ -121,7 +122,7 @@ version 14.1
 
 	tempvar rid event nonevent total invtotal use id neolabel ///
 			es se lci uci grptotal uniq mu use rid lpi upi obsid ///
-			modeles modellci modeluci
+			modeles modellci modeluci holder
 			
 	tempname nltestRR nltestOR mctest samtrix rawest rawesti logodds rrout orout absout logoddsi orouti rrouti absouti  exactabsouti exactabsout absexact ///
 			coefmat coefvar BVar WVar  omat isq2 bghet bshet lrtestp V dftestnl ptestnl lrtest matgof ///
@@ -262,9 +263,12 @@ version 14.1
 	else if strpos("`model'", "h") == 1 {
 		local model "hexact"
 	}
+	else if strpos("`model'", "p") == 1 {
+		local model "penlogit"
+	}
 	else {
 		di as error "Invalid option `model'"
-		di as error "Specify either fixed, random, mixed, or hexact"
+		di as error "Specify either fixed, random, mixed, penlogit or hexact"
 		exit
 	}
 	if "`model'" == "fixed" & strpos("`modelopts'", "ml") != 0 {
@@ -274,6 +278,15 @@ version 14.1
 	if "`model'" == "fixed" & strpos("`modelopts'", "irls") != 0 {
 		di as error "Option irls not allowed in `modelopts'"
 		exit
+	}
+	//Check if penlogit is installed
+	if "`model'" == "`penlogit'" {
+		capture which penlogit
+		if _rc != 0 {
+			di as res "The command penlogit is required"
+			di as res `"stata{ "ssc install penlogit": Click to install the command} "'
+			exit
+		}
 	}
 
 	//Avoid Incosistencies & Redundancies
@@ -686,12 +699,58 @@ version 14.1
 		}
 	}
 	
-	buildregexpr `varlist', `interaction' `alphasort' `design' ipair(`ipair') `baselevel'  studyid(`studyid')
-	
-	local regexpression = r(regexpression)
-	local catreg = r(catreg)
-	local contreg = r(contreg)
-	local basecode = r(basecode)
+	if "`model'" == "penlogit" {
+		local regressor = "`regressors'"
+		qui {
+			my_ncod `holder', oldvar(`regressor')
+			drop `regressor'
+			rename `holder' `regressor'
+		}
+		
+		qui label list `regressor'
+		local nlevels = r(max)
+		local basecode 1
+		if "`baselevel'" != "" {
+			//Find the base level
+			local found = 0
+			local level 1
+			while !`found' & `level' < `=`nlevels'+1' {
+				local lab:label ``i'' `level'
+				if "`lab'" == "`baselevel'" {
+					local found = 1
+					local basecode `level'
+				}
+				local ++level
+			}
+		}
+						
+		local regexpression = "mu"
+
+		forvalues t=1(1)`nlevels' {
+			if `t' == `basecode' {
+				continue
+			}
+			qui {
+				tempvar `regressor'`t'
+				gen `regressor'`t' = 0
+				replace `regressor'`t' = 1 if `regressor'==`t'
+			}
+			
+			/*Add the proper expression for regression*/
+			local regexpression = "`regexpression' `regressor'`t'"
+			
+			local ireg "`ireg' `regressor'`t'"
+		}
+		local catreg "`regressors'"
+	}
+	else {
+		buildregexpr `varlist', `interaction' `alphasort' `design' ipair(`ipair') `baselevel'  studyid(`studyid')
+		
+		local regexpression = r(regexpression)
+		local catreg = r(catreg)
+		local contreg = r(contreg)
+		local basecode = r(basecode)
+	}
 	
 	if "`interaction'" != "" { 
 		local varx = r(varx)
@@ -714,6 +773,11 @@ version 14.1
 		if "`outplot'" != "abs" {
 			local varxlabs "`varx' `indexlab' `baselab'"
 		}
+	}
+	
+	if "`model'" == "penlogit" & "`design'" == "general" {
+		local varx = "`catreg'"
+		local typevarx = "i"
 	}
 	
 	if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" { 
@@ -961,10 +1025,10 @@ version 14.1
 		*Run model if more than 1 study
 		if (`Nobs' > 1) {
 			preg `event' `nonevent' `total' `strataif', rid(`rid') studyid(`studyid') use(`use') regexpression(`regexpression') nu(`nu')  ///
-				regressors(`regressors') catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
+				regressors(`regressors')  catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 				comparator(`Comparator') cimethod(`ocimethod') `gof' nsims(`nsims') link(`link') ///
-				modeles(`modeles')  modellci(`modellci') modeluci(`modeluci') outplot(`outplot') `smoothi' cov(`cov') `computewti'
+				modeles(`modeles')  modellci(`modellci') modeluci(`modeluci') outplot(`outplot') `smoothi' cov(`cov') `computewti' 
 	
 			mat `rawesti' = r(rawest)
 			mat `popabsouti' = r(popabsout)
@@ -1896,7 +1960,8 @@ program define preg, rclass
 
 	syntax varlist(min=3) [if] [in], studyid(varname) use(varname) [
 		regexpression(string) nu(string) baselevel(passthru) rid(varname)
-		regressors(varlist) varx(varname) typevarx(string) comparator(varname) catreg(varlist) contreg(varlist)
+		regressors(varlist) varx(varname) typevarx(string) comparator(varname) 
+		catreg(varlist) contreg(varlist)
 		cimethod(string) cov(string)
 		level(integer 95)
 		DP(integer 2)
@@ -1965,7 +2030,7 @@ program define preg, rclass
 	}
 		
 	`echo' fitmodel `outcome' `total' if `touse', modelopts(`modelopts') model(`model') regexpression(`regexpression') ///
-		sid(`studyid') level(`level') nested(`first') `abnetwork' cov(`cov') link(`link') p(`p')
+		sid(`studyid') level(`level') nested(`first') `abnetwork' cov(`cov') link(`link') p(`p') 
 	
 	//Returned model	
 	local getmodel = r(model)
@@ -2033,27 +2098,22 @@ program define preg, rclass
 			}
 	}
 	
-	if "`computewt'" !="" {
-		if ("`model'" == "hexact") /*| ("`getmodel'" == "hexact")*/  {
-			qui gen `predevent' = `absexact'[1, 1]*`total' if (_ESAMPLE == 1)
-		}
-		else {
-				//if random, needs atleast 7 studies to run predict command
+	if "`computewt'" !="" {	
+		if "`model'" == "random" {
+			//if random, needs atleast 7 studies to run predict command
 			qui count
 			local nobs = r(N)
-			if "`model'" == "random" {
-				if ((`nobs' < 7) & ("`model'" == "random")) {
-					local multipler = int(ceil(7/`nobs'))
-					qui expand `multipler', gen(`newobs')
-				}
+			if ((`nobs' < 7) & ("`model'" == "random")) {
+				local multipler = int(ceil(7/`nobs'))
+				qui expand `multipler', gen(`newobs')
 			}
 			qui predict `predevent', mu
+			
 			//Revert to original data if filler data was generated
-			 if (("`model'" == "random") & (`nobs' < 7))  {
+			 if (`nobs' < 7)  {
 				qui keep if !`newobs'
 			}
-		}
-		
+		}		
 		//compute the weight
 		if "`getmodel'" == "random" {
 			qui gen `iw' = `total'*(`predevent'/`total')*(1 - `predevent'/`total')
@@ -2063,7 +2123,6 @@ program define preg, rclass
 		}
 		
 		//compute the relative weight
-		*qui gen `ill' = `event'*ln(`predevent'/`total') + (`total' - `event')*ln(1 - (`predevent'/`total')) if (_ESAMPLE == 1)	
 		qui sum `iw' if (_ESAMPLE == 1)
 		local W = r(sum)
 		
@@ -2137,7 +2196,7 @@ program define preg, rclass
 		contreg(`contreg') level(`level')  model(`getmodel') cimethod(`cimethod') ///
 		varx(`varx') typevarx(`typevarx') abs by(`by') regexpression(`regexpression') ///
 		`comparative' `mcbnetwork' `pcbnetwork' `abnetwork' `stratify'  ///
-		comparator(`comparator') link(`link')
+		comparator(`comparator') link(`link') 
 
 	mat `absout' = r(outmatrix)
 	mat `absoutp' = r(outmatrixp)
@@ -2148,8 +2207,8 @@ program define preg, rclass
 		capture estr, studyid(`studyid') estimates(metapreg_modest)  catreg(`catreg') ///
 			level(`level') comparator(`comparator') `interaction' cimethod(`cimethod') ///
 			varx(`varx') typevarx(`typevarx') by(`by') `mcbnetwork' `pcbnetwork' ///
-			`comparative' `abnetwork' `stratify' ///
-			regexpression(`regexpression') `baselevel' link(`link')
+			`comparative' `abnetwork' `stratify' model(`getmodel') ///
+			regexpression(`regexpression') `baselevel' link(`link') 
 			
 		if _rc== 0 {
 			mat `rrout' = r(rroutmatrix)
@@ -2163,7 +2222,7 @@ program define preg, rclass
 			//simulations
 			postsim, orderid(`rid') studyid(`studyid') todo(r) estimates(metapreg_modest) rrout(`rrout') orout(`orout') ///
 					 level(`level')  model(`getmodel')  by(`by') `comparative' `interaction' `abnetwork' ///
-					 `baselevel' `mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link')
+					 `baselevel' `mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link') 
 			
 			mat `poprrout' = r(rroutmatrix)
 			mat `poporout' = r(oroutmatrix)
@@ -2187,7 +2246,7 @@ program define preg, rclass
 			postsim, orderid(`rid') studyid(`studyid') todo(smooth) estimates(metapreg_modest)  ///
 				level(`level')  model(`getmodel')  by(`by') `comparative'  ///
 				modeles(`modeles') modellci(`modellci') modeluci(`modeluci') outplot(`outplot')	///
-				`interaction' `abnetwork'  `mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link')
+				`interaction' `abnetwork'  `mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link') 
 		}
 		
 	}
@@ -2597,9 +2656,15 @@ program define fitmodel, rclass
 	else {
 		local fitcommand "mecloglog"
 	}
+	
+	//Fit penlogit
+	if ("`model'" == "penlogit") {
+		capture noisily penlogit `1' `regexpression' if `touse', bin(`2') `modelopts' noconstant
+		local success = _rc
+	}
 		
 	//Fit the FE model
-	if ("`model'" != "random") {
+	if ("`model'" == "fixed") {
 		if "`link'" == "logit" { 
 			capture noisily binreg `1' `regexpression' if `touse', noconstant n(`2') ml `modelopts' l(`level')
 		}
@@ -3590,22 +3655,21 @@ end
 			else {
 				local prefix_`i' "c"
 			}
-			if "`abnetwork'" != "" & `i'==1 {
+			if "`baselevel'" != "" & `i'==1 {
 				local prefix_`i' "ibn"
-				if "`baselevel'" != "" {
-					//Find the base level
-					qui label list ``i''
-					local nlevels = r(max)
-					local found = 0
-					local level 1
-					while !`found' & `level' < `=`nlevels'+1' {
-						local lab:label ``i'' `level'
-						if "`lab'" == "`baselevel'" {
-							local found = 1
-							local basecode `level'
-						}
-						local ++level
+				
+				//Find the base level
+				qui label list ``i''
+				local nlevels = r(max)
+				local found = 0
+				local level 1
+				while !`found' & `level' < `=`nlevels'+1' {
+					local lab:label ``i'' `level'
+					if "`lab'" == "`baselevel'" {
+						local found = 1
+						local basecode `level'
 					}
+					local ++level
 				}
 			}
 			/*Add the proper expression for regression*/
@@ -3623,14 +3687,12 @@ end
 				local varx = "``i''"
 				local typevarx = "`prefix_`i''"
 			}
-			*if (`i' > 1 & "`interaction'" != "" ) |  "`interaction'" == "" { //store the rest of  variables
 			if strpos("`prefix_`i''","i")  != 0 {
 				local catreg "`catreg' ``i''"
 			}
 			else {
 				local contreg "`contreg' ``i''"
 			}
-			*}
 		}
 		
 		if "`interaction'" != "" {
@@ -3683,14 +3745,15 @@ end
 			if "`catreg'" == "" {
 				local catreg = "`varx'"
 			}
-			
 		}
 		else {
 			if "`contreg'" == "" {
 				local contreg = "`varx'"
 			}
 		}
+		
 		local expression "exp(predict(xb))"
+		
 		if "`link'" == "cloglog" {
 			local invfn "invcloglog"
 		}
@@ -3707,7 +3770,8 @@ end
 		else {
 			local marginlist
 		}
-		while "`catreg'" != "" {
+		
+		while "`catreg'" != ""  & "`model'" != "penlogit" {
 			tokenize `catreg'
 			if ("`1'" != "`by'" & "`by'" != "") | "`by'" =="" {
 				if ("`1'" != "`studyid'") {
@@ -3721,6 +3785,7 @@ end
 			macro shift 
 			local catreg `*'
 		}
+		
 		qui estimates restore `estimates'
 		local df = e(N) -  e(k) 
 		mat `coefmat' = e(b)
@@ -3758,8 +3823,13 @@ end
 		}
 		
 		local byncatreg 0
-		if "`by'" != "" & "`stratify'"  == "" {
-			qui margin , `expression' over(`by') level(`level')
+		if ("`by'" != "" & "`stratify'"  == "") | ("`model'" == "penlogit") {
+			if ("`model'" == "penlogit") {
+				qui margin , `expression' over(`varx') level(`level')
+			}
+			else {
+				qui margin , `expression' over(`by') level(`level')
+			}
 			
 			mat `bycatregmatrixout' = r(table)'
 			mat `byVmatrix' = r(V)
@@ -3773,6 +3843,7 @@ end
 			local grand "grand"
 			local Overall "Overall"			
 		}
+		
 		if "`comparative'" != "" & "`stratify'" != "" {
 			local grand
 			local Overall
@@ -3780,7 +3851,7 @@ end
 		local ncatreg 0
 		
 		//Overall
-		if "`marginlist'" != "" | (  "`marginlist'" == "" & "`abnetwork'`mcbnetwork'`pcbnetwork'" == "" ) {
+		if "`marginlist'" != "" | (  "`marginlist'" == "" & ("`abnetwork'`mcbnetwork'`pcbnetwork'" == "" | ("`model'" != "penlogit"))) {
 			qui margin `marginlist', `expression' `grand' level(`level')
 						
 			mat `catregmatrixout' = r(table)'
@@ -5089,8 +5160,8 @@ cap program drop estrcore
 program define estrcore, rclass
 version 13.1
 
-syntax, marginlist(string) [cimethod(string) varx(varname) by(varname) confounders(varlist) level(integer 95) ///
-	baselevel(integer 1) estimates(string) link(string)]
+syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(varname) confounders(varlist) level(integer 95) ///
+	baselevel(integer 1) link(string)]
 		
 	tempname lRRcoef lRRV RRoutmatrix nltestRR lORcoef lORV ORoutmatrix nltestOR
 	
@@ -5280,7 +5351,7 @@ end
 	version 13.1
 		syntax, estimates(string) studyid(varname) [catreg(varlist) typevarx(string) varx(varname) comparator(varname) cimethod(string) ///
 			level(integer 95) DP(integer 2) mcbnetwork pcbnetwork abnetwork general comparative stratify power(integer 0) by(varname) ///
-			regexpression(string) baselevel(integer 1)  interaction link(string)]
+			regexpression(string) baselevel(integer 1)  interaction link(string) model(string) ]
 		
 		//Expression for logodds prediction		
 		if "`link'" == "cloglog" {
@@ -5404,6 +5475,9 @@ end
 			if "`comparative'`mcbnetwork'`pcbnetwork'" != "" { 
 				estrcore, marginlist(`marginlist') varx(`varx') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link')
 			}
+			else if "`model'" != "penlogit" {
+				estrcore,  confounders(`varx') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link') by(`varx')
+			}
 			else {
 				estrcore, marginlist(`marginlist') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link')
 			}
@@ -5439,7 +5513,7 @@ end
 			local nrowsout = rowsof(`RRoutmatrix')
 		}
 
-		if "`comparative'`mcbnetwork'`pcbnetwork'" != "" {			
+		if ("`comparative'`mcbnetwork'`pcbnetwork'" != "") & ("`model'" != "penlogit") {			
 			mat `overallRR' = J(1, 6, .)
 			mat `overallOR' = J(1, 6, .)			
 						
