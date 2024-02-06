@@ -48,7 +48,9 @@ DATE:						DETAILS:
 31.10.2023					clolog ink (might be better if p > .9)	lolog ink (might be better if p < .1)	
 10.01.2024					Fit FE/Hexact if RE fails.
 							If isq = ., suppress the text in the graph
-29.01.2024					Introduce penalized logistic regression							
+01.02.2024					Introduce beta-binomial regression	
+05.02.2024					Introduce catterpillar plot	
+							seperate forest and catterpillar plot options
 */
 
 
@@ -64,54 +66,61 @@ version 14.1
 	syntax varlist(min=2) [if] [in], 
 		STudyid(varname) [
 		ALphasort
-		AStext(integer 50) 
 		CImethod(string) //i=[wald, exact, score], o=[wald, exact, score, t]
-		CIOpts(string) 
-		DIAMopts(string) 
-		DOUBLE 
 		GOF //Goodness of fit
 		DOWNload(string asis) 
-		DP(integer 2) 
+		DP(integer 2)
+		POwer(integer 0)		
 		Level(integer 95) 
 		INTeraction
 		LABEL(string) 
-		LCols(varlist) 
-		Model(string) //model(random|mixed|fixed|hexact|penlogit, options)
-		noGRaph 
-		noOVerall 
-		noOVLine 
-		noSTats 
+		Model(string) //model(random|mixed|fixed|hexact|betabin, options)
+		noGRaph //Synonym with nofplot
+		noFPlot
+		noCATPplot
 		noSUBgroup 
+		noOVerall 
 		noITAble
 		noWT
-		noBox
-		SMooth nsims(integer 800) //max dim in stata ic
-		OLineopts(string) 
 		outplot(string) //abs|rr|or
 		SUMTable(string) //none|logit|abs|rr|all
-		DESign(string) //design(general|matched-mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string) | cov(inde|unstr))
-		POINTopts(string) 
-		BOXopts(string) 
-		POwer(integer 0)
-		PREDciOpt(string)
+		DESign(string asis) //design(general|matched-mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string) | cov(inde|unstr))
+		noMC /*No Model comparison - Saves time*/
+		PROGress /*See the model fitting*/
+		by(varname)
+		STRatify  /*Stratified analysis, requires byvar()*/
+		link(string) /*logit|cloglog|loglog*/
+		ENHAnce //Replace population-averaged estimates with Conditional/exact estimates if model has issues e.g complete seperation etc
+		SMooth nsims(integer 800) //max dim in stata ic
+		FOptions(string asis) /*Options specific to the forest plot*/
+		COptions(string asis) /*Options specific to the catterpilar plot*/
+
+		/*passthrough*/
+		noOVLine 
+		noSTats 
+		noBox
+		DOUBLE 
+		AStext(integer 50) 
+		CIOpts(passthru) 
+		DIAMopts(passthru) 
+		OLineopts(passthru) 
+		POINTopts(passthru) 
+		BOXopts(passthru) 
+		PREDciOpt(passthru)
 		RCols(varlist) 
 		PREDIction  //prediction
-		SORtby(varlist) 
+		SORtby(varlist) //varlist
+		LCols(varlist) 		
 		SUBLine
 		SUMMARYonly
-		SUMStat(string asis)
+		SUMStat(string)
 		TEXts(real 1.0) 
 		XLAbel(passthru)
 		XLIne(passthru)	/*silent option*/	
 		XTick(passthru)  
-		noMC /*No Model comparison - Saves time*/
-		PROGress /*See the model fitting*/
-		graphsave(string)
-		by(varname)
-		STRatify  /*Stratified analysis, requires byvar()*/
+		graphsave(passthru)
 		logscale
-		link(string) /*logit|cloglog|loglog*/
-		ENHAnce //Replace population-averaged estimates with Conditional/exact estimates if model has issues e.g complete seperation etc
+		
 		*] ;
 	#delimit cr
 	
@@ -120,9 +129,9 @@ version 14.1
 	marksample touse, strok 
 	qui drop if !`touse'
 
-	tempvar rid event nonevent total invtotal use id neolabel ///
+	tempvar rid event nonevent total invtotal use id cid neolabel ///
 			es se lci uci grptotal uniq mu use rid lpi upi obsid ///
-			modeles modellci modeluci holder
+			modeles modellci modeluci holder uniqstudyid clone clones strata
 			
 	tempname nltestRR nltestOR mctest samtrix rawest rawesti logodds rrout orout absout logoddsi orouti rrouti absouti  exactabsouti exactabsout absexact ///
 			coefmat coefvar BVar WVar  omat isq2 bghet bshet lrtestp V dftestnl ptestnl lrtest matgof ///
@@ -144,6 +153,7 @@ version 14.1
 		cap gen `modeles' = .
 		cap gen `modellci' = .
 		cap gen `modeluci' = .
+		cap gen `uniqstudyid' = `studyid'
 	}
 	//Check link
 	if "`link'" == "" {
@@ -263,12 +273,12 @@ version 14.1
 	else if strpos("`model'", "h") == 1 {
 		local model "hexact"
 	}
-	else if strpos("`model'", "p") == 1 {
-		local model "penlogit"
+	else if strpos("`model'", "b") == 1 {
+		local model "betabin"
 	}
 	else {
 		di as error "Invalid option `model'"
-		di as error "Specify either fixed, random, mixed, penlogit or hexact"
+		di as error "Specify either fixed, random, mixed, betabin or hexact"
 		exit
 	}
 	if "`model'" == "fixed" & strpos("`modelopts'", "ml") != 0 {
@@ -279,25 +289,33 @@ version 14.1
 		di as error "Option irls not allowed in `modelopts'"
 		exit
 	}
-	//Check if penlogit is installed
-	if "`model'" == "`penlogit'" {
-		capture which penlogit
+		
+	//Check if betabin is installed
+	if "`model'" == "betabin" {
+		capture which betabin
 		if _rc != 0 {
-			di as res "The command penlogit is required"
-			di as res `"stata{ "ssc install penlogit": Click to install the command} "'
+			di as res "The user-package betabin is required"
+			di  `"{stata "search betabin": Click to search and install the package}"'
 			exit
 		}
+	}
+	
+	//smooth is redundant in betabin, we cannot recover the individual estimates
+	if "`model'" == "betabin" & "`smooth'" != "" {
+		local smooth
+		di as res "The option -smooth- is ignored. The model-based study estimates are irrecoverable."
+	}
+	
+	//Weights only for the logit link
+	if "`link'" != "logit" {
+		local wt nowt
 	}
 
 	//Avoid Incosistencies & Redundancies
 	if "`stratify'" != "" & "`summaryonly'" != "" {
 		local wt nowt
 	}
-
-	//Graph options
-	if "`summaryonly'" != "" {
-		local box "nobox"
-	}
+	
 	
 	if "`outplot'" == "abs" & "`design'" == "comparative" & "`model'" == "fixed" {
 		local design "general" 	
@@ -699,58 +717,13 @@ version 14.1
 		}
 	}
 	
-	if "`model'" == "penlogit" {
-		local regressor = "`regressors'"
-		qui {
-			my_ncod `holder', oldvar(`regressor')
-			drop `regressor'
-			rename `holder' `regressor'
-		}
-		
-		qui label list `regressor'
-		local nlevels = r(max)
-		local basecode 1
-		if "`baselevel'" != "" {
-			//Find the base level
-			local found = 0
-			local level 1
-			while !`found' & `level' < `=`nlevels'+1' {
-				local lab:label ``i'' `level'
-				if "`lab'" == "`baselevel'" {
-					local found = 1
-					local basecode `level'
-				}
-				local ++level
-			}
-		}
-						
-		local regexpression = "mu"
-
-		forvalues t=1(1)`nlevels' {
-			if `t' == `basecode' {
-				continue
-			}
-			qui {
-				tempvar `regressor'`t'
-				gen `regressor'`t' = 0
-				replace `regressor'`t' = 1 if `regressor'==`t'
-			}
-			
-			/*Add the proper expression for regression*/
-			local regexpression = "`regexpression' `regressor'`t'"
-			
-			local ireg "`ireg' `regressor'`t'"
-		}
-		local catreg "`regressors'"
-	}
-	else {
-		buildregexpr `varlist', `interaction' `alphasort' `design' ipair(`ipair') `baselevel'  studyid(`studyid')
-		
-		local regexpression = r(regexpression)
-		local catreg = r(catreg)
-		local contreg = r(contreg)
-		local basecode = r(basecode)
-	}
+	buildregexpr `varlist', `interaction' `alphasort' `design' ipair(`ipair') `baselevel'  studyid(`studyid')
+	
+	local regexpression = r(regexpression)
+	local catreg = r(catreg)
+	local contreg = r(contreg)
+	local basecode = r(basecode)
+	
 	
 	if "`interaction'" != "" { 
 		local varx = r(varx)
@@ -774,12 +747,7 @@ version 14.1
 			local varxlabs "`varx' `indexlab' `baselab'"
 		}
 	}
-	
-	if "`model'" == "penlogit" & "`design'" == "general" {
-		local varx = "`catreg'"
-		local typevarx = "i"
-	}
-	
+		
 	if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" { 
 		local varx = "`ipair'"
 		local typevarx = "i"		
@@ -991,6 +959,23 @@ version 14.1
 			local Nuniq = r(max)
 			drop `uniq'
 		}
+		if "`design'" == "general" & "`model'" == "random" {
+			cap assert `Nobs'==`Nuniq' 
+			if _rc != 0 {
+				qui {
+				cap drop `clone' `clones' `strata'
+				
+				gen `strata' = 0
+				replace `strata' = 1 `strataif'
+				
+				bys `studyid': egen `clones' = count(`studyid') if `strata' == 1
+				bys `studyid': egen `clone' = seq() `strataif' if `strata' == 1
+				replace `uniqstudyid' = `studyid' + "-" + string(`clone') if `strata' == 1	
+				sort `rid'
+				}
+			}
+			cap drop `clone' `clones' `strata'
+		}
 		if "`design'" == "comparative" {
 			cap assert mod(`Nobs', 2) == 0 
 			if _rc != 0 {
@@ -1024,7 +1009,7 @@ version 14.1
 		
 		*Run model if more than 1 study
 		if (`Nobs' > 1) {
-			preg `event' `nonevent' `total' `strataif', rid(`rid') studyid(`studyid') use(`use') regexpression(`regexpression') nu(`nu')  ///
+			preg `event' `nonevent' `total' `strataif', rid(`rid') studyid(`uniqstudyid') use(`use') regexpression(`regexpression') nu(`nu')  ///
 				regressors(`regressors')  catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 				comparator(`Comparator') cimethod(`ocimethod') `gof' nsims(`nsims') link(`link') ///
@@ -1035,6 +1020,7 @@ version 14.1
 			local mdf = r(mdf) //mdf = 0 if saturated
 			local getmodeli = r(model) //Returned model
 			local rrsuccess = r(rrsuccess)
+
 			
 			if ("`catreg'" != " " | "`typevarx'" == "i") & `rrsuccess' {
 				mat `rrouti' = r(rrout)
@@ -1059,7 +1045,7 @@ version 14.1
 			mat `absouti' = r(absout)
 			mat `absoutpi' = r(absoutp)
 
-			if "`getmodeli'" == "random" { 
+			if "`getmodeli'" == "random" | "`getmodeli'" == "betabin" { 
 				mat `hetouti' = r(hetout)	
 			}
 			else {				
@@ -1111,7 +1097,7 @@ version 14.1
 					tempvar ones zeros
 				
 					count if e(sample) 
-					local nuse = r(N)
+					local stratasize = r(N)
 					gen `ones' = `event'==`total' 
 					sum `ones' if e(sample) 
 					local sumones = r(sum)
@@ -1119,35 +1105,41 @@ version 14.1
 					gen `zeros' = `event'==0 
 					sum `zeros' if e(sample) 
 					local sumzeros = r(sum)
-					drop `ones' `zeros'
-				}
-				
-				if (`nuse' == `sumones') | (`nuse' == `sumzeros') {
-					qui {
-						//Exact inference					
-						sum `event' if e(sample) 
-						local n = r(sum)
-						sum `total' if e(sample) 
-						local N = r(sum)
-						
-						absexactci `N' `n',  level(`level') //exact ci
-						mat `absexact' = r(absexact)
-																
-						mat rownames `absexact' = Overall
-						
-						//Replace overall with exact estimate if necessary
-						mat `exactabsouti'[`nrowspop', 1] = `absexact'[1, 1]
-						mat `exactabsouti'[`nrowspop', 4] = `absexact'[1, 5]
-						mat `exactabsouti'[`nrowspop', 5] = `absexact'[1, 6]
-						local optimizedi = 1
+					cap drop `ones' `zeros'
+					
+					//Overall
+					if (`stratasize' == `sumones') | (`stratasize' == `sumzeros') {
+						qui {
+							//Exact inference					
+							sum `event' if e(sample) 
+							local n = r(sum)
+							sum `total' if e(sample) 
+							local N = r(sum)
+							
+							absexactci `N' `n',  level(`level') //exact ci
+							mat `absexact' = r(absexact)
+																	
+							mat rownames `absexact' = Overall
+							
+							//Replace overall with exact estimate if necessary
+							mat `exactabsouti'[`nrowspop', 1] = `absexact'[1, 1]
+							mat `exactabsouti'[`nrowspop', 4] = `absexact'[1, 5]
+							mat `exactabsouti'[`nrowspop', 5] = `absexact'[1, 6]
+							local optimizedi = 1
+						}
 					}
-				}
+					
+					//subgroups
+					if `p' == 1 {
+						
+					}
+				}	
 			}
 		}
 		*if 1 study or exact inference
 		else {
 			mat `rawesti' = J(1, 6, .)
-			mat `popabsouti' = J(1, 5, .)
+			mat `popabsouti' = J(1, 10, .)
 			mat `exactabsouti' = J(1, 5, .)
 			mat `absouti' = J(1, 6, .)
 			mat `absoutpi' = J(1, 2, .)
@@ -1226,12 +1218,17 @@ version 14.1
 				
 		tokenize `depvars'
 		if "`design'" == "general" | "`design'" == "abnetwork" | "`design'" == "comparative" {
-			if "`link'" == "loglog" {
+			/*if "`link'" == "loglog" {
 				di "{phang} (`2' - `1') ~ binomial(p, `2'){p_end}"
 			}
-			else{
-				di "{phang} `1' ~ binomial(p, `2'){p_end}"
-			}
+			else { */
+				if "`model'" == "betabin" {
+					di "{phang} `1' ~ bbinomial(p, sigma, `2'){p_end}"
+				}
+				else {
+					di "{phang} `1' ~ binomial(p, `2'){p_end}"
+				}
+			*}
 		}
 		else if "`design'" == "mcbnetwork"  {
 			di "{phang} `1' + `2'  ~ binomial(p, `1' + `2' + `3' + `4'){p_end}"
@@ -1261,7 +1258,7 @@ version 14.1
 			}
 			
 		}
-		else if "`getmodeli'" == "fixed" {
+		else if "`getmodeli'" == "fixed" | "`getmodeli'" == "betabin" {
 			di "{phang} `link'(p) = `nu'{p_end}"		
 		}
 		if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" {
@@ -1362,7 +1359,7 @@ version 14.1
 			}
 			
 			if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" == "" {
-				capture mcpreg `event' `nonevent' `total' `strataif', studyid(`studyid')  regexpression(`regexpression') nu(`nu')  ///
+				capture mcpreg `event' `nonevent' `total' `strataif', studyid(`uniqstudyid')  regexpression(`regexpression') nu(`nu')  ///
 					regressors(`regressors') level(`level') varx(`varx') typevarx(`typevarx')  `progress' /// 
 					`progress' model(`modeli') modelopts(`modeloptsi')  `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 					comparator(`Comparator')  link(`link')   ///
@@ -1377,6 +1374,9 @@ version 14.1
 	}
 	*End of loop
 	
+	//subset the popabsout
+	mat `popabsout' = `popabsout'[1..., 1..5]
+		
 	//rownames for the matrix
 	if "`stratify'" != "" & `i' > 1 {
 		if "`abnetwork'`cov'" != "" {
@@ -1412,9 +1412,9 @@ version 14.1
 	
 	if "`design'" == "mcbnetwork" | "`design'" == "pcbnetwork" {
 		*widesetup `event' `total', sid(`rid') idpair(`assignment')  jvar(`comparator')
-		
+
 		sort `rid'
-		qui drop `assignment' `ipair'
+		cap drop `assignment' `ipair' `uniqstudyid' `nonevent'
 		qui reshape wide `event' `total' _WT `modeles' `modellci' `modeluci', i(`rid') j(`idpair')
 
 		//Add the weights
@@ -1446,9 +1446,12 @@ version 14.1
 	
 	if `mdf' == 0 {
 		local smooth
-	}	
+	}
+	
+	//identifier as ordered  by ES
+	qui gen `cid' = .	
 		
-	prep4show `id' `use' `neolabel' `es' `lci' `uci' `modeles' `modellci' `modeluci', `design' ///
+	prep4show `id' `cid' `use' `neolabel' `es' `lci' `uci' `modeles' `modellci' `modeluci', `design' ///
 		sortby(`sortby') groupvar(`groupvar') grptotal(`grptotal') se(`se') 	///
 		outplot(`outplot') rrout(`rrout') poprrout(`poprrout') orout(`orout') poporout(`poporout') ///
 		absout(`absout') popabsout(`popabsout') exactabsout(`exactabsout') absoutp(`absoutp') hetout(`hetout')	///
@@ -1458,8 +1461,8 @@ version 14.1
 		
 	//Extra tables
 	//het
-	if "`model'" =="random" {			
-		printmat, matrixout(`hetout') type(het) dp(`dp') `design'
+	if ("`model'" =="random") | ("`model'" =="betabin")  {			
+		printmat, matrixout(`hetout') type(het) dp(`dp') `design' model(`model')
 	}
 	//Raw estimates
 	if  (("`sumtable'" == "all") |(strpos("`sumtable'", "logit") != 0)) {
@@ -1517,22 +1520,106 @@ version 14.1
 	}
 	
 	if "`itable'" == "" {
+		sort `id'
+		
 		disptab `id'  `use' `neolabel' `es' `lci' `uci' `grptotal' `modeles' `modellci' `modeluci', ///
 			`itable' dp(`dp') power(`power') `design' `summaryonly' ///
 			`subgroup' sumstat(`sumstat') level(`level') `wt' `smooth' ///
 			ocimethod(`ocimethod') icimethod(`icimethod') model(`model') groupvar(`groupvar') outplot(`outplot')
     }
 	
-	//Draw the forestplot
 	if "`graph'" == "" {
-		fplot `es' `lci' `uci' `use' `neolabel' `grptotal' `id' `modeles' `modellci' `modeluci', model(`model') ///	
+		//Gather graph options
+		if "`astext'" != "" {
+			local astext "astext(`astext')"
+		}
+		if "`texts'" != "" {
+			local texts "texts(`texts')"
+		}
+		if "`lcols'" != "" {
+			local lcols "lcols(`lcols')"
+		}
+		if "`rcols'" != "" {
+			local rcols "rcols(`rcols')"
+		}
+		local goptions `"`lcols' `rcols' `overall' `ovline' `stats' `box' `double' `astext' `ciopts' `diamopts' `olineopts' `pointopts' `boxopts' `predciopts' `prediction' `subline' `texts' `xlabel' `xline' `xtick'  `logscale' `options'"'
+		
+		metapplotcheck,`summaryonly' `goptions'  //plots advance housekeeping
+		local goptions = r(plotopts)
+		local glcols = r(lcols)
+		local grcols = r(rcols)
+		if "`glcols'" == " " { //if empty
+			local glcols
+		}
+		if "`grcols'" == " " { //if empty
+			local grcols
+		}
+	}
+
+	//Draw the forestplot
+	if "`graph'`fplot'" == "" {
+		if `"`foptions'"' != "" {
+			metapplotcheck,`summaryonly' `foptions'  //Forest plot advance housekeeping
+			local foptions = r(plotopts)
+			local flcols = r(lcols)
+			local frcols = r(rcols)
+			if "`flcols'" == " " { //if empty
+				local flcols
+			}
+			if "`frcols'" == " " { //if empty
+				local frcols
+			}
+		}
+		else if `"`goptions'"' != "" {
+			local foptions `"`goptions'"'
+			if "`glcols'" != "" {
+				local flcols = "`glcols'"
+			}
+			if "`grcols'" != "" {
+				local frcols = "`grcols'"
+			}
+		}
+		
+		sort `id' 
+				
+		metapplot `es' `lci' `uci' `use' `neolabel' `grptotal' `id' `modeles' `modellci' `modeluci', model(`model') ///	
 			studyid(`studyid') power(`power') dp(`dp') level(`level') ///
-			groupvar(`groupvar') `prediction'  ///
-			outplot(`outplot') lcols(`lcols') rcols(`rcols') ///
-			ciopts(`ciopts') astext(`astext') diamopts(`diamopts') ///
-			olineopts(`olineopts') sumstat(`sumstat') pointopt(`pointopts') boxopt(`boxopts') ///
-			`double' `subline' texts(`texts') `xlabel' `xtick' ///
-			`ovline' `stats'  graphsave(`graphsave') `fopts' `xline' `logscale' `design' `wt' `box' `smooth' varxlabs(`varxlabs')
+			groupvar(`groupvar')  type(fplot) ///
+			outplot(`outplot') lcols(`flcols') rcols(`frcols') ///
+			`foptions'  `design' `wt' `smooth' varxlabs(`varxlabs')
+	}
+	
+	//Draw the catterpillar plot
+	if "`catpplot'" == "" {
+		if "`coptions'" != "" {
+			metapplotcheck,`summaryonly' `coptions'  //Catterpillar plot advance housekeeping
+			local coptions = r(plotopts)
+			local clcols = r(lcols)
+			local crcols = r(rcols)
+			if "`clcols'" == " " { //if empty
+				local clcols
+			}
+			if "`crcols'" == " " { //if empty
+				local crcols
+			}
+		}
+		else if `"`goptions'"' != "" {
+			local coptions = `"`goptions'"'
+			if "`glcols'" != "" {
+				local clcols = "`glcols'"
+			}
+			if "`grcols'" != "" {
+				local crcols = "`grcols'"
+			}
+		}
+		
+		sort `cid'
+		
+		metapplot `es' `lci' `uci' `use' `neolabel' `grptotal' `cid' `modeles' `modellci' `modeluci', model(`model') ///	
+			studyid(`studyid') power(`power') dp(`dp') level(`level') ///
+			groupvar(`groupvar')  type(catpplot) ///
+			outplot(`outplot') lcols(`clcols') rcols(`crcols') ///
+			`coptions' `design' `wt' `smooth' varxlabs(`varxlabs')
 	}
 	
 	//model comparison
@@ -2034,6 +2121,7 @@ program define preg, rclass
 	
 	//Returned model	
 	local getmodel = r(model)
+	local dispersion = r(dispersion)
 			
 	estimates store metapreg_modest
 	local predcmd = e(predict)
@@ -2066,6 +2154,13 @@ program define preg, rclass
 			mat colnames `rawvar' = intercept slope
 			mat rownames `rawvar' = intercept slope
 		}
+	}
+	else if "`getmodel'" == "betabin" {
+		local BHET = e(chi2_c)
+		local P_BHET = `=chi2tail(1, e(chi2_c))*0.5'
+		local DF_BHET = 1
+		local SIGMA = e(sigma)
+	
 	}
 	else {
 		local BHET = .
@@ -2183,15 +2278,15 @@ program define preg, rclass
 	mat `rawest' = r(outmatrix)
 	
 	
-	//simulations
-	postsim, orderid(`rid') studyid(`studyid') todo(p) estimates(metapreg_modest) rawest(`rawest') ///
+	//simulations ABS
+	postsim, event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(p) estimates(metapreg_modest) rawest(`rawest') ///
 			level(`level')  model(`getmodel')  by(`by') `comparative' `interaction' `abnetwork' ///
-			`mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link')
+			`mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link') dispersion(`dispersion')
 			
 	mat `popabsout' = r(outmatrix)
 	
 	
-	//ABS
+	//Conditional ABS
 	estp, studyid(`studyid') estimates(metapreg_modest) `interaction'  catreg(`catreg') ///
 		contreg(`contreg') level(`level')  model(`getmodel') cimethod(`cimethod') ///
 		varx(`varx') typevarx(`typevarx') abs by(`by') regexpression(`regexpression') ///
@@ -2296,6 +2391,12 @@ program define preg, rclass
 			mat colnames `hetout' = DF Chisq p tau2 
 		}
 	}
+	
+	if "`model'" == "betabin" {
+		mat `hetout' = (`DF_BHET', `BHET', `P_BHET', `SIGMA')
+		mat colnames `hetout' = DF chibar2 p sigma
+	}
+	
 	mat rownames `hetout' = Model
 	return matrix hetout = `hetout'
 	return local inltest = "`inltest'"
@@ -2328,7 +2429,7 @@ program define preg, rclass
 		return matrix nltestRR = `nltestRR'
 		return matrix nltestOR = `nltestOR'
 	}
-
+	return local dispersion = "`dispersion'"
 	return scalar mdf = `mdf'
 	return local model = "`getmodel'"
 	return local rrsuccess ="`rrsuccess'"
@@ -2656,13 +2757,19 @@ program define fitmodel, rclass
 	else {
 		local fitcommand "mecloglog"
 	}
+	local dispersion = 1
 	
-	//Fit penlogit
-	if ("`model'" == "penlogit") {
-		capture noisily penlogit `1' `regexpression' if `touse', bin(`2') `modelopts' noconstant
+	//Fit betabin
+	if "`model'" == "betabin" {
+		//Default iterations
+		if strpos(`"`modelopts'"', "iterate") == 0  {
+			local iterate = `"iterate(100)"'
+		}
+		
+		capture noisily betabin `1' `regexpression' if `touse', noconstant n(`2') link(`link') `modelopts' `iterate' l(`level')	
 		local success = _rc
 	}
-		
+			
 	//Fit the FE model
 	if ("`model'" == "fixed") {
 		if "`link'" == "logit" { 
@@ -2707,7 +2814,7 @@ program define fitmodel, rclass
 			}
 		}
 		//Default iterations
-		if strpos(`"`modelopts'"', "(iterate") == 0  {
+		if strpos(`"`modelopts'"', "iterate") == 0  {
 			if "`fitcommand'" == "meqrlogit" {
 				local iterate = `"iterate(30)"'
 			}
@@ -2840,7 +2947,7 @@ program define fitmodel, rclass
 		di as error "Try fitting a simpler model or better model option specifications"
 		exit `success'
 	}
-	
+	return local dispersion = "`dispersion'"
 	return local model "`model'"
 	/*if "`model'" == "hexact" {
 		return matrix absexact = `absexact'
@@ -3010,14 +3117,15 @@ version 14.1
 	tokenize `varlist'
 	 
 	local id = "`1'"
-	local use = "`2'"
-	local label = "`3'"
-	local es = "`4'"
-	local lci = "`5'"
-	local uci = "`6'"
-	local modeles = "`7'"
-	local modellci = "`8'"
-	local modeluci = "`9'"
+	local cid = "`2'"
+	local use = "`3'"
+	local label = "`4'"
+	local es = "`5'"
+	local lci = "`6'"
+	local uci = "`7'"
+	local modeles = "`8'"
+	local modellci = "`9'"
+	local modeluci = "`10'"
 	
 	if "`se'" !="" {
 		gen `serror' = `se'
@@ -3028,7 +3136,7 @@ version 14.1
 	
 	qui {		
 		gen `expand' = 1
-
+	
 		//Groups
 		if "`groupvar'" != "" {	
 			
@@ -3036,19 +3144,21 @@ version 14.1
 			gsort `groupvar' `sortby' `id'
 			bys `groupvar' : replace `expand' = 1 + 1*(_n==1) + 3*(_n==_N) 
 			expand `expand'
+			
 			gsort `groupvar' `sortby' `id' `expand'
 			bys `groupvar' : replace `use' = -2 if _n==1  //group label
 			bys `groupvar' : replace `use' = 2 if _n==_N-2  //summary
 			bys `groupvar' : replace `use' = 4 if _n==_N-1  //prediction
-			bys `groupvar' : replace `use' = 0 if _n==_N //blank */
+			bys `groupvar' : replace `use' = 3 if _n==_N //blank */
 			replace `id' = `id' + 1 if `use' == 1
 			replace `id' = `id' + 2 if `use' == 2  //summary 
 			replace `id' = `id' + 3 if `use' == 4  //Prediction
-			replace `id' = `id' + 4 if `use' == 0 //blank
+			replace `id' = `id' + 4 if `use' == 3 //blank
+			
 			*replace `label' = "Summary" if `use' == 2 
 			replace `label' = "Group Mean" if `use' == 2 
 			replace _WT = . if `use' == 2 
-			
+						
 			qui label list `groupvar'
 			local nlevels = r(max)
 			forvalues l = 1/`nlevels' {
@@ -3142,7 +3252,7 @@ version 14.1
 				sum _WT if `use' == 1 & `groupvar' == `l'
 				local groupwt = r(sum)
 				replace _WT = `groupwt' if `use' == 2 & `groupvar' == `l'	
-			}
+			}	
 		}
 		else {
 			egen `grptotal' = count(`id') //# studies total
@@ -3154,11 +3264,12 @@ version 14.1
 			expand `expand'
 			gsort  `groupvar' `sortby' `id' `expand'
 			replace `use' = 4 if _n==_N  //Prediction
-			replace `use' = 3 if _n==_N-1  //Overall
-			replace `use' = 0 if _n==_N-2 //blank
+			replace `use' = 5 if _n==_N-1  //Overall
+			replace `use' = 3 if _n==_N-2 //blank
 			replace `id' = `id' + 3 if _n==_N  //Prediction
 			replace `id' = `id' + 2 if _n==_N-1  //Overall
 			replace `id' = `id' + 1 if _n==_N-2 //blank
+
 			//Fill in the right info
 			if "`outplot'" == "abs" {
 				
@@ -3195,21 +3306,21 @@ version 14.1
 					local S_4 = `poporout'[`nrows', 5]
 				}
 			}
-			replace `label' = "Population Mean" if `use' == 3
+			replace `label' = "Population Mean" if `use' == 5
 			
 			if "`model'" == "random" & "`indvars'" == ""  & "`outplot'" == "abs" {
 				local nrows = rowsof(`hetout')
 				local isq = `hetout'[`nrows', 5]
 				local phet = `hetout'[`nrows', 3]
 				*replace `label' = "Overall (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 3
-				replace `label' = "Population Mean (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 3 & (`isq' != .)	
+				replace `label' = "Population Mean (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
 			}
 					
-			replace `es' = `S_1' if `use' == 3	
-			replace `lci' = `S_3' if `use' == 3
-			replace `uci' = `S_4' if `use' == 3
-			replace _WT = . if (`use' == 3) & ("`stratify'" != "")
-			replace _WT = 100 if (`use' == 3) & ("`stratify'" == "")
+			replace `es' = `S_1' if `use' == 5	
+			replace `lci' = `S_3' if `use' == 5
+			replace `uci' = `S_4' if `use' == 5
+			replace _WT = . if (`use' == 5) & ("`stratify'" != "")
+			replace _WT = 100 if (`use' == 5) & ("`stratify'" == "")
 			//Predictions
 			if "`outplot'" == "abs" & "`prediction'" != "" {
 				replace `lci' = `S_5' if _n==_N
@@ -3217,16 +3328,16 @@ version 14.1
 			}
 		}
 		count if `use'==1 
-		replace `grptotal' = `=r(N)' if `use'==3
+		replace `grptotal' = `=r(N)' if `use'==5
 		replace `grptotal' = `=r(N)' if _n==_N
 		
-		replace `label' = "" if `use' == 0
-		replace `es' = . if `use' == 0 | `use' == -2 | `use' == 4  //4 is prediction 
-		replace `lci' = . if `use' == 0 | `use' == -2
-		replace `uci' = . if `use' == 0 | `use' == -2
-		
+		replace `label' = "" if `use' == 3 | `use' == 4
+		replace `es' = . if `use' == 3 | `use' == -2 | `use' == 4  //4 is prediction 
+		replace `lci' = . if `use' == 3 | `use' == -2
+		replace `uci' = . if `use' == 3 | `use' == -2
+				
 		gsort `groupvar' `sortby'  `id' 
-		
+				
 		replace `label' = "Predictive t Interval" if `use' == 4 & "`model'" == "random"
 		replace `label' = "t Interval" if `use' == 4 & "`model'" != "random"
 	}
@@ -3234,7 +3345,7 @@ version 14.1
 		replace `modeles' = . if `use' != 1
 		replace `modellci' = . if `use' != 1
 		replace `modeluci' = . if `use' != 1
-		replace _WT = . if `use'==0 | `use'==-2 | `use'==4
+		replace _WT = . if `use'==3 | `use'==-2 | `use'==4
 	}	
 	if `"`download'"' != "" {
 		local ZOVE -invnorm((100-`level')/200)
@@ -3266,10 +3377,11 @@ version 14.1
 		restore
 	}
 	qui {
+					
 		if "`abnetwork'" == "" | ("`abnetwork'" != "" & "`outplot'" == "abs") {
-			drop if (`use' == 2 | `use' == 3) & (`grptotal' == 1)  //drop summary if 1 study
+			drop if (`use' == 2 | `use' == 5) & (`grptotal' == 1)  //drop summary if 1 study
 		}
-		drop if (`use' == 1 & "`summaryonly'" != "" & `grptotal' > 1) | (`use' == 2 & "`subgroup'" != "") | (`use' == 3 & "`overall'" != "") | (`use' == 4 & "`prediction'" == "") //Drop unnecessary rows
+		drop if (`use' == 1 & "`summaryonly'" != "" & `grptotal' > 1) | (`use' == 2 & "`subgroup'" != "") | (`use' == 5 & "`overall'" != "") | (`use' == 4 & "`prediction'" == "") //Drop unnecessary rows
 		
 		//Remove redundant info
 		replace _WT = . if `use' == 1 & (`grptotal' == 1) & "`stratify'" != ""
@@ -3284,7 +3396,10 @@ version 14.1
 		gsort `groupvar' `sortby' `id'
 				
 		replace `id' = _n
-		gsort `id' 
+		
+		gsort `groupvar' `use' -`es'
+		
+		replace `cid' = _n		
 	}
 end	
 /*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: DISPTAB +++++++++++++++++++++++++
@@ -3542,7 +3657,7 @@ version 14.1
 					_skip(5) %10.`=`dp''f `uci'[`i']*(10^`power') "`open'" `aes' `muci' "`close'"   _col(`colwt') %10.`=`dp''f `ww'
 				}
 				//Summaries
-				if ( (`use'[`i']== 3) | ((`use'[`i']== 2) & (`grptotal'[`i'] > 1))){
+				if ( (`use'[`i']== 5) | ((`use'[`i']== 2) & (`grptotal'[`i'] > 1))){
 					if ((`use'[`i']== 2) & (`grptotal'[`i'] > 1)) {
 						di _col(2) as txt _col(`nlen') "|  " 
 					}
@@ -3566,7 +3681,7 @@ version 14.1
 					}
 				}
 				//Blanks
-				if (`use'[`i'] == 0 ){
+				if (`use'[`i'] == 0 | `use'[`i'] == 3  ){
 					di as txt _dup(`=`nlen'-1') "-" "+" _dup(57) "-"		
 				}
 			}
@@ -3656,8 +3771,6 @@ end
 				local prefix_`i' "c"
 			}
 			if "`baselevel'" != "" & `i'==1 {
-				local prefix_`i' "ibn"
-				
 				//Find the base level
 				qui label list ``i''
 				local nlevels = r(max)
@@ -3670,6 +3783,13 @@ end
 						local basecode `level'
 					}
 					local ++level
+				}
+				
+				if "`comparative'`abnetwork'" != "" {
+					local prefix_`i' "ibn"
+				}
+				if "`general'" != "" {
+					local prefix_`i' "ib`basecode'"
 				}
 			}
 			/*Add the proper expression for regression*/
@@ -3771,7 +3891,7 @@ end
 			local marginlist
 		}
 		
-		while "`catreg'" != ""  & "`model'" != "penlogit" {
+		while "`catreg'" != ""  {
 			tokenize `catreg'
 			if ("`1'" != "`by'" & "`by'" != "") | "`by'" =="" {
 				if ("`1'" != "`studyid'") {
@@ -3823,13 +3943,9 @@ end
 		}
 		
 		local byncatreg 0
-		if ("`by'" != "" & "`stratify'"  == "") | ("`model'" == "penlogit") {
-			if ("`model'" == "penlogit") {
-				qui margin , `expression' over(`varx') level(`level')
-			}
-			else {
-				qui margin , `expression' over(`by') level(`level')
-			}
+		if ("`by'" != "" & "`stratify'"  == "")  {
+			qui margin , `expression' over(`by') level(`level')
+			
 			
 			mat `bycatregmatrixout' = r(table)'
 			mat `byVmatrix' = r(V)
@@ -3851,7 +3967,7 @@ end
 		local ncatreg 0
 		
 		//Overall
-		if "`marginlist'" != "" | (  "`marginlist'" == "" & ("`abnetwork'`mcbnetwork'`pcbnetwork'" == "" | ("`model'" != "penlogit"))) {
+		if "`marginlist'" != "" | (  "`marginlist'" == "" & ("`abnetwork'`mcbnetwork'`pcbnetwork'" == "" )) {
 			qui margin `marginlist', `expression' `grand' level(`level')
 						
 			mat `catregmatrixout' = r(table)'
@@ -4077,8 +4193,8 @@ cap program drop postsim
 program define postsim, rclass
 version 14.1
 	#delimit ;
-	syntax [if] [in], todo(string) orderid(varname) studyid(varname) estimates(name) 
-	[ rawest(name) rrout(name) orout(name) link(string)
+	syntax  [if] [in], todo(string) orderid(varname) studyid(varname) estimates(name) 
+	[event(varname) total(varname) rawest(name) rrout(name) orout(name) link(string) dispersion(real 1)
 	modeles(varname) modellci(varname) modeluci(varname) outplot(string) baselevel(integer 1) cov(string)
 	model(string) comparative  by(varname) level(real 95) interaction abnetwork mcbnetwork  varx(varname) nsims(string)]
 	;
@@ -4117,6 +4233,9 @@ version 14.1
 		//Coefficients estimates and varcov
 		mat `fullrawcoef' = e(b)
 		mat `fullvarrawcoef' = e(V)
+		
+		//Corrected var-cov
+		mat `fullvarrawcoef' = `dispersion'*`fullvarrawcoef'
 		
 		local ncoef = colsof(`fullrawcoef')
 		local rho = 0
@@ -4437,7 +4556,17 @@ version 14.1
 		//Generate the p's and r's
 		forvalues j=1(1)`nobs' { 
 			tempvar phat`j' 
-				
+			/*
+			//feff 
+			sum `feff' if `rid' == `j' 
+			local feff_`j' = r(mean)
+			
+			//sfeff 
+			sum `sfeff' if `rid' == `j' 
+			local sfeff_`j' = r(mean)
+			
+			replace `festudy`j'' = rnormal(`feff_`j'', `sfeff_`j'')
+			*/	
 			if "`comparative'`mcbnetwork'`abnetwork'" == "" {
 				tempvar restudy`j' phat`j' 
 			
@@ -4570,12 +4699,39 @@ version 14.1
 				count if `subset' == 1 
 				local nsubset = r(N)
 				
+				//Get the strata total
+				sum `total' if `subset' == 1
+				local stratatotal = r(sum)
+				
+				//Get the strata events
+				sum `event' if `subset' == 1
+				local strataevents = r(sum)
+				
+				//Get the strata size
+				count if `subset' == 1
+				local stratasize = r(N)
+				
+				tempvar ones zeros
+				gen `ones' = `event'==`total' 
+				sum `ones' if `subset' == 1 
+				local sumones = r(sum)
+				
+				gen `zeros' = `event'==0 
+				sum `zeros' if `subset' == 1  
+				local sumzeros = r(sum)
+				
 				//Compute mean of simulated values
 				cap drop `sumphat' `meanphat'
 				gen `sumphat' = 0	
 				forvalues j=1(1)`nsubset' { 
 					sum `rid' if `subsetid' == `j'
 					local index = r(min)
+					
+					//Replace ones/zeros 
+					if (`sumones' == `stratasize') | (`sumzeros' == `stratasize') {
+						replace `phat`index'' = `strataevents'/`stratatotal'	
+					}
+					
 					replace `sumphat' = `sumphat' + `phat`index''
 				}
 				
@@ -4584,6 +4740,7 @@ version 14.1
 				local meanmodelp = r(mean)
 						
 				gen `meanphat' = `sumphat'/`nsubset'
+				
 				//Standard error
 				sum `meanphat'	
 				local postse = r(sd)
@@ -4594,7 +4751,7 @@ version 14.1
 				local lowerp = r(c_2) //Lower centile
 				local upperp = r(c_3) //Upper centile
 				
-				mat `popabsouti' = (`meanmodelp', `postse', `median', `lowerp', `upperp')
+				mat `popabsouti' = (`meanmodelp', `postse', `median', `lowerp', `upperp', `stratatotal', `strataevents', `stratasize', `sumones', `sumzeros')
 				mat rownames `popabsouti' = `vari':`group'
 				
 				//Stack the matrices
@@ -4919,7 +5076,7 @@ version 14.1
 		
 	//Return matrices
 	if "`todo'" =="p" {
-		mat colnames `popabsout' = Mean SE Median Lower Upper
+		mat colnames `popabsout' = Mean SE Median Lower Upper Total Events Studies Ones Zeros
 		return matrix outmatrix = `popabsout'
 	}
 	if "`todo'" == "r" {
@@ -5016,13 +5173,14 @@ program define printmat
 					}
 				}
 			}
-			
+		
 			#delimit ;
 			noi matlist `mat2print', rowtitle(Parameter) 
 						cspec(& %`rownamesmaxlen's |  %8.`=`dp''f &  %8.`=`dp''f & %8.`=`dp''f & %8.`=`dp''f & %8.`=`dp''f o2&) 
 						rspec(`rspec') underscore nodotz
 			;
-			#delimit cr					
+			#delimit cr	
+						
 		}
 		if ("`type'" == "raw") | ("`type'" == "abs") | ("`type'" == "rr")| ("`type'" == "or")  {
 			if ("`model'" == "random") {
@@ -5079,7 +5237,12 @@ program define printmat
 		}
 		if ("`type'" == "het") {
 			di as res _n "****************************************************************************************"
-			di as txt _n "Test of heterogeneity - LR Test: RE model vs FE model"
+			if "`model'" == "betabin" {
+				di as txt _n "Test of heterogeneity - LR Test: beta-binomial vs binomial model"
+			}
+			else {
+				di as txt _n "Test of heterogeneity - LR Test: RE model vs FE model"
+			}
 			
 			tempname mat2print
 			mat `mat2print' = `matrixout'
@@ -5098,6 +5261,14 @@ program define printmat
 						rspec(`rspec') underscore nodotz
 			;
 			#delimit cr	
+			
+			if "`model'" == "betabin" {
+				di as txt "NOTE: H0: sigma = 0 vs. H1: sigma > 0"
+			}
+			else {
+				di as txt "NOTE: H0: tau = 0 vs. H1: tau > 0"
+			}
+			
 		}
 		if ("`type'" == "mc") {
 			di as res _n "****************************************************************************************"
@@ -5475,11 +5646,8 @@ end
 			if "`comparative'`mcbnetwork'`pcbnetwork'" != "" { 
 				estrcore, marginlist(`marginlist') varx(`varx') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link')
 			}
-			else if "`model'" != "penlogit" {
+			else  {
 				estrcore,  confounders(`varx') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link') by(`varx')
-			}
-			else {
-				estrcore, marginlist(`marginlist') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link')
 			}
 			
 			matrix `catregmatRR' = r(rroutmatrix)
@@ -5513,7 +5681,7 @@ end
 			local nrowsout = rowsof(`RRoutmatrix')
 		}
 
-		if ("`comparative'`mcbnetwork'`pcbnetwork'" != "") & ("`model'" != "penlogit") {			
+		if ("`comparative'`mcbnetwork'`pcbnetwork'" != "") {			
 			mat `overallRR' = J(1, 6, .)
 			mat `overallOR' = J(1, 6, .)			
 						
@@ -5860,13 +6028,99 @@ qui{
 
 end
 
-/*	SUPPORTING FUNCTIONS: FPLOT ++++++++++++++++++++++++++++++++++++++++++++++++
-			The forest plot
+/*	SUPPORTING FUNCTIONS: 	METAPLOTCHECK ++++++++++++++++++++++++++++++++++++++++++
+			Advance housekeeping for the metapplot
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+	capture program drop metapplotcheck
+	program define metapplotcheck, rclass
+	version 14.1	
+	#delimit ;
+	syntax  [,
+		/*Passed from top*/
+		SUMMARYonly
+		
+		/*passed via foptions/coptions*/
+		noOVerall 
+		noOVLine 
+		noSTats 
+		noBox
+		DOUBLE 
+		AStext(integer 50) 
+		CIOpts(passthru) 
+		DIAMopts(passthru) 
+		OLineopts(passthru) 
+		POINTopts(passthru) 
+		BOXopts(passthru) 
+		PREDciOpts(passthru)
+		PREDIction  //prediction
+		SORtby(varlist) //varlist
+		LCols(varlist) 
+		RCols(varlist) 		
+		SUBLine
+		TEXts(real 1.0) 
+		XLAbel(passthru)
+		XLIne(passthru)	/*silent option*/	
+		XTick(passthru)  
+		graphsave(passthru)
+		logscale	
+		grid
+		*
+	  ];
+	#delimit cr
+	
+	if `astext' > 90 | `astext' < 10 {
+		di as error "Percentage of graph as text (ASTEXT) must be within 10-90%"
+		di as error "Must have some space for text and graph"
+		exit
+	}
+	if `texts' < 0 {
+		di as res "Warning: Negative text size (TEXTSize) are ignored"
+		local texts 1
+	}	
+	
+	if "`summaryonly'" != "" {
+		local box "nobox"
+	}
+	
+	foreach var of local rcols {
+		cap confirm var `var'
+		if _rc!=0  {
+			di in re "Variable `var' not in the dataset"
+			exit _rc
+		}
+	}
+	foreach var of local lcols {
+		cap confirm var `var'
+		if _rc!=0  {
+			di in re "Variable `var' not in the dataset"
+			exit _rc
+		}
+	}
+	if "`lcols'" =="" {
+		local lcols " "
+	}
+	if "`rcols'" =="" {
+		local rcols " "
+	}
+	if "`astext'" != "" {
+		local astext "astext(`astext')"
+	}
+	if "`texts'" != "" {
+		local texts "texts(`texts')"
+	}
+	local plotopts `"`overall' `ovline' `stats' `box' `double' `astext' `ciopts' `diamopts' `olineopts' `pointopts' `boxopts' `predciopts' `prediction' `subline' `texts' `xlabel' `xline' `xtick' `graphsave' `logscale' `grid' `options'"'
+	return local lcols ="`lcols'"
+	return local rcols ="`rcols'"
+	return local plotopts = `"`plotopts'"'
+end
+
+/*	SUPPORTING FUNCTIONS: 	METAPLOT ++++++++++++++++++++++++++++++++++++++++++++++++
+			The forest/catterpillar plot
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 // Some re-used code from metaprop, metadta
 
-	capture program drop fplot
-	program define fplot
+	capture program drop metapplot
+	program define metapplot
 	version 14.1	
 	#delimit ;
 	syntax varlist [if] [in] [,
@@ -5874,7 +6128,20 @@ end
 		POWer(integer 0)
 		DP(integer 2) 
 		Level(integer 95)
-		Groupvar(varname)		
+		Groupvar(varname)
+		comparative
+		abnetwork
+		pcbnetwork
+		mcbnetwork
+		general
+		smooth
+		model(string)
+		varxlabs(string)
+		type(string)
+		noWT
+		
+		/*Passed through*/
+		logscale
 		AStext(integer 50)
 		ARRowopt(string) 		
 		CIOpts(string) 
@@ -5884,7 +6151,6 @@ end
 		RCols(varlist) 		
 		noOVLine 
 		noSTATS
-		noWT
 		noBox
 		OLineopts(string) 
 		outplot(string) 
@@ -5900,24 +6166,18 @@ end
 		GRID
 		GRAphsave(string asis)
 		prediction
-		logscale
-		comparative
-		abnetwork
-		pcbnetwork
-		mcbnetwork
-		general
-		smooth
-		model(string)
-		varxlabs(string)
+
 		*
 	  ];
 	#delimit cr
 	
-	local fopts `"`options'"'
+	preserve
 	
-	if strpos(`"`fopts'"', "graphregion") == 0 {
-			local fopts `"graphregion(color(white)) `fopts'"'
-		}
+	local plotopts `"`options'"'
+	
+	if strpos(`"`plotopts'"', "graphregion") == 0 {
+			local plotopts `"graphregion(color(white)) `plotopts'"'
+	}
 	
 	tempvar es modeles lci modellci uci modeluci lpi upi ilci iuci predid use label tlabel id newid rid gid df expand expanded order orig flag ///
 	
@@ -5956,9 +6216,9 @@ end
 		replace `newid' = `newid' + 5 if _n>6
 		replace `label' = "" in 1/5
 		replace `use' = -2 in 1/4
-		replace `use' = 0 in 5
+		replace `use' = 3 in 5
 		replace `newid' = _N  if _N==_n
-		replace `use' = 0  if _N==_n
+		replace `use' = 3  if _N==_n
 		replace `label' = "" if _N==_n
 		
 		gen `flag' = 1
@@ -6002,15 +6262,15 @@ end
 	
 		tempvar estText index predText predLabel wtText modelestText
 		
-		gen str `estText' = string(`es', "%10.`=`dp''f") + " (" + string(`lci', "%10.`=`dp''f") + ", " + string(`uci', "%10.`=`dp''f") + ")"  if (`use' == 1 | `use' == 2 | `use' == 3)
+		gen str `estText' = string(`es', "%10.`=`dp''f") + " (" + string(`lci', "%10.`=`dp''f") + ", " + string(`uci', "%10.`=`dp''f") + ")"  if (`use' == 1 | `use' == 2 | `use' == 5)
 		
 		if "`smooth'" !="" {
 			gen str `modelestText' = string(`modeles', "%10.`=`dp''f") + " (" + string(`modellci', "%10.`=`dp''f") + ", " + string(`modeluci', "%10.`=`dp''f") + ")"  if (`use' == 1 )
-			replace `modelestText' = string(`es', "%10.`=`dp''f") + " (" + string(`lci', "%10.`=`dp''f") + ", " + string(`uci', "%10.`=`dp''f") + ")"  if (`use' == 2 | `use' == 3)
-			replace `estText' = " " if (`use' == 2 | `use' == 3)
+			replace `modelestText' = string(`es', "%10.`=`dp''f") + " (" + string(`lci', "%10.`=`dp''f") + ", " + string(`uci', "%10.`=`dp''f") + ")"  if (`use' == 2 | `use' == 5)
+			replace `estText' = " " if (`use' == 2 | `use' == 5)
 		}
 		if "`wt'" == "" {
-			gen str `wtText' = string(_WT, "%10.`=`dp''f") if (`use' == 1 | `use' == 2 | `use' == 3) & _WT !=.
+			gen str `wtText' = string(_WT, "%10.`=`dp''f") if (`use' == 1 | `use' == 2 | `use' == 5) & _WT !=.
 		}
 		
 		if "`prediction'" != "" {
@@ -6282,7 +6542,7 @@ end
 					gen str `rightLB`rcolsN'' = string(`1', "`f'")
 					replace `rightLB`rcolsN'' = "" if `rightLB`rcolsN'' == "."
 				}
-				replace `rightLB`rcolsN'' = "" if (`use' == 0 |  `use' == -2 )
+				replace `rightLB`rcolsN'' = "" if (`use' == 3 |  `use' == -2 )
 				
 				local colName: variable label `1'
 				if "`colName'"==""{
@@ -6366,7 +6626,7 @@ end
 
 			replace `id' = _n
 			
-			replace `use' = 0 if `expanded' //blanks
+			replace `use' = 3 if `expanded' //blanks
 			
 			sort `expanded' `gid' `id'
 			
@@ -6391,19 +6651,19 @@ end
 
 		forvalues i = 1/`lcolsN'{
 			getlen `leftLB`i'' `leftWD`i''
-			qui summ `leftWD`i'' if `use' != 3 	// DON'T INCLUDE OVERALL STATS AT THIS POINT
+			qui summ `leftWD`i'' if `use' != 5 	// DON'T INCLUDE OVERALL STATS AT THIS POINT
 			local maxL = r(max)
 			local leftWDtotNoTi = `leftWDtotNoTi' + `maxL'
 			replace `leftWD`i'' = `maxL'
 		}
 		tempvar titleLN				// CHECK IF OVERALL LENGTH BIGGER THAN REST OF LCOLS
 		getlen `leftLB1' `titleLN'	
-		qui summ `titleLN' if `use' == 3
+		qui summ `titleLN' if `use' == 5
 		local leftWDtot = max(`leftWDtotNoTi', r(max))
 
 		forvalues i = 1/`rcolsN'{
 			getlen `rightLB`i'' `rightWD`i''
-			qui summ `rightWD`i'' if  `use' != 3
+			qui summ `rightWD`i'' if  `use' != 5
 			
 			replace `rightWD`i'' = r(max)
 			local rightWDtot = `rightWDtot' + r(max)
@@ -6415,9 +6675,9 @@ end
 
 		tempvar maxLeft
 		getlen `leftLB1' `maxLeft'
-		qui count if `use' == 2 | `use' == 3 
+		qui count if `use' == 2 | `use' == 5 
 		if r(N) > 0 {
-			summ `maxLeft' if `use' == 2 | `use' == 3 	// NOT TITLES THOUGH!
+			summ `maxLeft' if `use' == 2 | `use' == 5 	// NOT TITLES THOUGH!
 			local max = r(max)
 			if `max' > `leftWDtotNoTi'{
 				// WORK OUT HOW FAR INTO PLOT CAN EXTEND
@@ -6426,7 +6686,7 @@ end
 				tempvar y
 				// SPACE TO LEFT OF DIAMOND WITHIN PLOT (FRAC OF GRAPH)
 				gen `y' = ((100-`astext')/100)*(`lci'-`DXmin') / (`DXmax'-`DXmin') 
-				qui summ `y' if `use' == 2 | `use' == 3
+				qui summ `y' if `use' == 2 | `use' == 5
 				local extend = 1*(r(min)+`x')/`x'
 				local leftWDtot = max(`leftWDtot'/`extend',`leftWDtotNoTi') // TRIM TO KEEP ON SAFE SIDE
 													// ALSO MAKE SURE NOT LESS THAN BEFORE!
@@ -6442,7 +6702,7 @@ end
 			local leftWDtot = `leftWDtot'-`leftWD`i''
 		}
 
-		gen `right1' = `DXmax'
+		gen `right1' = `DXmax'+ 0.05*(`DXmax' - `DXmin')
 		forvalues i = 2/`rcolsN'{
 			local r2 = `i' - 1
 			gen `right`i'' = `right`r2'' + `rightWD`r2''*`textWD'
@@ -6454,49 +6714,49 @@ end
 		// DIAMONDS 
 		tempvar DIAMleftX DIAMrightX DIAMbottomX DIAMtopX DIAMleftY1 DIAMrightY1 DIAMleftY2 DIAMrightY2 DIAMbottomY DIAMtopY
 		
-		gen `DIAMleftX'   = `lci' if `use' == 2 | `use' == 3 
-		gen `DIAMleftY1'  = `id' if (`use' == 2 | `use' == 3) 
-		gen `DIAMleftY2'  = `id' if (`use' == 2 | `use' == 3) 
+		gen `DIAMleftX'   = `lci' if `use' == 2 | `use' == 5 
+		gen `DIAMleftY1'  = `id' if (`use' == 2 | `use' == 5) 
+		gen `DIAMleftY2'  = `id' if (`use' == 2 | `use' == 5) 
 		
-		gen `DIAMrightX'  = `uci' if (`use' == 2 | `use' == 3)
-		gen `DIAMrightY1' = `id' if (`use' == 2 | `use' == 3)
-		gen `DIAMrightY2' = `id' if (`use' == 2 | `use' == 3)
+		gen `DIAMrightX'  = `uci' if (`use' == 2 | `use' == 5)
+		gen `DIAMrightY1' = `id' if (`use' == 2 | `use' == 5)
+		gen `DIAMrightY2' = `id' if (`use' == 2 | `use' == 5)
 		
-		gen `DIAMbottomY' = `id' - 0.4 if (`use' == 2 | `use' == 3)
-		gen `DIAMtopY' 	  = `id' + 0.4 if (`use' == 2 | `use' == 3)
-		gen `DIAMtopX'    = `es' if (`use' == 2 | `use' == 3)
+		gen `DIAMbottomY' = `id' - 0.4 if (`use' == 2 | `use' == 5)
+		gen `DIAMtopY' 	  = `id' + 0.4 if (`use' == 2 | `use' == 5)
+		gen `DIAMtopX'    = `es' if (`use' == 2 | `use' == 5)
 		
-		replace `DIAMleftX' = `DXmin' if (`lci' < `DXmin' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMleftX' = . if (`es' < `DXmin' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMleftX' = `DXmin' if (`lci' < `DXmin' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMleftX' = . if (`es' < `DXmin' ) & (`use' == 2 | `use' == 5) 
 		//If one study, no diamond
-		replace `DIAMleftX' = . if (`df' < 2) & (`use' == 2 | `use' == 3) 
+		replace `DIAMleftX' = . if (`df' < 2) & (`use' == 2 | `use' == 5) 
 		
-		replace `DIAMleftY1' = `id' + 0.4*(abs((`DXmin' -`lci')/(`es'-`lci'))) if (`lci' < `DXmin' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMleftY1' = . if (`es' < `DXmin' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMleftY1' = `id' + 0.4*(abs((`DXmin' -`lci')/(`es'-`lci'))) if (`lci' < `DXmin' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMleftY1' = . if (`es' < `DXmin' ) & (`use' == 2 | `use' == 5) 
 	
-		replace `DIAMleftY2' = `id' - 0.4*( abs((`DXmin' -`lci')/(`es'-`lci')) ) if (`lci' < `DXmin' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMleftY2' = . if (`es' < `DXmin' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMleftY2' = `id' - 0.4*( abs((`DXmin' -`lci')/(`es'-`lci')) ) if (`lci' < `DXmin' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMleftY2' = . if (`es' < `DXmin' ) & (`use' == 2 | `use' == 5) 
 		
-		replace `DIAMrightX' = `DXmax' if (`uci' > `DXmax' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMrightX' = . if (`es' > `DXmax' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMrightX' = `DXmax' if (`uci' > `DXmax' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMrightX' = . if (`es' > `DXmax' ) & (`use' == 2 | `use' == 5) 
 		//If one study, no diamond
-		replace `DIAMrightX' = . if (`df' == 1) & (`use' == 2 | `use' == 3) 
+		replace `DIAMrightX' = . if (`df' == 1) & (`use' == 2 | `use' == 5) 
 	
-		replace `DIAMrightY1' = `id' + 0.4*( abs((`uci'-`DXmax' )/(`uci'-`es')) ) if (`uci' > `DXmax' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMrightY1' = . if (`es' > `DXmax' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMrightY1' = `id' + 0.4*( abs((`uci'-`DXmax' )/(`uci'-`es')) ) if (`uci' > `DXmax' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMrightY1' = . if (`es' > `DXmax' ) & (`use' == 2 | `use' == 5) 
 
-		replace `DIAMrightY2' = `id' - 0.4*( abs((`uci'-`DXmax' )/(`uci'-`es')) ) if (`uci' > `DXmax' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMrightY2' = . if (`es' > `DXmax' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMrightY2' = `id' - 0.4*( abs((`uci'-`DXmax' )/(`uci'-`es')) ) if (`uci' > `DXmax' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMrightY2' = . if (`es' > `DXmax' ) & (`use' == 2 | `use' == 5) 
 
-		replace `DIAMbottomY' = `id' - 0.4*( abs((`uci'-`DXmin' )/(`uci'-`es')) ) if (`es' < `DXmin' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMbottomY' = `id' - 0.4*( abs((`DXmax' -`lci')/(`es'-`lci')) ) if (`es' > `DXmax' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMbottomY' = `id' - 0.4*( abs((`uci'-`DXmin' )/(`uci'-`es')) ) if (`es' < `DXmin' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMbottomY' = `id' - 0.4*( abs((`DXmax' -`lci')/(`es'-`lci')) ) if (`es' > `DXmax' ) & (`use' == 2 | `use' == 5) 
 
-		replace `DIAMtopY' = `id' + 0.4*( abs((`uci'-`DXmin' )/(`uci'-`es')) ) if (`es' < `DXmin' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMtopY' = `id' + 0.4*( abs((`DXmax' -`lci')/(`es'-`lci')) ) if (`es' > `DXmax' ) & (`use' == 2 | `use' == 3) 
+		replace `DIAMtopY' = `id' + 0.4*( abs((`uci'-`DXmin' )/(`uci'-`es')) ) if (`es' < `DXmin' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMtopY' = `id' + 0.4*( abs((`DXmax' -`lci')/(`es'-`lci')) ) if (`es' > `DXmax' ) & (`use' == 2 | `use' == 5) 
 
-		replace `DIAMtopX' = `DXmin'  if (`es' < `DXmin' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMtopX' = `DXmax'  if (`es' > `DXmax' ) & (`use' == 2 | `use' == 3) 
-		replace `DIAMtopX' = . if ((`uci' < `DXmin' ) | (`lci' > `DXmax' )) & (`use' == 2 | `use' == 3) 
+		replace `DIAMtopX' = `DXmin'  if (`es' < `DXmin' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMtopX' = `DXmax'  if (`es' > `DXmax' ) & (`use' == 2 | `use' == 5) 
+		replace `DIAMtopX' = . if ((`uci' < `DXmin' ) | (`lci' > `DXmax' )) & (`use' == 2 | `use' == 5) 
 		
 		gen `DIAMbottomX' = `DIAMtopX'
 	} // END QUI
@@ -6750,7 +7010,7 @@ end
 	local DYmin = r(min)
 	local DYmax = r(max) + 2
 	
-	qui summ `es' if `use' == 3 
+	qui summ `es' if `use' == 5 
 	local overall = r(max)
 	if `overall' > `DXmax' | `overall' < `DXmin' | "`ovline'" != "" {	// ditch if not on graph
 		local overallCommand ""
@@ -6945,17 +7205,17 @@ end
 		local diamondcommand23 " (pcspike `DIAMrightY2' `DIAMrightX' `DIAMbottomY' `DIAMbottomX' if (`use' == 2 & `groupvar'==2) , `diamopts1')"
 		local diamondcommand24 " (pcspike `DIAMbottomY' `DIAMbottomX' `DIAMleftY2' `DIAMleftX' if (`use' == 2 & `groupvar'==2) , `diamopts1')"
 		
-		local diamondcommand1 "(pcspike `DIAMleftY1' `DIAMleftX' `DIAMtopY' `DIAMtopX' if (`use' == 3) , `diamopts')"
-		local diamondcommand2 "(pcspike `DIAMtopY' `DIAMtopX' `DIAMrightY1' `DIAMrightX' if (`use' == 3) , `diamopts')"
-		local diamondcommand3 "(pcspike `DIAMrightY2' `DIAMrightX' `DIAMbottomY' `DIAMbottomX' if (`use' == 3) , `diamopts')"
-		local diamondcommand4 "(pcspike `DIAMbottomY' `DIAMbottomX' `DIAMleftY2' `DIAMleftX' if (`use' == 3) , `diamopts')"
+		local diamondcommand1 "(pcspike `DIAMleftY1' `DIAMleftX' `DIAMtopY' `DIAMtopX' if (`use' == 5) , `diamopts')"
+		local diamondcommand2 "(pcspike `DIAMtopY' `DIAMtopX' `DIAMrightY1' `DIAMrightX' if (`use' == 5) , `diamopts')"
+		local diamondcommand3 "(pcspike `DIAMrightY2' `DIAMrightX' `DIAMbottomY' `DIAMbottomX' if (`use' == 5) , `diamopts')"
+		local diamondcommand4 "(pcspike `DIAMbottomY' `DIAMbottomX' `DIAMleftY2' `DIAMleftX' if (`use' == 5) , `diamopts')"
 
 	}
 	else {
-		local diamondcommand1 "(pcspike `DIAMleftY1' `DIAMleftX' `DIAMtopY' `DIAMtopX' if ( `use' == 2 |`use' == 3) , `diamopts')"
-		local diamondcommand2 "(pcspike `DIAMtopY' `DIAMtopX' `DIAMrightY1' `DIAMrightX' if (`use' == 2 |`use' == 3) , `diamopts')"
-		local diamondcommand3 "(pcspike `DIAMrightY2' `DIAMrightX' `DIAMbottomY' `DIAMbottomX' if (`use' == 2 |`use' == 3) , `diamopts')"
-		local diamondcommand4 "(pcspike `DIAMbottomY' `DIAMbottomX' `DIAMleftY2' `DIAMleftX' if (`use' == 2 |`use' == 3) , `diamopts')"
+		local diamondcommand1 "(pcspike `DIAMleftY1' `DIAMleftX' `DIAMtopY' `DIAMtopX' if ( `use' == 2 |`use' == 5) , `diamopts')"
+		local diamondcommand2 "(pcspike `DIAMtopY' `DIAMtopX' `DIAMrightY1' `DIAMrightX' if (`use' == 2 |`use' == 5) , `diamopts')"
+		local diamondcommand3 "(pcspike `DIAMrightY2' `DIAMrightX' `DIAMbottomY' `DIAMbottomX' if (`use' == 2 |`use' == 5) , `diamopts')"
+		local diamondcommand4 "(pcspike `DIAMbottomY' `DIAMbottomX' `DIAMleftY2' `DIAMleftX' if (`use' == 2 |`use' == 5) , `diamopts')"
 	}
 	//legend
 	if "`compabs'" != "" {
@@ -6967,6 +7227,22 @@ end
 		local legendoff "legend(off)"
 	}
 	
+	//Give name if none
+	if "`type'" == "fplot" {
+		local fullname "forest"
+	}
+	else {
+		local fullname "caterpillar"
+	}
+	
+	if strpos(`"`plotopts'"',"name(") == 0 {
+		local plotname = "name(`type', replace)"
+	}
+	if "$by_index_" != "" {
+		local plotname = "name(`type'" + "$by_index_" + ", replace)"
+		noi di as res _n  "NOTE: `fullname' plot name -> `type'$by_index_"
+	}
+		
 	#delimit ;
 	twoway
 	 // Draw diamond to make it to construct the legend
@@ -7012,10 +7288,11 @@ end
 	 /*POINTS */
 		(scatter `id' `es' if `use' == 1 , `pointopts')	
 		`smoothcommands2' `overallCommand'	
-		,`fopts' `legendon'
+		,`plotopts' `legendon' `plotname'
 		;
-		#delimit cr		
-			
+		#delimit cr	
+		
+		/*	
 		if "$by_index_" != "" {
 			qui graph dir
 			local gnames = r(list)
@@ -7036,5 +7313,10 @@ end
 				di _n
 				graph save `graphsave', replace
 			}			
+		}*/
+		if `"`graphsave'"' != `""' {
+			di _n
+			noi graph save `graphsave', replace
 		}
+		restore
 end
