@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 3.0.2 14Nov2023}{...}
+{* *! version 3.0.3 14Feb2024}{...}
 {viewerdialog metapreg "dialog metapreg"}{...}
 {vieweralsosee "[ME] meqrlogit" "help meqrlogit"}{...}
 {vieweralsosee "[ME] meqrlogit" "mansection ME meqrlogit"}{...}
@@ -22,8 +22,8 @@
 
 {title:Title}
 {p2colset 5 18 25 2}{...}
-{p2col :{opt metapreg} {hline 2}} Fixed-effects, random-effects and mixed-effects meta-analysis, meta-regression and network meta-analysis
-of proportions with binomial distribution and logit, loglog and cloglog links{p_end}
+{p2col :{opt metapreg} {hline 2}} Meta-analysis, meta-regression and network meta-analysis
+of proportions from binomial data{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
@@ -39,17 +39,17 @@ of proportions with binomial distribution and logit, loglog and cloglog links{p_
 [{it:{help metapreg##options_table:options}}]
 
 {p 8 8 2}
-{it:{depvars}} has the form {cmd: n N} in a {cmd: basic/comparative/abnetwork} meta-analysis, {cmd: a b c d} in matched({cmd:mcbnetwork}) studies, and {cmd: ab ac N} in {cmd:pcbnetwork} studies.{p_end}
+{it:{depvars}} has the form {cmd: n N} in a {cmd: general/comparative/abnetwork} meta-analysis, {cmd: a b c d} in matched({cmd:mcbnetwork}) studies, and {cmd: ab ac N} in {cmd:pcbnetwork} studies.{p_end}
 
 {p 8 8 2}
-{it:studyid} is a variable identifying each study.{p_end}
+{it:studyid} is a variable identifying each study. The identifiers should be unique in a {cmd:general} meta-analysis.{p_end}
 	
 {p 8 8 2}
 {it:{indepvars}} must be {cmd:string} for categorical variables and {cmd:numeric} for continuous variables. Depending on the design of the analysis, 
 there are {cmd:required} and {cmd:optional} covariates. The {cmd:required} covariates must be string variables. The {cmd:required} covariates are as follows;
 
 {p 12 12 2}
-The first covariate must be a binary variable in {cmd: comparative} analysis, and a multi-category variable (with at least 2 levels) in {cmd: abnetwork} meta-analysis. 
+The first covariate must be a binary string variable in {cmd: comparative} analysis, and a multi-category variable (with at least 2 levels) in {cmd: abnetwork} meta-analysis. 
 In {cmd:mcbnetwork} or {cmd:pcbnetwork} studies, two first string covariates required are; {it: index} variable (multi-category; with at least 2 levels) and the {it:comparator} variable.
 
 {p 8 8 2}
@@ -60,7 +60,7 @@ In {cmd:mcbnetwork} or {cmd:pcbnetwork} studies, two first string covariates req
 
 {pstd}
 {cmd:metapreg} is a routine for meta-analysis of proportions 
-from binomial data; the exact binomial distrubtion or a generalized linear model for the binomial family with a logit, loglog or the cloglog link is fitted. 
+from binomial data; the binomial, beta-binomial or binomial-normal distribution with a logit, loglog or the cloglog link is fitted. 
 
 {pstd}
 The program fits fixed or a random-effects model. The data can be from independent studies; where each row contains data from seperate studies, 
@@ -78,6 +78,9 @@ By default, the exact binomial distribution is used when there are less than {cm
 
 {pstd}
 In a comparative/mcbnetwork/pcbnetwork meta-analysis, the study-specific proportion ratios or odds ratios can be tabulated and/or plotted.
+
+In a meta-analysis of rare events, the exact logistic regression model can be fitted for more accurate inferences
+than the standard maximum-likelihood-based logistic regression estimator. 
 
 {pstd}
 When there are no covariates, heterogeneity is also quantified using the I-squared measure({help metapreg##ZD2014:Zhou and Dendukuri 2014}).
