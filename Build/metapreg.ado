@@ -53,10 +53,12 @@ DATE:						DETAILS:
 							seperate forest and catterpillar plot options
 26.02.2024					Introduce Bayesian in version >16.1
 							inference(frequentist|bayesian)
-							More options for rr ci's
+							More options for rr ci's; katz, bailey, noether, asihn
+28.03.2024					popstat(median|mean)
+11.04.2024					cov(zeroint|zeroslope)
+18.04.2024					Request for working directory if bayesian and inform the user to delete the datasets afterwards	
+19.04.2024					Introduce outplot(lor|lrr)	
 */
-
-
 
 /*++++++++++++++++++++++	METAPREG +++++++++++++++++++++++++++++++++++++++++++
 						WRAPPER FUNCTION
@@ -91,17 +93,21 @@ program define metapreg, eclass sortpreserve byable(recall)
 		noOVerall 
 		noITAble
 		noWT
-		outplot(string) //abs|rr|or
+		outplot(string) //abs|rr|or|lor|lrr
 		SUMTable(string) //none|logit|abs|rr|all
-		DESign(string asis) //design(general|matched-mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string) | cov(inde|unstr))
+		DESign(string asis) //design(general|matched-mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string) | cov(zeroslope|zeroint|inde|unstr))
 		MC /*Model comparison - Saves time*/
 		PROGress /*See the model fitting*/
 		by(varname)
 		STRatify  /*Stratified analysis, requires byvar()*/
 		link(string) /*logit|cloglog|loglog*/
 		SMooth nsims(integer 800) //max dim in stata ic
+		SUMMARYonly
+		SUMStat(string)
+		POPStat(string) //median|mean ; median is default
 		FOptions(string asis) /*Options specific to the forest plot*/
 		COptions(string asis) /*Options specific to the catterpilar plot*/
+		BWD(string asis) /*working directory to save bayesian estimates*/
 
 		/*passthrough*/
 		noOVLine 
@@ -120,8 +126,6 @@ program define metapreg, eclass sortpreserve byable(recall)
 		SORtby(varlist) //varlist
 		LCols(varlist) 		
 		SUBLine
-		SUMMARYonly
-		SUMStat(string)
 		TEXts(real 1.0) 
 		XLAbel(passthru)
 		XLIne(passthru)	/*silent option*/	
@@ -143,8 +147,8 @@ program define metapreg, eclass sortpreserve byable(recall)
 			
 	tempname nltestRR nltestOR mctest samtrix rawest rawesti logodds rrout orout absout logoddsi orouti rrouti absouti  exactabsouti exactabsout absexact ///
 			coefmat coefvar BVar WVar  omat isq2 bghet bshet lrtestp V dftestnl ptestnl lrtest matgof ///
-			outr absoutp absoutpi hetout hetouti popabsout popabsouti poprrout poprrouti poporout ///
-			poporouti poplorout poplorouti exactorouti  exactlorouti exactorout  exactlorout
+			outr absoutp absoutpi hetout hetouti popabsout popabsouti poprrout poplrrout poprrouti poplrrouti poporout ///
+			poporouti poplorout poplorouti exactorouti  exactlorouti exactorout  exactlorout covmat covmati
 	/*Check for mu/cons; its reserved*/
 	qui ds
 	local vlist = r(varlist)
@@ -192,6 +196,39 @@ program define metapreg, eclass sortpreserve byable(recall)
 	else {
 		global by_index_ 
 	}
+
+	//Mixed or random are synonym
+	if 	"`model'" == "" {
+		local model "random"
+	}
+	else {
+		*tokenize "`model'", parse(",")
+		gettoken model modelopts: model, parse(",")
+		gettoken comma modelopts: modelopts //remove the comma
+		*local model `1'
+		*local modelopts "`3'"
+	}
+	if strpos("`model'", "f") == 1 {
+		local model "fixed"
+	}
+	else if (strpos("`model'", "r") == 1) | (strpos("`model'", "m") == 1) {
+		local model "random"
+	}
+	else if strpos("`model'", "h") == 1 {
+		local model "hexact"
+	}
+	else if strpos("`model'", "cr") == 1 {
+		local model "crbetabin"
+	}
+	else if strpos("`model'", "cb") == 1 {
+		local model "cbbetabin"
+	}
+	else {
+		di as error "Invalid option `model'"
+		di as error "Specify either fixed, random, mixed, crbetabin or hexact"
+		exit
+	}
+	
 	if "`design'" == "" {
 		local design = "general"
 	}
@@ -227,9 +264,21 @@ program define metapreg, eclass sortpreserve byable(recall)
 			else if strpos("`cov'", "unst") !=0 {
 				local cov "unstructured"
 			}
+			else if strpos("`cov'", "int") !=0 {
+				local cov "zeroint"
+			}
+			else if strpos("`cov'", "slo") !=0 {
+				local cov "zeroslope"
+			}
 			else {
 				di as error "`cov' not allowed in specifying the design()"
 				exit
+			}
+		}
+		else {
+			//Default
+			if "`design'" == "comparative" & strpos("`model'", "random") {
+				local cov "independent"
 			}
 		}
 	}
@@ -262,40 +311,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			exit _rc
 		}
 	}
-	
-	//General housekeeping	
-	//Mixed or random are synonym
-	if 	"`model'" == "" {
-		local model "random"
-	}
-	else {
-		*tokenize "`model'", parse(",")
-		gettoken model modelopts: model, parse(",")
-		gettoken comma modelopts: modelopts //remove the comma
-		*local model `1'
-		*local modelopts "`3'"
-	}
-	if strpos("`model'", "f") == 1 {
-		local model "fixed"
-	}
-	else if (strpos("`model'", "r") == 1) | (strpos("`model'", "m") == 1) {
-		local model "random"
-	}
-	else if strpos("`model'", "h") == 1 {
-		local model "hexact"
-	}
-	else if strpos("`model'", "cr") == 1 {
-		local model "crbetabin"
-	}
-	else if strpos("`model'", "cb") == 1 {
-		local model "cbbetabin"
-	}
-	else {
-		di as error "Invalid option `model'"
-		di as error "Specify either fixed, random, mixed, crbetabin or hexact"
-		exit
-	}
-	
+		
 	//Default frequentist inference
 	if "`inference'" == "" | strpos("`inference'", "freq") == 1 {
 		local inference "frequentist"
@@ -308,6 +324,19 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		local inference "bayesian"
 		local model = "bayes" + "`model'"
+		
+		//Request for the working directory
+		if "`bwd'" == "" {
+			di as re "{pmore} *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-{p_end}"
+			di as re "{pmore}| The bayesian estimation commands saves several datasets  {p_end}" 
+			di as re "{pmore}| containing the MCMC samples of the parameters to disk.{p_end}" 
+			di as re "{pmore}| Please specify a directory path to save the datasets {p_end}"
+			di as re "{pmore}| using the option bwd() and rerun the code.{p_end}"
+			di as re "{pmore}| It is your responsibility to erase the datasets {p_end}" 
+			di as re "{pmore}| (prefixed metapreg_bayes*) after they are no longer needed.{p_end}"
+			di as re "{pmore} *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-{p_end}"
+			exit
+		}
 	}
 	else {
 		di as error "Invalid inference(`inference') option"
@@ -330,6 +359,29 @@ program define metapreg, eclass sortpreserve byable(recall)
 		local nsims = r(mcmcsize)
 		local refsampling = r(refsampling)
 	}
+	
+		//Which population statistic to use on the forest plot/itable
+	if "`popstat'" != "" {
+		if strpos("`popstat'", "med") != 0 {
+			local popstat "Median"
+		}
+		else if strpos("`popstat'", "mea") != 0 {
+			local popstat "Mean"
+		}
+		else {
+			di as error "Invalid option popstat(`popstat')"
+			di as error "Specify either Median or Mean"
+			exit 
+		}
+	}
+	else {
+		if "`model'" == "hexact" {
+			local popstat "Mean"
+		}
+		else {
+			local popstat "Median"
+		}
+	}
 		
 	//Check if crbetabin is installed
 	if "`model'" == "crbetabin" {
@@ -342,17 +394,17 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 	//Logscale only in or/rr 
 	if "`logscale'" != "" {
-		cap assert "`outplot'" != "abs"
+		cap assert ("`outplot'" != "abs" & "`outplot'" != "lor" & "`outplot'" != "lrr")
 		if _rc != 0 {
 			di as res "Option `logscale' not allowed"
 			local logscale
 		}
 	}
 	//smooth is redundant in betabin, we cannot recover the individual estimates
-	/*if ("`model'" == "betabin" ) & "`smooth'" != "" {
+	if ("`model'" == "hexact") & "`smooth'" != "" {
 		local smooth
 		di as res "The option -smooth- is ignored. The model-based study estimates are irrecoverable."
-	}*/
+	}
 	
 	//Weights only for the logit link
 	/*if "`link'" != "logit" {
@@ -375,13 +427,26 @@ program define metapreg, eclass sortpreserve byable(recall)
 		di as err "Insufficient data to perform meta-analysis"
 		exit 
 	}
-	if `=r(N)' < 3 & "`model'" != "hexact" {
-		local model hexact //If less than 3 studies, use exact
-		di as res _n  "Note: Homo-exact model imposed whenever number of studies is less than 3."
-		if "`modelopts'" != "" {
-			local modelopts
-			di as res _n  "Warning: Model options ignored."
-			di as res _n  "Warning: Consider re-specifying options for the fixed-effects model should the model not converge."
+	if `=r(N)' < 3 {
+		if "`inference'" == "frequentist" {
+			if "`model'" != "hexact" {
+				local model hexact //If less than 3 studies, use exact
+				di as res _n  "Note: Homo-exact model imposed whenever number of studies is less than 3."
+				if "`modelopts'" != "" {
+					local modelopts
+					di as res _n  "Warning: Model options ignored."
+					di as res _n  "Warning: Consider re-specifying options for the fixed-effects model should the model not converge."
+				}
+			}
+		}
+		else {
+			if "`model'" == "bayesrandom" {
+				local model bayesfixed //If less than 3 studies, use exact
+				di as res _n  "Note: FE model imposed whenever number of studies is less than 3."
+				if "`modelopts'" != "" {
+					di as res _n  "Warning: Consider re-specifying options for the fixed-effects model should the model not converge."
+				}
+			}
 		}
 	}
 	if `level'<1 {
@@ -537,7 +602,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				exit _rc
 			}
 		}
-		if ("`by'" != "") & ("`outplot'" != "rr") {
+		if ("`by'" != "") & ("`outplot'" == "abs" ) {
 			cap assert ("`first'" != "`by'") 
 			if _rc != 0 { 
 					di as error "Remove the option by(`by') or specify a different by-variable"
@@ -547,10 +612,15 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 	
 	if "`outplot'" == "" {
-		local outplot = "abs"
+		if ("`design'" == "mcbnetwork" | "`design'" == "pcbnetwork")  {
+			local outplot = "rr"  //default
+		}
+		else {
+			local outplot = "abs"
+		}
 	}
 	else {
-		if "`outplot'" == "rr" | "`outplot'" == "or"  {
+		if strpos("`outplot'", "rr") != 0 | strpos("`outplot'", "or") != 0  {
 			cap assert "`design'" != "general"
 			if _rc != 0 {
 				di as error "Option outplot(`outplot') only avaialable for comparative/mcbnetwork/pcbnetwork/abnetwork designs with first covariate as string"
@@ -560,16 +630,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 	}
 	
-	if ("`design'" == "mcbnetwork" | "`design'" == "pcbnetwork") & ("`outplot'" != "or" ) {
-		local outplot = "rr"  //default
-	}
-	
 	//
-	if ("`model'" == "hexact") & ("`outplot'" == "rr") {
-		local outplot = "or"  //only option
+	if ("`model'" == "hexact") & strpos("`outplot'",  "or") == 0 {
+		local outplot = "or"  //or default
 	}
 	
-	cap assert ("`outplot'" == "rr") | ("`outplot'" == "or") | ("`outplot'" == "abs") 
+	cap assert ("`outplot'" == "lrr") | ("`outplot'" == "lor") |("`outplot'" == "rr") | ("`outplot'" == "or") | ("`outplot'" == "abs") 
 	if _rc != 0  {
 		di as error "Invalid option in outplot(`outplot')"
 		exit _rc
@@ -584,6 +650,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		else if "`outplot'" == "or"  {
 			local sumstat = "Odds Ratio"
+		}
+		else if "`outplot'" == "lrr"  {
+			local sumstat = "Log Proportion Ratio"
+		}
+		else if "`outplot'" == "lor"  {
+			local sumstat = "Log Odds Ratio"
 		}
 	}
 	
@@ -603,22 +675,22 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 		}
 		
-		//iOR
-		if ("`icimethod'" != "") & "`outplot'" == "or" {
+		//iOR/iLOR
+		if ("`icimethod'" != "") & strpos("`outplot'",  "or") != 0 {
 			if (strpos("`icimethod'", "ex") != 1) & (strpos("`icimethod'", "wo") != 1) & (strpos("`icimethod'", "co") != 1)  {
 				di as error "Option `icimethod' not allowed in cimethod(`cimethod')"
 				exit	
 			}
 		}
-		if ("`icimethod'" == "") & "`outplot'" == "or"  {
+		if ("`icimethod'" == "") & strpos("`outplot'",  "or") != 0  {
 			local icimethod "woolf"
 		}
 		
-		//iRR
-		if "`design'" == "mcbnetwork" & "`outplot'" == "rr"  {
+		//iRR/iLRR
+		if "`design'" == "mcbnetwork" & strpos("`outplot'", "rr") != 0  {
 			local icimethod "CML"
 		}
-		if ("`design'" == "pcbnetwork" | "`design'" == "comparative") & "`outplot'" == "rr"   {
+		if ("`design'" == "pcbnetwork" | "`design'" == "comparative") & strpos("`outplot'", "rr") != 0   {
 			if ("`icimethod'" != "") {
 				if (strpos("`icimethod'", "koo") != 1) & (strpos("`icimethod'", "ka") != 1) & (strpos("`icimethod'", "bail") != 1) & (strpos("`icimethod'", "adlo") != 1) {
 					di as error "Option `icimethod' not allowed in cimethod(`cimethod')"
@@ -631,14 +703,32 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		
 		//Summary
-		if "`ocimethod'" != "" {
-			if (strpos("`ocimethod'", "t") != 1) &  (strpos("`ocimethod'", "w") != 1){
-				di as error "Option `ocimethod' not allowed in cimethod(`cimethod')"
-				exit	
+		if "`inference'" == "frequentist" {
+			if "`ocimethod'" != "" {
+				if (strpos("`ocimethod'", "t") != 1) &  (strpos("`ocimethod'", "w") != 1){
+					di as error "Option `ocimethod' not allowed in cimethod(`cimethod')"
+					exit	
+				}
+			}
+			else {
+				local ocimethod "wald"
 			}
 		}
 		else {
-			local ocimethod "wald"
+			//Bayesian credible intervals; default is equal-tailed interval
+			if "`ocimethod'" != "" {
+				if "`ocimethod'" != "hpd" | "`ocimethod'" != "eti" {
+					di as error "Option `ocimethod' not allowed in cimethod(`cimethod')"
+					exit
+				}
+			}
+			else {
+				//Default
+				local ocimethod "hpd"
+			}
+			if "`ocimethod'" == "eti" {
+				local ocimethod
+			}
 		}
 	}
 	if "`outplot'" == "abs"  {
@@ -658,7 +748,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		else {
 			local icimethod "wilson"
 		}
-		if "`inference'" == "frequenstist" {
+		if "`inference'" == "frequentist" {
 			if "`ocimethod'" != "" {
 				if "`model'" == "random" | "`model'" == "fixed" {
 					if (strpos("`ocimethod'", "t") != 1) &  (strpos("`ocimethod'", "w") != 1){
@@ -690,16 +780,20 @@ program define metapreg, eclass sortpreserve byable(recall)
 					exit
 				}
 			}
+			else {
+				//Default
+				local ocimethod "hpd"
+			}
 			if "`ocimethod'" == "eti" {
 				local ocimethod
 			}
 		}
 	}
-		
+	/*	
 	if "`prediction'" != "" & "`outplot'" != "abs" {
 		local prediction 
 		di as res "NOTE: Predictions only computed for absolute measures. The option _prediction_ will be ignored"
-	}
+	}*/
 		
 	//check no underscore in the variable names
 	if strpos("`regressors'", "_") != 0  {
@@ -831,8 +925,17 @@ program define metapreg, eclass sortpreserve byable(recall)
 		*local varx : word 1 of `regressors'
 		gettoken varx catreg : catreg
 		local typevarx = "i"
-		local baselab:label `varx' `basecode'
+		/*		
+		forvalues l=1(1)2 {	
+			local label`l':label `varx' `l'	
+		}
+		replace `varx' = `varx' - 1
+		label define `varx' 0 "`label1'" 1 "`label2'", replace
+		label values `varx' `varx'
 		
+		local basecode = `=`basecode'-1'
+		local baselab:label `varx' `basecode'
+		*/
 		if `basecode' == 1 {
 			local indexcode "2"
 		}
@@ -845,7 +948,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			local varxlabs "`varx' `indexlab' `baselab'"
 		}
 	}
-		
+		 
 	if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" { 
 		local varx = "`ipair'"
 		local typevarx = "i"		
@@ -1088,12 +1191,16 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 		}		
 		*if (`Nobs' < 3 & "`modeli'" != "hexact" & "`design'" != "comparative") | ((`Nobs' < 5 ) & ("`modeli'" == "random") & ("`design'" == "comparative")) {
-		if `Nuniq' < 3 & "`modeli'" == "random"  {
-			local modeli fixed //If less than 3 studies, use exact model
-			if "`modeloptsi'" != "" {
-				local modeloptsi
-				noi di as res _n  "Warning: `model'-effects model options ignored."
-				noi di as res _n  "Warning: Homo-exact model fitted instead."
+		if `Nuniq' < 3 {
+			if "`inference'" == "frequentist" {
+				if  "`modeli'" == "random"  {
+					local modeli fixed //If less than 3 studies, use exact model
+					if "`modeloptsi'" != "" {
+						local modeloptsi
+						noi di as res _n  "Warning: `model'-effects model options ignored."
+						noi di as res _n  "Warning: Homo-exact model fitted instead."
+					}
+				}
 			}
 		}
 		
@@ -1106,13 +1213,18 @@ program define metapreg, eclass sortpreserve byable(recall)
 		
 		*Run model if more than 1 study
 		if (`Nobs' > 1) {
+			if "`inference'" == "bayesian" {
+				local bayesreps = "`bwd'\metapreg_bayesreps"
+				local bayesest = "`bwd'\metapreg_bayesest"
+			}
+			
 			preg `event' `nonevent' `total' `strataif', rid(`rid') sid(`numsid') studyid(`studyid') use(`use') regexpression(`regexpression') regexpression2(`regexpression2') nu(`nu')  ///
 				regressors(`regressors')  catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 				comparator(`Comparator') cimethod(`ocimethod') `gof' nsims(`nsims') link(`link') bayesrepsfilename(`metapregbayesreps') ///
 				modeles(`modeles')  modellci(`modellci') modeluci(`modeluci') outplot(`outplot') `smoothi' cov(`cov') `computewti' ///
-				inference(`inference') refsampling(`refsampling')
-	
+				inference(`inference') refsampling(`refsampling') popstat(`popstat') bayesreps(`bayesreps') bayesest(`bayesest')
+				
 			mat `rawesti' = r(rawest)
 			mat `popabsouti' = r(popabsout)
 			mat `exactabsouti' = r(exactabsout)
@@ -1128,6 +1240,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				else {
 					mat `rrouti' = r(rrout)
 					mat `poprrouti' = r(poprrout)
+					mat `poplrrouti' = r(poplrrout)
 					mat `orouti' = r(orout)
 					mat `poporouti' = r(poporout)
 					mat `poplorouti' = r(poplorout)
@@ -1150,9 +1263,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `absoutpi' = r(absoutp)
 			if strpos("`modeli'", "random") !=0 | strpos("`model'", "betabin") != 0 { 
 				mat `hetouti' = r(hetout)
+				mat `covmati' = r(covmat)
 			}
 			else {
 				mat `hetouti' = J(1, `hetdim', .)
+				mat `covmati' = J(1, 3, .)
 			}			
 		}
 		*if 1 study or exact inference
@@ -1162,9 +1277,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `exactabsouti' = J(1, 11, .)
 			mat `absouti' = J(1, 6, .)
 			mat `absoutpi' = J(1, 2, .)
-			mat `hetouti' = J(1, `hetdim', .)		
+			mat `hetouti' = J(1, `hetdim', .)
+			mat `covmati' = J(1, 3, .)			
 			mat `rrouti' = J(1, 6, 1)
 			mat `poprrouti' = J(1, 6, 1)
+			mat `poplrrouti' = J(1, 6, 1)
 			mat `orouti' = J(1, 6, 1)
 			mat `poporouti' = J(1, 6, 1)
 			mat `poplorouti' = J(1, 6, 1)
@@ -1177,9 +1294,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat rownames `exactabsouti' = Overall
 			mat rownames `absouti' = Overall
 			mat rownames `absoutpi' = Overall
-			mat rownames `hetouti' = Overall		
+			mat rownames `hetouti' = Overall
+			mat rownames `covmati' = Overall
 			mat rownames `rrouti' = Overall
 			mat rownames `poprrouti' = Overall
+			mat rownames `poplrrouti' = Overall
 			mat rownames `orouti' = Overall
 			mat rownames `poporouti' = Overall
 			mat rownames `poplorouti' = Overall
@@ -1197,6 +1316,8 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat roweq `exactabsouti' = `byrowname'
 			mat roweq `absoutpi' = `byrowname'
 			mat roweq `rawesti' = `byrowname'
+			mat roweq `covmati' = `byrowname'
+			
 			if "`rr'" == "" {
 				if "`model'" == "hexact" {
 					mat roweq `exactorouti' = `byrowname'
@@ -1205,6 +1326,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				else {
 					mat roweq `rrouti' = `byrowname'
 					mat roweq `poprrouti' = `byrowname'
+					mat roweq `poplrrouti' = `byrowname'
 					mat roweq `orouti' = `byrowname'
 					mat roweq `poporouti' = `byrowname'
 					mat roweq `poplorouti' = `byrowname'
@@ -1219,6 +1341,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				if "`model'" != "hexact" {
 					mat `rrout' =	`rrouti'
 					mat `poprrout' = `poprrouti'
+					mat `poplrrout' = `poplrrouti'
 					
 					mat `orout' =	`orouti'
 					mat `poporout' = `poporouti'
@@ -1233,7 +1356,8 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `popabsout' = `popabsouti'
 			mat `exactabsout' = `exactabsouti'
 			mat `absoutp' = `absoutpi'
-			mat `hetout' = `hetouti'		
+			mat `hetout' = `hetouti'
+			mat `covmat' = `covmati'
 		}
 		else {
 			mat `absout' = `absout' \ `absouti'
@@ -1243,6 +1367,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				if "`model'" != "hexact" {
 					mat `rrout' = `rrout' \ `rrouti'
 					mat `poprrout' = `poprrout' \ `poprrouti'
+					mat `poplrrout' = `poplrrout' \ `poplrrouti'
 					
 					mat `orout' = `orout' \ `orouti'
 					mat `poporout' = `poporout' \ `poporouti'
@@ -1256,6 +1381,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `rawest' = `rawest' \ `rawesti'
 			mat `absoutp' = `absoutp' \ `absoutpi'
 			mat `hetout' = `hetout' \ `hetouti'
+			mat `covmat' = `covmat' \ `covmati'
 		}
 				
 		tokenize `depvars'
@@ -1285,8 +1411,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 			else {
 				di "{phang} `link'(p) = `nu' + `first'.`studyid' + `studyid'{p_end}"	
 			}
-			if "`cov'" == "" {
+			if ("`cov'" == "zeroslope" & "`design'" == "comparative" ) | ("`cov'" == "" & "`design'" != "comparative" ) {
 				di "{phang}`studyid' ~ N(0, tau2){p_end}"
+			}
+			if ("`cov'" == "zeroint" & "`design'" == "comparative" ) {
+				di "{phang}`first'.`studyid' ~ N(0, sigma2){p_end}"
 			}
 			if "`cov'" == "independent" {
 				di "{phang}`studyid' ~ N(0, tau2){p_end}"
@@ -1321,8 +1450,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 			di _n "{phang}Base levels{p_end}"
 			di _n as txt "{pmore} Variable  -- Base Level{p_end}"
 		}
-		foreach fv of local catregs  {			
-			local lab:label `fv' 1
+		foreach fv of local catregs  {
+			/*if "`fv'" == "`varx'" & "`design'" == "comparative" {
+				local lab:label `fv' 0
+			}
+			else {*/
+				local lab:label `fv' 1
+			*}
 			if "`fv'" != "`studyid'" {
 				di "{pmore} `fv'  -- `lab'{p_end}"
 			}			
@@ -1341,28 +1475,30 @@ program define metapreg, eclass sortpreserve byable(recall)
 				
 		if `Nobs' > 1 & "`model'" != "hexact" {
 		
-			//Display GOF
-			if ("`gof'" != "") {
-				qui estimates restore metapreg_modest
-				
-				if "`inference'" == "frequentist" {
-					qui estat ic
-					mat `matgof' = r(S)
-					local BIC =  `matgof'[1, 6]
-					mat `matgof' = `matgof'[1..., 5..6]
-					local widthc = 8
+			//Get GOF
+			
+			qui estimates restore metapreg_modest
+			
+			if "`inference'" == "frequentist" {
+				qui estat ic
+				mat `matgof' = r(S)
+				local BIC =  `matgof'[1, 6]
+				mat `matgof' = `matgof'[1..., 5..6]
+				local widthc = 8
 
-				}
-				else {
-					qui bayesstats ic
-					mat `matgof' = r(ic)
-					mat `matgof' = `matgof'[1..., 2..3]
-					mat rownames `matgof' = Value
-					local widthc = 15
-				}
-				
+			}
+			else {
+				qui bayesstats ic
+				mat `matgof' = r(ic)
+				mat `matgof' = `matgof'[1..., 2..3]
+				local DIC = `matgof'[1,1]
 				mat rownames `matgof' = Value
-				
+				local widthc = 15
+			}
+			
+			mat rownames `matgof' = Value
+			//Display GOF	
+			if ("`gof'" != "") {	
 				di _n
 				di as text "Goodness of Fit Criterion"
 				#delimit ;
@@ -1418,11 +1554,14 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 			
 			if ((`p' > 0 & "`abnetwork'" == "") | (`p' > 1 & "`abnetwork'" != "") | ("`interaction'" != "" & "`pcbnetwork'`mcbnetwork'" != "") ) & "`mc'" != "" {
+				if "`inference'" == "bayesian" {
+					local bayesnullest = "`bwd'\metapreg_bayesnullest"
+				}
 				capture noisily mcpreg `event' `nonevent' `total' `strataif', sid(`numsid')  regexpression(`regexpression') nu(`nu')  ///
 					regressors(`regressors') level(`level') varx(`varx') typevarx(`typevarx')  `progress' /// 
 					model(`modeli') modelopts(`modeloptsi')  `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 					comparator(`Comparator')  link(`link')   ///
-					 cov(`cov') inference(`inference') refsampling(`refsampling')
+					 cov(`cov') inference(`inference') refsampling(`refsampling') bayesest(`bayesnullest')
 					 
 				if _rc == 0 {		
 					mat `mctest' = r(mctest) 
@@ -1514,12 +1653,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 		
 	prep4show `id' `cid' `use' `neolabel' `es' `lci' `uci' `modeles' `modellci' `modeluci', `design' ///
 		sortby(`sortby') groupvar(`groupvar') grptotal(`grptotal') se(`se') 	///
-		outplot(`outplot') rrout(`rrout') poprrout(`poprrout') orout(`orout') poporout(`poporout') exactorout(`exactorout') ///
+		outplot(`outplot') rrout(`rrout') poprrout(`poprrout') poplrrout(`poplrrout') ///
+		orout(`orout') poporout(`poporout') poplorout(`poplorout') exactorout(`exactorout') ///
 		absout(`absout') popabsout(`popabsout') exactabsout(`exactabsout') absoutp(`absoutp') hetout(`hetout')	///
 	    `subgroup' `summaryonly' dp(`dp') pcont(`pcont') model(`model') `prediction'	///
-		`overall' download(`download') indvars(`indvars') depvars(`depvars') `stratify' level(`level') `enhance'
+		`overall' download(`download') indvars(`indvars') depvars(`depvars') `stratify' level(`level') `enhance' popstat(`popstat')
 		
-	
 	if "`model'" == "hexact"  {
 			//exactabs
 		if  (("`sumtable'" == "all") |(strpos("`sumtable'", "abs") != 0)) {
@@ -1604,7 +1743,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		disptab `id'  `use' `neolabel' `es' `lci' `uci' `grptotal' `modeles' `modellci' `modeluci', ///
 			`itable' dp(`dp') power(`power') design(`design') `summaryonly' ///
 			`subgroup' sumstat(`sumstat') level(`level') `wt' `smooth' ///
-			ocimethod(`ocimethod') icimethod(`icimethod') model(`model') groupvar(`groupvar') outplot(`outplot')
+			ocimethod(`ocimethod') icimethod(`icimethod') model(`model') groupvar(`groupvar') outplot(`outplot') popstat(`popstat')
     }
 	
 	if "`graph'" == "" {
@@ -1787,6 +1926,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 		
 	cap ereturn clear
+	
+	cap confirm matrix `matgof'
+	if _rc == 0 {
+		ereturn matrix gof = `matgof'
+	}
 
 	cap confirm matrix `mctest'
 	if _rc == 0 {
@@ -1795,6 +1939,10 @@ program define metapreg, eclass sortpreserve byable(recall)
 	cap confirm matrix `hetout'
 	if _rc == 0 {
 		ereturn matrix hetout = `hetout'
+	}
+	cap confirm matrix `covmat'
+	if _rc == 0 {
+		ereturn matrix covmat = `covmat'
 	}
 	cap confirm matrix `nltestRR'
 	if _rc == 0 {
@@ -1818,6 +1966,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	if _rc == 0 {
 		ereturn matrix rrout = `rrout'
 		ereturn matrix poprrout = `poprrout'
+		ereturn matrix poplrrout = `poplrrout'
 		ereturn matrix orout = `orout'
 		ereturn matrix poporout = `poporout'
 		ereturn matrix poplorout = `poplorout'
@@ -1827,60 +1976,112 @@ program define metapreg, eclass sortpreserve byable(recall)
 end
 
 /*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: ESTCOVAR +++++++++++++++++++++++++
-							Compose the var-cov matrix
+							Compose the var-cov matrices
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 cap program drop estcovar
 program define estcovar, rclass
 
-	syntax, matrix(name) cov(string) [predcmd(string)]
+	syntax, bmatrix(name)  sid(varname) [varx(varname) cov(string) predcmd(string) level(real 95)]
 	*matrix is colvector
-	tempname matcoef rosevar rawvar
-	mat `matcoef' = `matrix''
-	local nrows = rowsof(`matcoef')
-	*Initialize - Default
-	mat	`rosevar' = (0, 0\ ///
-				0, 0)
-	mat	`rawvar' = (0, 0\ ///
-				0, 0)			
+	tempname matcoef rosevar coefvar covmat matvar bmat vmat
+	mat `matcoef' = `bmatrix''
+	local bnrows = rowsof(`matcoef')
+	
+	local critvalue -invnorm((100-`level')/200)
+
 	if "`predcmd'" == "meqrlogit_p" {
-		if strpos("`cov'", "uns") != 0 {
-			mat	`rosevar' = (exp(`matcoef'[`nrows' - 1 , 1])^2, exp(`matcoef'[ `nrows' - 1, 1])*exp(`matcoef'[`nrows' - 2, 1])*tanh(`matcoef'[ `nrows', 1])\ ///
-						exp(`matcoef'[ `nrows' - 1, 1])*exp(`matcoef'[`nrows' - 2, 1])*tanh(`matcoef'[ `nrows', 1]), exp(`matcoef'[ `nrows' - 2, 1])^2)
-						
-			mat	`rawvar' = (`matcoef'[`nrows' - 1 , 1], `matcoef'[ `nrows', 1]\ ///
-						`matcoef'[ `nrows', 1], `matcoef'[ `nrows' - 2, 1])			
-			local k = 3
-		}		
-		else if strpos("`cov'", "ind") != 0 {
-			mat	`rawvar' = (`matcoef'[ `nrows', 1], 0\ ///
-						0, `matcoef'[ `nrows' - 1, 1])
-			mat	`rosevar' = (exp(`matcoef'[ `nrows', 1])^2, 0\ ///
-						0, exp(`matcoef'[ `nrows'-1, 1])^2)			
-			local k = 2
-		}
+		local scalefn1 "exp"
+		local scalefn2 "tanh"
+		local scalepow "2"
 	}
 	else {
-		if strpos("`cov'", "uns") != 0 {
-			mat	`rosevar' = (`matcoef'[`nrows' - 1 , 1], `matcoef'[ `nrows', 1] \ ///
-						`matcoef'[ `nrows', 1], `matcoef'[ `nrows' - 2, 1])
-						
-			mat	`rawvar' = (`matcoef'[`nrows' - 1 , 1], `matcoef'[ `nrows', 1] \ ///
-						`matcoef'[ `nrows', 1], `matcoef'[ `nrows' - 2, 1])			
-			local k = 3
-		}		
-		else if strpos("`cov'", "ind") != 0 {
-			mat	`rawvar' = (`matcoef'[ `nrows', 1], 0 \ ///
-						0, `matcoef'[ `nrows' - 1, 1])
-						
-			mat	`rosevar' = (`matcoef'[ `nrows', 1], 0 \ ///
-						0, `matcoef'[ `nrows'-1, 1])			
-			local k = 2
+		local scalepow "1"
+	}				
+				
+	if strpos("`cov'", "uns") != 0 {
+		if "`predcmd'" == "meqrlogit_p" {
+			*local covarexpression  "(tausq:(exp(_b[lns1_1_1:_cons]))^2) (sigmasq:(exp(_b[lns1_1_2:_cons]))^2) (covar:exp(_b[lns1_1_1:_cons])*exp(_b[lns1_1_2:_cons])*tanh(_b[atr1_1_1_2:_cons]))" 
+			local covarexpression  "(lntau:_b[lns1_1_1:_cons]) (lnsigma:_b[lns1_1_2:_cons]) (covar:exp(_b[lns1_1_1:_cons])*exp(_b[lns1_1_2:_cons])*tanh(_b[atr1_1_1_2:_cons]))" 
 		}
+		else {
+			local covarexpression  "(lntausq:ln(_b[/var(mu[`sid'])])) (lnsigmasq:ln(_b[/var(2.`varx'[`sid'])])) (covar:_b[/cov(2.`varx'[`sid'],mu[`sid'])])"
+		}		
+				
+		local k = 3	
+	}		
+	else if strpos("`cov'", "ind") != 0 {
+		if "`predcmd'" == "meqrlogit_p" {
+			local covarexpression  "(lntau:_b[lns1_1_1:_cons]) (lnsigma:_b[lns1_1_2:_cons])"
+		}
+		else {
+			local covarexpression  "(lntausq:ln(_b[/var(mu[`sid'])])) (lnsigmasq:ln(_b[/var(2.`varx'[`sid'])]))" 
+		}					
+		local k = 2
+	}
+	else if strpos("`cov'", "zero") != 0 | "`cov'" == "" {
+		if "`predcmd'" == "meqrlogit_p" {
+			local covarexpression  "(lnvar:_b[lns1_1_1:_cons])"
+		}
+		else {
+			if "`cov'" == "zeroslope" |  "`cov'" == "" {
+				local covarexpression  "(lntausq:ln(_b[/var(mu[`sid'])]))"
+			}
+			if "`cov'" == "zeroint" {		
+				local covarexpression  "(lnsigmasq:ln(_b[/var(2.`varx'[`sid'])]))" 
+			}
+		}
+		local k = 1
+	}
 
+	nlcom `covarexpression'
+	mat `bmat' = r(b)
+	mat `vmat' = r(V)
+	mat `vmat' = vecdiag(`vmat')
+			
+	mat `covmat' = J(`k', 3, 0)
+	
+	forvalues r=1(1)`k' {
+		local scalepow 1
+		
+		if `r' != 3 {
+			local scalefn "exp"
+			
+			if "`predcmd'" == "meqrlogit_p" {
+				local scalepow 2
+			}
+		}
+		else {
+			local scalefn
+		}
+		
+		mat `covmat'[`r', 1] = (`scalefn'(`bmat'[1,`r']))^`scalepow'
+		mat `covmat'[`r', 2] = (`scalefn'(`bmat'[1, `r'] - `critvalue'*sqrt(`vmat'[1,`r'])))^`scalepow'
+		mat `covmat'[`r', 3] = (`scalefn'(`bmat'[1, `r'] + `critvalue'*sqrt(`vmat'[1,`r'])))^`scalepow'
+	}
+		
+	if `k' == 3 {
+		local rowids = "tausq sigmasq covar"
+	}
+	else {
+		if "`cov'" != "" {
+			local rowids = "tausq sigmasq"
+		}
+		else {
+			local rowids = "tausq"
+		}
 	}
 	
-	return matrix rosevar = `rosevar' 
-	return matrix rawvar = `rawvar' 
+	if "`cov'" == "zeroslope" {
+			mat `covmat' = (`covmat' \ J(1, 3, 0))
+	}
+	if "`cov'" == "zeroint"  {
+		mat `covmat' = (J(1, 3, 0) \ `covmat')
+	}
+	
+	mat rownames `covmat' = `rowids'
+	
+	*return matrix rosevar = `rosevar' 
+	return matrix covmat = `covmat' 
 	return local k = `k' 
 end
 
@@ -1920,7 +2121,11 @@ program define metapregci, rclass
 		generate `total2' = `3'
 		local depvars "`1' `2' `3'"
 		gen `id' = _n
-	}	
+	}
+
+	if "`outplot'" == "lor" | "`outplot'" == "lrr" {
+		local transform "transform"
+	}
 	
 	if "`outplot'" != "abs" {
 		if "`abnetwork'" != "" {
@@ -1930,20 +2135,20 @@ program define metapregci, rclass
 			gen `uci' = .
 		}
 		if "`mcbnetwork'" != "" { 
-			if "`outplot'" == "rr" {
+			if strpos("`outplot'", "rr") != 0 {
 				//constrained maximum likelihood estimation
-				cmlci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01')
+				cmlci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') `transform'
 			}
-			if "`outplot'" == "or" {
-				orccci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') level(`level') `mcbnetwork' cimethod(`cimethod')
+			if strpos("`outplot'", "or") != 0 {
+				orccci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') level(`level') `mcbnetwork' cimethod(`cimethod') `transform'
 			}
 		}
 		if "`pcbnetwork'" !="" {
-			if "`outplot'" == "rr" {
-				rrci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod')
+			if strpos("`outplot'", "rr") != 0 {
+				rrci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod') `transform'
 			}
-			if "`outplot'" == "or" {
-				orccci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') level(`level')  cimethod(`cimethod')
+			if strpos("`outplot'", "or") != 0 {
+				orccci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') level(`level')  cimethod(`cimethod') `transform'
 			}
 		}
 		if "`comparative'" != "" {
@@ -1971,11 +2176,11 @@ program define metapregci, rclass
 			local cc0 = r(cc0)
 			local cc1 = r(cc1)
 			
-			if "`outplot'" == "rr" {
-				rrci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod')
+			if strpos("`outplot'", "rr") != 0 {
+				rrci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod') `transform'
 			}
-			if "`outplot'" == "or" {
-				orccci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') level(`level')  cimethod(`cimethod')
+			if strpos("`outplot'", "or") != 0 {
+				orccci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') level(`level')  cimethod(`cimethod') `transform'
 			}
 						
 			//Rename the varying columns
@@ -2000,15 +2205,24 @@ program define metapregci, rclass
 			qui drop _WT_1  _WT_2
 			
 			//Remove unnecessary columns
+
 			if "`smooth'" !="" {
-				qui drop `modeles'_1
-				rename `modeles'_2 `modeles'
-				
-				qui drop `modellci'_1
-				rename `modellci'_2 `modellci'
-				
-				qui drop `modeluci'_1
-				rename `modeluci'_2 `modeluci'
+				qui {
+					drop `modeles'_1
+					rename `modeles'_2 `modeles'
+					
+					cap confirm variable `modellci'_1
+					if _rc == 0 {
+						drop `modellci'_1
+						rename `modellci'_2 `modellci'
+					}
+					
+					cap confirm variable `modeluci'_2
+					if _rc == 0 {
+						drop `modeluci'_1
+						rename `modeluci'_2 `modeluci'
+					}
+				}
 			}
 			
 			//make new lcols		
@@ -2164,21 +2378,18 @@ program define preg, rclass
 		by(varname) stratify
 		GOF nsims(string) link(string) bayesrepsfilename(string asis)
 		modeles(varname) modelse(varname) modellci(varname) modeluci(varname) 
-		smooth computewt inference(string) refsampling(string)
+		smooth computewt inference(string) refsampling(string) popstat(string)
+		bayesest(string asis) bayesreps(string asis)
 			*];
 
 	#delimit cr
 	marksample touse, strok 
-	
-	tempfile bayesest bayesreps	
-	local bayesreps = subinstr("`bayesreps'", ".tmp", ".dta", 1)
-	local bayesest = subinstr("`bayesest'", ".tmp", ".dta", 1)
-	
-	tempvar event nonevent total invtotal predevent ill iw
+		
+	tempvar event nonevent total invtotal predevent ill iw insample
 	tempname coefmat coefvar testlr V logodds absout absoutp rrout orout nltestRR nltestOR  ///
 			 hetout mctest absexact newobs matgof popabsout poprrout poporout poplorout ///
-			 rosevar rawvar rawest rawestp coeflor coefor lorci exactabsout exactorout ///
-			 exactlorout lnrho bayestest  bayesstats
+			 rosevar covmat rawest rawestp coeflor coefor lorci exactabsout exactorout ///
+			 exactlorout lnrho bayestest  bayesstats 
 	
 	tokenize `varlist'
 	local event = "`1'"
@@ -2228,13 +2439,14 @@ program define preg, rclass
 	}
 	
 	`echo' fitmodel `outcome' `total' if `touse', `modelopts' model(`model') regexpression(`regexpression') ///
-		sid(`sid') level(`level') nested(`first') `abnetwork' cov(`cov') link(`link') p(`p')  ///
-		bayesreps(`bayesreps') bayesest(`bayesest') inference(`inference') refsampling(`refsampling')
+		sid(`sid') level(`level') nested(`first') `abnetwork' `comparative' cov(`cov') link(`link') p(`p')  ///
+		bayesest(`bayesest') inference(`inference') refsampling(`refsampling')
 		
 	//Returned model	
 	local getmodel = r(model)
 	estimates store metapreg_modest
 	local lnvar = r(lnvar)
+	local sd = r(sd)
 	
 	qui {
 		replace _ESAMPLE = e(sample) 
@@ -2244,6 +2456,8 @@ program define preg, rclass
 	local mdf = .
 
 	if "`inference'" == "bayesian" {
+		gen `insample' = e(sample) 
+		gsort -`insample' `rid'
 		//Generate the predictions
 		qui bayespredict {_mu} if e(sample), saving("`bayesreps'", replace) rseed(1) 
 	}
@@ -2276,7 +2490,8 @@ program define preg, rclass
 				predict `predevent', n
 			}
 			else if strpos("`model'", "bayes") == 1 {
-				bayespredict `predevent', mean  rseed(1) 			
+				bayespredict `predevent', mean rseed(1) 
+	
 			}
 			else {
 				//fixed
@@ -2320,16 +2535,12 @@ program define preg, rclass
 		else {
 			local DF_BHET = 2
 		}
-		if "`cov'" != "" {
-			estcovar, matrix(`coefmat') cov(`cov') predcmd(`predcmd')
-			local DF_BHET = r(k)
-			mat `rosevar' = r(rosevar)  //var-cov matrix
-			mat `rawvar' = r(rawvar)  //raw var-cov matrix
-			mat colnames `rosevar' = intercept slope
-			mat rownames `rosevar' = intercept slope
-			mat colnames `rawvar' = intercept slope
-			mat rownames `rawvar' = intercept slope
-		}
+		
+		capture estcovar, bmatrix(`coefmat') cov(`cov') predcmd(`predcmd') level(`level') sid(`sid') varx(`first')
+		local DF_BHET = r(k)
+		mat `covmat' = r(covmat)  //var-cov matrix
+
+		mat colnames `covmat' = Mean Lower Upper
 	}
 	else if "`getmodel'" == "crbetabin" {
 		local BHET = e(chi2_c)
@@ -2347,7 +2558,7 @@ program define preg, rclass
 
 		//fit the fixed effects model, to test if overdispersion
 		qui fitmodel `outcome' `total' if `touse' & mu == 1, `modelopts' model(fixed) regexpression(`regexpression2') ///
-			sid(`sid') level(`level') nested(`first') `abnetwork' cov(`cov') link(`link') p(`p') inference(`inference') refsampling(`refsampling')
+			sid(`sid') level(`level') nested(`first') `abnetwork' `comparative' cov(`cov') link(`link') p(`p') inference(`inference') refsampling(`refsampling')
 			
 		qui estimates store metapreg_Null
 		
@@ -2366,33 +2577,34 @@ program define preg, rclass
 		local bayesfixedest = subinstr("`bayesfixedest'", ".tmp", ".dta", 1)
 		
 		qui fitmodel `outcome' `total' if `touse', `modelopts' model(bayesfixed) regexpression(`regexpression') ///
-		sid(`sid') level(`level') nested(`first') `abnetwork' cov(`cov') link(`link') p(`p')  ///
-		bayesreps(`bayesreps') bayesest(`bayesfixedest') inference(`inference') refsampling(`refsampling')
+		sid(`sid') level(`level') nested(`first') `abnetwork' `comparative' cov(`cov') link(`link') p(`p')  ///
+		bayesest(`bayesfixedest') inference(`inference') refsampling(`refsampling')
 		
 		qui estimates store metapreg_Null
 		
 		capture bayestest model metapreg_modest metapreg_Null
 		
-			if _rc == 0 {
-				mat `bayestest' = r(test)
-				local MLdiff = `bayestest'[2,2] - `bayestest'[1,2] //Difference in marginal likelihood
-				local postprob = `bayestest'[1,4]  // posterior prob of the model
-			}
-			
-			capture bayesstats ic  metapreg_Null metapreg_modest 
-			if _rc == 0 {
-				mat `bayesstats' = r(ic)
-				local BF = `bayesstats'[2,4] //log Bayes factor
-			}
-		
 		if _rc == 0 {
+			mat `bayestest' = r(test)
+			local MLdiff = `bayestest'[2,2] - `bayestest'[1,2] //Difference in marginal likelihood
+			local postprob = `bayestest'[1,4]  // posterior prob of the model
+		}
+		
+		capture bayesstats ic  metapreg_Null metapreg_modest 
+		if _rc == 0 {
+			mat `bayesstats' = r(ic)
+			local BF = `bayesstats'[2,4] //log Bayes factor
+		}
+	
+		/*if _rc == 0 {
 			mat `bayestest' = r(test)
 			local BHET = `bayestest'[2,2] - `bayestest'[1,2] //Difference in marginal likelihood
 			local P_BHET = `bayestest'[1,4]  // posterior prob of the model
 			local DF_BHET = 1
-		}
+		}*/
 
 		estimates drop metapreg_Null
+		rm "`bayesfixedest'" 
 	}
 	
 	//FE
@@ -2403,6 +2615,7 @@ program define preg, rclass
 	local rho = .
 	
 	if "`getmodel'" == "random" {
+	
 		local npar = colsof(`coefmat')
 		if "`predcmd'" == "meqrlogit_p" {
 			local scalefn "exp"
@@ -2413,19 +2626,25 @@ program define preg, rclass
 		}
 		
 		if "`abnetwork'`cov'" == "" {
-			local TAU21 = `scalefn'(`coefmat'[1, `npar'])^`scalepow' //Between study variance	1
+			*local TAU21 = `scalefn'(`coefmat'[1, `npar'])^`scalepow' //Between study variance	1
+			local TAU21 = `covmat'[1, 1] //Between study variance	1
 			local TAU22 = 0
 		}
-		else if "`abnetwork'" != "" {
+		if "`abnetwork'`cov'" != ""  {
+			local TAU21 = `covmat'[1, 1]
+			local TAU22 = `covmat'[2, 1]
+			/*
 			local TAU21 = `scalefn'(`coefmat'[1, `=`npar'-1'])^`scalepow' //Between study variance	1
 			local TAU22 = `scalefn'(`coefmat'[1, `npar'])^`scalepow' //Between study variance	2
+			*/
 		}
-		else if "`cov'" != "" {
-			local TAU21 = `rosevar'[1, 1]
+		if "`cov'" == "unstructured" {
+			/*local TAU21 = `rosevar'[1, 1]
 			local TAU22 = `rosevar'[2, 2]
-			if "`cov'" == "unstructured" {
-				local rho = tanh(`rawvar'[1, 2])
-			}  
+			*/
+			local rho = `covmat'[3, 1]/sqrt(`covmat'[2, 1]*`covmat'[1, 1])
+			*local rho = `rosevar'[1, 2]/sqrt(`rosevar'[2, 2]*`rosevar'[1, 1])
+			  
 		}
 	}
 	
@@ -2433,33 +2652,58 @@ program define preg, rclass
 		qui estimate restore metapreg_modest
 		
 		if `lnvar' {
-			local parmsigma2 = `"(exp({lnsigmasq}))"'
-			local parmtau2 = `"(exp({lntausq}))"'
+			local parmsigma2 = `"(exp({lnsigma})^2)"'
+			local parmtau2 = `"(exp({lntau})^2)"'
 		}
-		else {
+		else if `sd' {
+			local parmsigma2 = `"({sigma}^2)"'
+			local parmtau2 = `"({tau}^2)"'
+		}
+		else  {
 			local parmsigma2 = `"{sigmasq}"'
 			local parmtau2 = `"{tausq}"'
 		}
 		
 		if "`abnetwork'`cov'" == "" {
 			qui bayesstats summary `parmtau2'
-			mat `rosevar' = r(summary)
+			mat `covmat' = r(summary)
 		
-			local TAU21 = `rosevar'[1, 1] //Between study variance	1
+			local TAU21 = `covmat'[1, 4] //Median Between study variance	1
 			local TAU22 = 0
 		}
 		else if "`abnetwork'" != "" |  "`cov'" == "independent" {
-				#delimit ;
-				qui bayesstats summary `parmtau2' `parmsigma2'
-					(isq1:`parmtau2'/(`parmtau2' + `parmsigma2'))
-					(isq2:`parmtau2'/(`parmtau2' + `parmsigma2'))
-				;
-				#delimit cr	
-				mat `rosevar' = r(summary)
-				local TAU21 = `rosevar'[1, 1]
-				local TAU22 = `rosevar'[2, 1]
-				local ISQ1 = `rosevar'[3, 1]*100
-				local ISQ2 = `rosevar'[4, 1]*100 
+			#delimit ;
+			qui bayesstats summary `parmtau2' `parmsigma2'
+				(isq1:`parmtau2'/(`parmtau2' + `parmsigma2'))
+				(isq2:`parmsigma2'/(`parmtau2' + `parmsigma2'))
+			;
+			#delimit cr	
+			mat `covmat' = r(summary) //Take medians
+			local TAU21 = `covmat'[1, 4] 
+			local TAU22 = `covmat'[2, 4] 
+			local ISQ1 = `covmat'[3, 4]*100
+			local ISQ2 = `covmat'[4, 4]*100 
+		}
+		else if "`cov'" == "zeroint" {	
+			qui bayesstats summary `parmsigma2'
+			mat `covmat' = r(summary)
+			local dim :colsof(`covmat')
+			mat `covmat' = J(1, `dim', 0) \ `covmat'
+			mat rownames `covmat' = `parmtau2' `parmsigma2'
+		
+			local TAU21 = 0
+			local TAU22 = `covmat'[1, 4] //Median Between study variance	2
+		}
+		else if "`cov'" == "zeroslope" {
+			qui bayesstats summary `parmtau2'
+			mat `covmat' = r(summary)
+		
+			local TAU21 = `covmat'[1, 4] //Median Between study variance	1
+			local TAU22 = 0
+			
+			local dim :colsof(`covmat')
+			mat `covmat' = `covmat' \ J(1, `dim', 0) 
+			mat rownames `covmat' = `parmtau2' `parmsigma2'
 		}
 		else if "`cov'" == "unstructured" {			
 			#delimit ;
@@ -2472,12 +2716,12 @@ program define preg, rclass
 			;
 			#delimit cr
 
-			mat `rosevar' = r(summary)				
-			local TAU21 = `rosevar'[1, 1]
-			local TAU22 = `rosevar'[2, 1]			
-			local rho = `rosevar'[3, 1]
-			local ISQ1 = `rosevar'[4, 1]*100
-			local ISQ2 = `rosevar'[5, 1]*100  
+			mat `covmat' = r(summary)	//Take medians			
+			local TAU21 = `covmat'[1, 4]
+			local TAU22 = `covmat'[2, 4]			
+			local rho = `covmat'[3, 4]
+			local ISQ1 = `covmat'[4, 4]*100
+			local ISQ2 = `covmat'[5, 4]*100  
 		}
 	}
 
@@ -2503,12 +2747,12 @@ program define preg, rclass
 			`mcbnetwork' `comparative' `pcbnetwork' `abnetwork' `stratify'  ///
 			comparator(`comparator') link(`link') 
 			
-		mat `rawestp' = r(outmatrixp)
+		*mat `rawestp' = r(outmatrixp)
 		mat `rawest' = r(outmatrix)
 		mat `exactabsout' = r(exactabsout)
 	
-		estp, rawestmat(`rawestp') link(`link') cimethod(`cimethod') 
-		mat `absoutp' = r(outmatrix)
+		*estp, rawestmat(`rawestp') link(`link') cimethod(`cimethod') 
+		*mat `absoutp' = r(outmatrix)
 		
 		//Conditional ABS
 		estp, rawestmat(`rawest') link(`link') cimethod(`cimethod') 
@@ -2532,7 +2776,7 @@ program define preg, rclass
 		//simulations ABS
 		postsim, event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(p) estimates(metapreg_modest) rawest(`rawest') ///
 				level(`level')  model(`getmodel')  by(`by') `comparative' `interaction' `abnetwork' ///
-				`mcbnetwork' varx(`varx') cov(`cov') nsims(`nsims') link(`link') p(`p')  bayesreps(`bayesreps')
+				`mcbnetwork' varx(`varx') cov(`cov') nsims(`nsims') link(`link') p(`p')  bayesreps(`bayesreps') 
 				
 		mat `popabsout' = r(outmatrix)
 	}
@@ -2541,7 +2785,7 @@ program define preg, rclass
 	local rrsuccess 0
 	if "`catreg'" != "" | "`typevarx'" == "i" {
 		if "`inference'" == "frequentist" {
-			capture  freqestr, event(`event') total(`total') studyid(`studyid') estimates(metapreg_modest)  catreg(`catreg') ///
+			cap freqestr, event(`event') total(`total') studyid(`studyid') estimates(metapreg_modest)  catreg(`catreg') ///
 				level(`level') comparator(`comparator') `interaction' cimethod(`cimethod') ///
 				varx(`varx') typevarx(`typevarx') by(`by') `mcbnetwork' `pcbnetwork' ///
 				`comparative' `abnetwork' `stratify' model(`getmodel') ///
@@ -2591,18 +2835,30 @@ program define preg, rclass
 		postsim, event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(smooth) estimates(metapreg_modest)  ///
 			level(`level')  model(`getmodel')  by(`by') `comparative'  ///
 			modeles(`modeles') modellci(`modellci') modeluci(`modeluci') outplot(`outplot')	///
-			`interaction' `abnetwork'  `mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link')  bayesreps(`bayesreps')
+			`interaction' `abnetwork'  `mcbnetwork' varx(`varx')  cov(`cov') nsims(`nsims') link(`link')  bayesreps(`bayesreps') popstat(`popstat')
 	}
 	//===================================================================================
 	//Return the matrices
 	if "`abnetwork'`cov'" != "" {
-		if "`cov'" == "unstructured" {
-			mat `hetout' = (`DF_BHET', `BHET' ,`P_BHET', `TAU21', `TAU22', `rho', `ISQ1', `ISQ2')
-			mat colnames `hetout' = DF Chisq p tau2 sigma2 rho I2tau I2sigma 
+		if "`inference'" == "bayesian" {
+			if "`cov'" == "unstructured" {
+				mat `hetout' = (`MLdiff', `BF', `postprob', `TAU21', `TAU22', `rho', `ISQ1', `ISQ2')
+				mat colnames `hetout' = Delta_ML log(BF) Post_Prob tau2 sigma2 rho I2tau I2sigma 
+			}
+			else {
+				mat `hetout' = (`MLdiff', `BF', `postprob', `TAU21', `TAU22', `ISQ1', `ISQ2')
+				mat colnames `hetout' = Delta_ML log(BF) Post_Prob tau2 sigma2 I2tau I2sigma 
+			}
 		}
 		else {
-			mat `hetout' = (`DF_BHET', `BHET' ,`P_BHET', `TAU21', `TAU22', `ISQ1', `ISQ2')
-			mat colnames `hetout' = DF Chisq p tau2 sigma2 I2tau I2sigma 
+			if "`cov'" == "unstructured" {
+				mat `hetout' = (`DF_BHET', `BHET' ,`P_BHET', `TAU21', `TAU22', `rho', `ISQ1', `ISQ2')
+				mat colnames `hetout' = DF Chisq p tau2 sigma2 rho I2tau I2sigma 
+			}
+			else {
+				mat `hetout' = (`DF_BHET', `BHET' ,`P_BHET', `TAU21', `TAU22', `ISQ1', `ISQ2')
+				mat colnames `hetout' = DF Chisq p tau2 sigma2 I2tau I2sigma 
+			}
 		}
 	}
 	else {
@@ -2642,6 +2898,11 @@ program define preg, rclass
 	mat rownames `hetout' = Model
 	return matrix hetout = `hetout'
 	return local inltest = "`inltest'"
+	
+	cap confirm matrix `covmat'
+	if _rc == 0 {
+		return matrix covmat = `covmat'
+	}
 										
 	cap confirm matrix `rawest'
 	if _rc == 0 {
@@ -2708,16 +2969,16 @@ program define mcpreg, rclass
 		noMC noCONstant
 		interaction	
 		comparative mcbnetwork pcbnetwork abnetwork
-		link(string) inference(string) refsampling(string)
+		link(string) inference(string) refsampling(string) 
+		bayesest(string asis) 
 			*];
 
 	#delimit cr
 	marksample touse, strok 
 	
-	tempvar event nonevent total 
-	tempfile bayesnullest
-	local bayesnullest = subinstr("`bayesnullest'", ".tmp", ".dta", 1)
-		
+	tempvar event nonevent total
+	
+	
 	tempname coefmat coefvar testlr V logodds absout absoutp rrout orout nltestRR nltestOR  ///
 			 hetout mctest absexact newobs matgof popabsout poprrout poporout poplorout rosevar rawvar rawest bayesstats bayestest
 			 
@@ -2837,7 +3098,7 @@ program define mcpreg, rclass
 		}
 		
 		`echo' fitmodel `outcome' `total' if `touse',  `modelopts' model(`model') ///
-			regexpression(`nureduced') sid(`sid') level(`level')  nested(`first') `abnetwork' ///
+			regexpression(`nureduced') sid(`sid') level(`level')  nested(`first') `abnetwork'  `comparative' ///
 			cov(`newcov') link(`link') p(`p') inference(`inference') ///
 			refsampling(`refsampling') bayesest(`bayesnullest')
 		
@@ -2915,7 +3176,7 @@ program define mcpreg, rclass
 		}
 		
 		`echo' fitmodel `outcome' `total' if `touse', `modelopts' model(`model') regexpression(mu) ///
-			sid(`sid') level(`level')  nested(`first') `abnetwork' link(`link') p(`p')  ///
+			sid(`sid') level(`level')  nested(`first') `abnetwork' `comparative' link(`link') p(`p')  ///
 			inference(`inference') refsampling(`refsampling') bayesest(`bayesnullest')
 		
 		if "`inference'" == "frequentist" {
@@ -3053,7 +3314,7 @@ program define fitmodel, rclass
 	syntax varlist [if] [in], 
 		[model(string) regexpression(string) sid(varname) p(string) 
 		level(integer 95) mcbnetwork pcbnetwork abnetwork general comparative nested(string) cov(string) link(string) 
-		bayesest(string asis) bayesreps(string asis) inference(string) 
+		bayesest(string asis) inference(string) 
 		refsampling(string) 
 		feprior(string asis)
 		varprior(string asis)
@@ -3073,14 +3334,25 @@ program define fitmodel, rclass
 	local events = "`1'"
 	local total = "`2'"
 	
-	if "`cov'" != "" {
+	if "`cov'" != "" {	
+		if ("`comparative'" != "") & ("`cov'" != "zeroslope")  {
+			local slope "2.`nested'"
+		}
+
 		local varx "`nested'"
 	}
 	else{
 		local varx
 	}
+	
+	if strpos("`regexpression'", "mu") != 0 {
+		local intercept "mu"
+	}
+	if "`comparative'" != "" & ("`cov'" == "zeroint")  { 
+		local intercept
+	}
 
-	if "`inference'" == "frequentist" {	
+	if "`inference'" == "frequentist" {
 		if "`cov'" != "" {
 			if "`cov'" == "unstructured" {
 				local cov "cov(`cov')"
@@ -3117,84 +3389,23 @@ program define fitmodel, rclass
 		if  "`bayesest'" != "" {
 			local saving = `"saving(`bayesest', replace)"'
 		}
-		
-		if "`varprior'" == "" {
-			if "`cov'" == "unstructured" {
-				local varprior = "iwishart(2,3,I(2))"
-				*local varprior = "jeffreys(2)"
-			}
-			else {
-				*local varprior = "jeffreys"
-				local varprior = "normal(0, 20)"
-			}
-		}
-		
+				
 		if "`feprior'" == "" {
 			local feprior = "normal(0, 50)"
-		}
-		
-		//Get initial values from binreg
-		noi di as txt _n "Obtaining  initial values"
-		capture binreg `events' `regexpression' if `touse', noconstant n(`total') ml  
-		if _rc == 0 {
-			tempname coefmat
-			mat `coefmat' = e(b)
-			local parmnames : colnames `coefmat'
-
-			local nfeparm : word count `parmnames'
-
-			local scales "0.5 1 1.5 2 0.25 1.75"
-			
-			forvalues c=1(1)`nchains' {
-				local init`c'
-				local scale : word `c' of `scales'
-				forvalues t=1(1)`nfeparm' {
-					local term : word `t' of `parmnames'
-					local mle = `coefmat'[1, `t']
-					if strpos("`model'", "random") != 0 {
-						if strpos("`term'", "1b.`varx'") != 0 & "`cov'" =="independent" {
-							continue
-						}
-						local init`c' = "`init`c'' {`events':`term'} `mle' "
-					}
-					else {
-						local init`c' = "`init`c'' {`events':`term'} `=`scale'*`mle'' "
-					}
-				}
-			}
+			*local feprior = "uniform(-10, 10)"
 		}
 	}
 	
 	//fit bayesian fixed
-	if "`model'" == "bayesfixed" {
-		/*local nterms: word count `regexpression'
-		if `nterms' > 1 {
-			gettoken first variableterms : regexpression
-		}
-
-		if "`variableterms'" != "" {
-			local priorfe = `" prior({`events':`regexpression'}, `feprior')"'
-			local blockfe = `"block({`events':mu `variableterms'})"'
-		}
-		else {
-			local priormu = `"prior({`events':mu}, `feprior')"'
-			local blockmu = `"block({`events':mu})"'
-		}*/
-		//Initial values 
-		local initialvalues 
-		forvalues c=1(1)`nchains' {
-			local initialvalues = "init`c'(`init`c'') `initialvalues'"
-		}
-				
+	if "`model'" == "bayesfixed" {				
 		local priorfe = `" prior({`events':`regexpression'}, `feprior')"'
 		local blockfe = `"block({`events':`regexpression'})"'
 			
 		#delim ;
-		capture noisily bayesmh `events' `regexpression', noconstant likelihood(binomial(`total')) 
+		capture noisily bayesmh `events' `regexpression' if `touse', noconstant likelihood(binomial(`total')) 
 			`priormu' `priorfe' 
 			`blockfe' `blockmu' 
 			nchains(`nchains') thinning(`thinning') burnin(`burnin') mcmcsize(`mcmcsize') rseed(`rseed')
-			/*`initialvalues'*/
 			`saving'
 			;
 		#delimit cr 
@@ -3203,76 +3414,91 @@ program define fitmodel, rclass
 	
 	//fit bayesian re
 	local lnvar = 0
+	local sd = 0
 	if "`model'" == "bayesrandom" {
+			
+		if "`varprior'" == "" {
+			if "`cov'" == "unstructured" {
+				local varprior = "iwishart(2,3,I(2))"
+				*local varprior = "wishart(2,3,I(2))"
+			}
+			else {
+				local varprior "igamma(0.01, 0.01)"
+				*local varprior "igamma(0.1, 0.1)"
+				
+				if "`cov'" != "zeroslope" {
+					local expsigma = `"{sigmasq}"'
+					local parmsigma = `"{sigmasq}"'
+					local priorsigma =  "`varprior'"
+				}
+				if "`cov'" != "zeroint" {
+					local exptau = `"{tausq}"'
+					local parmtau = `"{tausq}"'
+					local priortau =  "`varprior'"
+				}
+			}
+		}
+		else {
+			if "`cov'" != "unstructured" {
+				if "`cov'" != "zeroslope" {
+					local expsigma = `"{sigmasq}"'
+					local parmsigma = `"{sigmasq}"'
+					local priorsigma =  "`varprior'"
+				}
+				if "`cov'" != "zeroint" {				
+					local exptau = `"{tausq}"'
+					local parmtau = `"{tausq}"'
+					local priortau =  "`varprior'"
+				}
+			}
+		}
+
 		fvset base none `sid'
 			
 		gettoken mu variableterms: regexpression
-		
-		if strpos("`varprior'", "normal") != 0 {
-			local expsigma2 = "sigmasq:exp({lnsigmasq})"
-			local parmsigma2 = "{lnsigmasq}"
-			
-			local exptau2 = "tausq:exp({lntausq})"
-			local parmtau2 = "{lntausq}"
-			local lnvar = 1
-			
-			local tauscales "-4 1 -3 2 -6 4"
-			local sigmascales "-6 -5 -4 -3 1 2 3"
-		}
-		else {
-			local expsigma2 = `"{sigmasq}"'
-			local parmsigma2 = `"{sigmasq}"'
-			
-			local exptau2 = `"{tausq}"'
-			local parmtau2 = `"{tausq}"'
-			
-			local tauscales "0 2 0.5 1 2.5 0.25 3.5"
-			local sigmascales "0 0.05 0.1 0.15 0.2 2 3"
-		}
 		
 		if "`cov'" != "" {
 			tokenize `variableterms'
 			macro shift
 			local variableterms `*'
-						
-			local neoregexpression = `"i.`sid' i.`sid'#2.`varx' `variableterms'"'
 			
-			//Assign re priors		
-			if "`cov'" == "independent" {
-				local priorslopes = `"prior({`events':i.`sid'#2.`varx'}, normal({`events':2.`varx'}, `expsigma2'))"'
-				local priorsid = `"prior({`events':i.`sid'}, normal({`events':mu}, `exptau2'))"'	
+			if 	"`cov'" == "zeroint" {
+				local neoregexpression = `"mu i.`sid'#2.`varx' `variableterms'"'
+			}
+			else if "`cov'" == "zeroslope" {
+				local neoregexpression = `"i.`sid' 2.`varx' `variableterms'"'
+			}
+			else {	
+				local neoregexpression = `"i.`sid' i.`sid'#2.`varx' `variableterms'"'
+			}
+			
+			//Assign re priors
+			if "`cov'" == "zeroint" {
+				local priorslopes = `"prior({`events':i.`sid'#2.`varx'}, normal({`events':2.`varx'}, `expsigma'))"'
+				local priorsigma = `"prior(`parmsigma', `priorsigma')"'
+			}
+			else if "`cov'" == "zeroslope" {
+				local priorsid = `"prior({`events':i.`sid'}, normal({`events':mu}, `exptau'))"'			
+				local priortau = `"prior(`parmtau', `priortau')"'
+			}			
+			else if "`cov'" == "independent" {
+				local priorslopes = `"prior({`events':i.`sid'#2.`varx'}, normal({`events':2.`varx'}, `expsigma'))"'
+				local priorsid = `"prior({`events':i.`sid'}, normal({`events':mu}, `exptau'))"'	
 				
-				local priorsigmasq = `"prior(`parmsigma2', `varprior')"'
-				local priortausq = `"prior(`parmtau2', `varprior')"'
-				
-				local initialvalues
-				forvalues c=1(1)`nchains' {
-					local tauinit : word `c' of `tauscales'
-					local sigmainit : word `c' of `tauscales'
-					local init`c' = `"`init`c'' `parmtau2' `tauinit' `parmsigma2' `sigmainit' "'
-					local initialvalues = "init`c'(`init`c'') `initialvalues'"
-				}
+				local priorsigma = `"prior(`parmsigma', `priorsigma')"'
+				local priortau = `"prior(`parmtau', `priortau')"'
 			}
 			else if "`cov'" == "unstructured" {
 				local priorre = `"prior({`events':i.`sid' i.`sid'#2.`varx'}, mvnormal(2, {`events':mu}, {`events':2.`varx'}, {Sigma, matrix}))"'
 				local priorvarcov = `"prior({Sigma, matrix}, `varprior')"'
-				
-				local initialvalues
-				forvalues c=1(1)`nchains' {
-					local tauinit : word `c' of `tauscales'
-					local sigmainit : word `c' of `tauscales'
-					local init`c' = `"`init`c'' {Sigma, matrix} 0.1 0 0.05 "'
-					local initialvalues = "init`c'(`init`c'') `initialvalues'"
-				}
 			}
 			
 			local priorvarx = `"prior({`events':2.`varx'}, `feprior')"'
 			
-			
 			//block			
 			local blockvarx = `"block({`events':2.`varx'})"'
 			
-			if "`cov'" == "independent" {
+			if "`cov'" == "zeroint" {
 				if	`refsampling' == 1 {
 					local blockslopes = `"block({`events':i.`sid'#2.`varx'}, split)"'
 				}
@@ -3280,25 +3506,56 @@ program define fitmodel, rclass
 					local blockslopes = `"block({`events':i.`sid'#2.`varx'}, reffects)"'
 				}
 				if strpos("`varprior'", "gamma") != 0 { 
-					local blocksigmasq = `"block(`parmsigma2', gibbs)"'
-					local blocktausq = `"block(`parmtau2', gibbs)"'
+					local blocksigma = `"block(`parmsigma', gibbs)"'
 				}
 				else {
-					local blocksigmasq = `"block(`parmsigma2')"'
-					local blocktausq = `"block(`parmtau2')"'
+					local blocksigma = `"block(`parmsigma')"'
+				}
+			}			
+			else if "`cov'" == "zeroslope" {
+				if	`refsampling' == 1 {
+					local blocksid = `"block({`events':i.`sid'}, split)"'
+				}
+				else if `refsampling' == 2 {
+					local blocksid = `"block({`events':i.`sid'}, reffects)"'
+				}
+				else if `refsampling' == 3 {
+					local blocksid = `"reffects(`sid')"'
+				}
+				if strpos("`varprior'", "gamma") != 0 { 
+					local blocktau = `"block(`parmtau', gibbs)"'
+				}
+				else {
+					local blocktau = `"block(`parmtau')"'
+				}
+			}
+			else if "`cov'" == "independent" {
+				if	`refsampling' == 1 {
+					local blockslopes = `"block({`events':i.`sid'#2.`varx'}, split)"'
+				}
+				else if `refsampling' == 2  {
+					local blockslopes = `"block({`events':i.`sid'#2.`varx'}, reffects)"'
+				}
+				if strpos("`varprior'", "gamma") != 0 { 
+					local blocksigma = `"block(`parmsigma', gibbs)"'
+					local blocktau = `"block(`parmtau', gibbs)"'
+				}
+				else {
+					local blocksigma = `"block(`parmsigma')"'
+					local blocktau = `"block(`parmtau')"'
 				}
 			}
 			else if "`cov'" == "unstructured" {
 				local blockvarcov = `"block({Sigma, matrix}, gibbs)"'
 			}
 		}
-		else {
-			local neoregexpression = `"i.`sid' `variableterms'"'
+		/*else if "`cov'" == "zeroslope" {
+			*local neoregexpression = `"i.`sid' `variableterms'"'
 			
 			//Assign re priors
-			local priorsid = `"prior({`events':i.`sid'}, normal({`events':mu}, `exptau2'))"'			
-			local priortausq = `"prior(`parmtau2', `varprior')"'
-			
+			*local priorsid = `"prior({`events':i.`sid'}, normal({`events':mu}, `exptau'))"'			
+			*local priortau = `"prior(`parmtau', `priortau')"'
+						
 			//Block re
 			if	`refsampling' == 1 {
 				local blocksid = `"block({`events':i.`sid'}, split)"'
@@ -3310,19 +3567,12 @@ program define fitmodel, rclass
 				local blocksid = `"reffects(`sid')"'
 			}
 			if strpos("`varprior'", "gamma") != 0 { 
-				local blocktausq = `"block(`parmtau2', gibbs)"'
+				local blocktau = `"block(`parmtau', gibbs)"'
 			}
 			else {
-				local blocktausq = `"block(`parmtau2')"'
+				local blocktau = `"block(`parmtau')"'
 			}
-			
-			local initialvalues
-			forvalues c=1(1)`nchains' {
-				local tauinit : word `c' of `tauscales'
-				local init`c' = `"`init`c'' `parmtau2' `tauinit' "'
-				local initialvalues = "init`c'(`init`c'') `initialvalues'"
-			}
-		}
+		}*/
 		
 		//assign fe priors			
 		if "`variableterms'" != "" {
@@ -3336,32 +3586,35 @@ program define fitmodel, rclass
 			local blockmu = `"block({`events':mu})"'
 		}
 		else {
-			local blockmu = `"block({`events':mu}, gibbs)"'
+			/*if strpos("`priormu'", "normal") != 0 {
+				local blockmu = `"block({`events':mu}, gibbs)"'
+			}
+			else {
+				local blockmu = `"block({`events':mu})"'
+			}*/
+			local blockmu = `"block({`events':mu})"'
 		}
 		
 		if "`variableterms'" != "" {
 			local blockfe = `"block({`events':`variableterms'})"'
 		}
 		
-		//Initial values 
-		local initialvalues 
-		forvalues c=1(1)`nchains' {
-			local initialvalues = "init`c'(`init`c'') `initialvalues'"
+		if strpos("`modelopts'", "adapt") == 0 {
+			local adapt "adaptation(maxiter(50))"
 		}
-		
+						
 		#delim ;
-		capture noisily bayesmh `events' `neoregexpression', noconstant likelihood(binomial(`total'))  
-			`priorre' `priorvarcov' `priorslopes' `priorsid'  `priormu' `priorvarx' `priortausq' `priorsigmasq' `priorfe'
-			`blockfe' `blockvarx' `blockmu' `blockslopes' `blocksid' `blocksigmasq' `blocktausq'
+		capture noisily bayesmh `events' `neoregexpression' if `touse', noconstant likelihood(binomial(`total'))  
+			`priorre' `priorvarcov' `priorslopes' `priorsid'  `priormu' `priorvarx' `priortau' `priorsigma' `priorfe'
+			`blockfe' `blockvarx' `blockmu' `blockslopes' `blocksid' `blocksigma' `blocktau'
 			nchains(`nchains') thinning(`thinning') burnin(`burnin') mcmcsize(`mcmcsize') rseed(`rseed')
-			/*`initialvalues'*/
-			`saving'
+			`saving' `adapt' `modelopts'
 			;
 		#delimit cr 
 		local success = _rc	
 	}
 
-	/*===========================Frequenstist models===========================================*/
+	/*===========================Frequentist models===========================================*/
 	//Fit cbbetabin - common beta beta-binomial
 	if "`model'" == "cbbetabin" {
 		//Default iterations
@@ -3398,7 +3651,7 @@ program define fitmodel, rclass
 	}
 	
 	//Fit the ME model
-	if ("`model'" == "random") {
+	if ("`model'" == "random") {		
 		if (strpos(`"`modelopts'"', "intpoi") == 0) & (strpos(`"`modelopts'"', "lapl") == 0)  {
 			qui count if `touse'
 			if `=r(N)' < 7 {
@@ -3443,7 +3696,7 @@ program define fitmodel, rclass
 		local try = 1
 		#delim ;
 		capture noisily `fitcommand' (`events' `regexpression' if `touse', noconstant)|| 
-		  (`sid': `varx' , `cov') `nested' ,
+		  (`sid': `slope'  `intercept', `cov' noconstant) `nested' ,
 		  binomial(`total') `ipoints' `modelopts' l(`level') `iterate';
 		#delimit cr 
 		
@@ -3458,7 +3711,7 @@ program define fitmodel, rclass
 			local ++try
 			#delim ;
 			capture noisily  `fitcommand' (`events' `regexpression' if `touse', noconstant)|| 
-			  (`sid': `varx' , `cov') `nested' ,
+			  (`sid': `slope' `intercept', `cov' noconstant) `nested' ,
 			  binomial(`total') `ipoints' `modelopts' l(`level') `iterate';
 			#delimit cr 
 			
@@ -3476,7 +3729,7 @@ program define fitmodel, rclass
 			local ++try	
 			#delim ;
 			capture noisily  `fitcommand' (`events' `regexpression' if `touse', noconstant)|| 
-				(`sid': `varx' , `cov') `nested' ,
+				(`sid': `slope' `intercept', `cov' noconstant) `nested' ,
 				binomial(`total') laplace l(`level') `iterate';
 			#delimit cr 
 			
@@ -3509,7 +3762,7 @@ program define fitmodel, rclass
 				local ++try
 				#delim ;
 				capture noisily  `fitcommand' (`events' `regexpression' if `touse', noconstant)|| 
-				  (`sid': `varx', `cov') `nested' ,
+				  (`sid': `slope' `intercept', `cov' noconstant) `nested' ,
 				  binomial(`total') `ipoints'  `inits' l(`level') `iterate';
 				#delimit cr 
 				
@@ -3543,7 +3796,7 @@ program define fitmodel, rclass
 			local ++try
 			#delim ;
 			capture noisily  `fitcommand' (`events' `regexpression' if `touse', noconstant )|| 
-				(`sid': `varx' , `cov') `nested' ,
+				(`sid': `slope' `intercept', `cov' noconstant) `nested' ,
 				binomial(`total') `ipoints'  l(`level') `refineopts' matlog `iterate';
 			#delimit cr
 			
@@ -3556,7 +3809,7 @@ program define fitmodel, rclass
 		if (`success' != 0) & ("`fitcommand'" != "meqrlogit") & (strpos(`"`modelopts'"', "laplac") == 0) {
 			#delim ;
 			capture noisily  `fitcommand' (`events' `regexpression' if `touse', noconstant )|| 
-				(`sid': `varx' , `cov') `nested' ,
+				(`sid': `slope'  `intercept', `cov' noconstant) `nested' ,
 				binomial(`total') `modelopts' l(`level') intmethod(laplace) `iterate';
 			#delimit cr
 			
@@ -3585,6 +3838,7 @@ program define fitmodel, rclass
 
 	return local model "`model'"
 	return local lnvar = "`lnvar'"
+	return local sd = "`sd'"
 	/*if "`model'" == "hexact" {
 		return matrix absexact = `absexact'
 	}*/
@@ -3730,11 +3984,11 @@ cap program drop prep4show
 program define prep4show
 
 	#delimit ;
-	syntax varlist, [exactorout(name) poprrout(name) rrout(name) poporout(name) orout(name) popabsout(name) exactabsout(name) absout(name) absoutp(name) sortby(varlist) 
-		by(varname) hetout(name) model(string) prediction 
+	syntax varlist, [exactorout(name) poprrout(name) poplrrout(name) rrout(name) poporout(name) poplorout(name) orout(name) 
+		popabsout(name)  exactabsout(name) absout(name) absoutp(name) sortby(varlist)  by(varname) hetout(name) model(string) 
 		groupvar(varname) se(varname) summaryonly nooverall nosubgroup outplot(string) grptotal(name) download(string asis) 
-		indvars(varlist) depvars(varlist) dp(integer 2) stratify pcont(integer 0) level(integer 95)
-		comparative abnetwork general pcbnetwork mcbnetwork enhance
+		indvars(varlist) depvars(varlist) dp(integer 2) stratify pcont(integer 0) level(integer 95) prediction 
+		comparative abnetwork general pcbnetwork mcbnetwork enhance popstat(string)
 		]
 	;
 	#delimit cr
@@ -3763,7 +4017,18 @@ program define prep4show
 		local summaryonly "summaryonly"
 	}
 	
-	qui {		
+	if "`popstat'" == "Median" {
+		local statscol = 3
+	}
+	else {
+		local statscol = 1
+	}
+	
+	if "`outplot'" == "lor" | "`outplot'" == "lrr"  {
+		local transform "ln"
+	}
+	
+	qui {	
 		gen `expand' = 1
 	
 		//Groups
@@ -3785,7 +4050,7 @@ program define prep4show
 			replace `id' = `id' + 4 if `use' == 3 //blank
 			
 			*replace `label' = "Summary" if `use' == 2 
-			replace `label' = "Group Mean" if `use' == 2 
+			replace `label' = "Group Summary" if `use' == 2 
 			replace _WT = . if `use' == 2 
 						
 			qui label list `groupvar'
@@ -3797,8 +4062,8 @@ program define prep4show
 						local S_3 = `exactabsout'[`l', 5]
 						local S_4 = `exactabsout'[`l', 6]
 					}
-					else { 					
-						local S_1 = `popabsout'[`l', 1]
+					else {
+						local S_1 = `popabsout'[`l', `statscol']
 						local S_3 = `popabsout'[`l', 4]
 						local S_4 = `popabsout'[`l', 5]
 						
@@ -3823,8 +4088,6 @@ program define prep4show
 								local S_3 = `E_3'
 								local S_4 = `E_4'
 							}
-							
-
 						}
 					}
 					if "`prediction'" != "" {
@@ -3834,36 +4097,50 @@ program define prep4show
 					if "`model'" == "random" & "`indvars'" == "" & "`stratify'" !="" {
 						local isq = `hetout'[`l', 5]
 						local phet = `hetout'[`l', 3]
-						replace `label' = "Group Mean" + " (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if (`use' == 2) & (`groupvar' == `l') & (`grptotal' > 2)  & (`isq' != .)	
+						replace `label' = "Group Summary" + " (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if (`use' == 2) & (`groupvar' == `l') & (`grptotal' > 2)  & (`isq' != .)	
 						
 					}	 
 				}
 				else {
 					if "`model'" == "hexact" {
-						local S_1 = `exactorout'[`l', 1]
-						local S_3 = `exactorout'[`l', 3]
-						local S_4 = `exactorout'[`l', 4]
+						local S_1 = `transform'(`exactorout'[`l', 1])
+						local S_3 = `transform'(`exactorout'[`l', 3])
+						local S_4 = `transform'(`exactorout'[`l', 4])
 					}
 					else {
-						if "`outplot'" == "rr" {
-							local S_1 = `poprrout'[`l', 1]
-							local S_3 = `poprrout'[`l', 4]
-							local S_4 = `poprrout'[`l', 5]
+						if strpos("`outplot'", "rr") != 0 {
+							if "`outplot'" == "rr" {
+								local S_1 = `poprrout'[`l', `statscol']
+								local S_3 = `poprrout'[`l', 4]
+								local S_4 = `poprrout'[`l', 5]
+							}
+							else {
+								local S_1 = `poplrrout'[`l', `statscol']
+								local S_3 = `poplrrout'[`l', 4]
+								local S_4 = `poplrrout'[`l', 5]
+							}
 							
 							//Conditional stats
-							local C_1 = `rrout'[`l', 1]
-							local C_3 = `rrout'[`l', 5]
-							local C_4 = `rrout'[`l', 6]
+							local C_1 = `transform'(`rrout'[`l', 1])
+							local C_3 = `transform'(`rrout'[`l', 5])
+							local C_4 = `transform'(`rrout'[`l', 6])
 						}
-						if "`outplot'" == "or" {
-							local S_1 = `poporout'[`l', 1]
-							local S_3 = `poporout'[`l', 4]
-							local S_4 = `poporout'[`l', 5]
+						if strpos("`outplot'", "or") != 0 {
+							if "`outplot'" == "or" {
+								local S_1 = `poporout'[`l', `statscol']
+								local S_3 = `poporout'[`l', 4]
+								local S_4 = `poporout'[`l', 5]
+							}
+							else {
+								local S_1 = `poplorout'[`l', `statscol']
+								local S_3 = `poplorout'[`l', 4]
+								local S_4 = `poplorout'[`l', 5]
+							}
 							
 							//Conditional stats
-							local C_1 = `orout'[`l', 1]
-							local C_3 = `orout'[`l', 5]
-							local C_4 = `orout'[`l', 6]
+							local C_1 = `transform'(`orout'[`l', 1])
+							local C_3 = `transform'(`orout'[`l', 5])
+							local C_4 = `transform'(`orout'[`l', 6])
 						}
 					}
 					
@@ -3882,10 +4159,12 @@ program define prep4show
 				replace `lci' = `S_3' if `use' == 2 & `groupvar' == `l'	
 				replace `uci' = `S_4' if `use' == 2 & `groupvar' == `l'	
 				//Predictions
+				/*
 				if "`outplot'" == "abs" & "`prediction'" != "" {
 					replace `lci' = `S_5' if `use' == 4 & `groupvar' == `l'	
 					replace `uci' = `S_6' if `use' == 4 & `groupvar' == `l'	
 				}
+				*/
 				//Weights
 				sum _WT if `use' == 1 & `groupvar' == `l'
 				local groupwt = r(sum)
@@ -3919,47 +4198,64 @@ program define prep4show
 				}
 				else {
 					local nrows = rowsof(`popabsout')
-					local S_1 = `popabsout'[`nrows', 1]
+					local S_1 = `popabsout'[`nrows', `statscol']
 					local S_3 = `popabsout'[`nrows', 4]
 					local S_4 = `popabsout'[`nrows', 5]
 				}
+				/*
 				//predictions
 				if "`prediction'" != "" {
 					local nrows = rowsof(`absoutp')
 					local S_5 = `absoutp'[`nrows', 1]
 					local S_6 = `absoutp'[`nrows', 2]
-				}			
+				}*/			
 			}
 			else {
 				if "`model'" == "hexact" {
 					local nrows = rowsof(`exactorout')
-					local S_1 = `exactorout'[`nrows', 1]
-					local S_3 = `exactorout'[`nrows', 3]
-					local S_4 = `exactorout'[`nrows', 4]
+					local S_1 = `transform'(`exactorout'[`nrows', 1])
+					local S_3 = `transform'(`exactorout'[`nrows', 3])
+					local S_4 = `transform'(`exactorout'[`nrows', 4])
 				}
 				else {
-					if "`outplot'" == "rr" {
+					if strpos("`outplot'", "rr") != 0 {
 						local nrows = rowsof(`poprrout')
-						local S_1 = `poprrout'[`nrows', 1]
-						local S_3 = `poprrout'[`nrows', 4]
-						local S_4 = `poprrout'[`nrows', 5]
+						if "`outplot'" == "rr" {
+							local S_1 = `poprrout'[`nrows', `statscol']
+							local S_3 = `poprrout'[`nrows', 4]
+							local S_4 = `poprrout'[`nrows', 5]
+						}
+						else {
+							local S_1 = `poplrrout'[`nrows', `statscol']
+							local S_3 = `poplrrout'[`nrows', 4]
+							local S_4 = `poplrrout'[`nrows', 5]
+						}
 					}
-					if "`outplot'" == "or" {
+					if strpos("`outplot'", "or") != 0 {
 						local nrows = rowsof(`poporout')
-						local S_1 = `poporout'[`nrows', 1]
-						local S_3 = `poporout'[`nrows', 4]
-						local S_4 = `poporout'[`nrows', 5]
+						if "`outplot'" == "or" {
+							local S_1 = `poporout'[`nrows', `statscol']
+							local S_3 = `poporout'[`nrows', 4]
+							local S_4 = `poporout'[`nrows', 5]
+						}
+						else {
+							local S_1 = `poplorout'[`nrows', `statscol']
+							local S_3 = `poplorout'[`nrows', 4]
+							local S_4 = `poplorout'[`nrows', 5]
+						}
 					}
 				}
 			}
-			replace `label' = "Population Mean" if `use' == 5
+			replace `label' = "Population Summary" if `use' == 5
+			*replace `label' = "Population `popstat'" if `use' == 5
 			
 			if "`model'" == "random" & "`indvars'" == ""  & "`outplot'" == "abs" {
 				local nrows = rowsof(`hetout')
 				local isq = `hetout'[`nrows', 5]
 				local phet = `hetout'[`nrows', 3]
 				*replace `label' = "Overall (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 3
-				replace `label' = "Population Mean (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
+				*replace `label' = "Population `popstat' (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
+				replace `label' = "Population Summary (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
 			}
 					
 			replace `es' = `S_1' if `use' == 5	
@@ -3984,8 +4280,8 @@ program define prep4show
 				
 		gsort `groupvar' `sortby'  `id' 
 				
-		replace `label' = "Predictive t Interval" if `use' == 4 & "`model'" == "random"
-		replace `label' = "t Interval" if `use' == 4 & "`model'" != "random"
+		*replace `label' = "Predictive t Interval" if `use' == 4 & "`model'" == "random"
+		*replace `label' = "t Interval" if `use' == 4 & "`model'" != "random"
 	}
 	qui {
 		replace `modeles' = . if `use' != 1
@@ -4051,7 +4347,7 @@ program define disptab
 	#delimit ;
 	syntax varlist, [nosubgroup nooverall level(integer 95) sumstat(string asis) model(string)
 	dp(integer 2) power(integer 0) nowt smooth icimethod(string) ocimethod(string) groupvar(varname) 
-	design(string) outplot(string) summaryonly]
+	design(string) outplot(string) summaryonly popstat(string)]
 	;
 	#delimit cr
 	
@@ -4306,10 +4602,10 @@ program define disptab
 						di _col(2) as txt _col(`nlen') "|  " 
 					}
 					if (`use'[`i']== 2)	{
-						local sumtext = "Group Mean"
+						local sumtext = "Group Summary"
 					}
 					else {
-						local sumtext = "Population Mean"			
+						local sumtext = "Population Summary"			
 					}
 					if "`smooth'" != "" {
 						di _col(2) as txt "`sumtext'" _col(`nlen') "|  "  ///
@@ -4605,13 +4901,13 @@ end
 		}
 		
 		if "`parmlodds'" != "" | (  "`parmlodds'" == "" & ("`abnetwork'`mcbnetwork'`pcbnetwork'" == "" )) {
-			bayesstats summary `parmlodds', clevel(`level') /*`cimethod'*/
+			bayesstats summary `parmlodds', clevel(`level') `cimethod'
 			
 			mat `loddsout' = r(summary)			
 			local rnames :rownames `loddsout'	
 			local ncatreg = rowsof(`loddsout')
 			
-			bayesstats summary `parmp', clevel(`level') /*`cimethod'*/
+			bayesstats summary `parmp', clevel(`level') `cimethod'
 			mat `absout' = r(summary)	
 		}
 														
@@ -4840,11 +5136,12 @@ end
 			local catreg `*'
 		}
 		
-		qui estimates restore `estimates'
+		estimates restore `estimates'
 		local df = e(N) -  e(k) 
 		mat `coefmat' = e(b)
-		local predcmd = e(predict)
+		*local predcmd = e(predict)
 		
+		/*
 		if "`model'" == "random" {
 			local npar = colsof(`coefmat')
 			if "`predcmd'" == "meqrlogit_p" {
@@ -4874,11 +5171,11 @@ end
 		else {
 			local TAU21 = 0
 			local TAU22 = 0
-		}
+		}*/
 		
 		local byncatreg 0
 		if ("`by'" != "" & "`stratify'"  == "")  {
-			qui margin , `expression' `at' over(`by') level(`level')
+			margin , `expression' `at' over(`by') level(`level')
 			
 			
 			mat `bycatregmatrixout' = r(table)'
@@ -4902,7 +5199,7 @@ end
 		
 		//Overall
 		if "`marginlist'" != "" | (  "`marginlist'" == "" & ("`abnetwork'`mcbnetwork'`pcbnetwork'" == "" )) {
-			qui margin `marginlist', `expression' `at' `grand' level(`level')
+			margin `marginlist', `expression' `at' `grand' level(`level')
 						
 			mat `catregmatrixout' = r(table)'
 			mat `Vmatrix' = r(V)
@@ -4934,7 +5231,7 @@ end
 			}
 		}
 				
-		mat `outmatrixp' = J(`=`byncatreg' + `ncatreg'', 2, .)
+		/*mat `outmatrixp' = J(`=`byncatreg' + `ncatreg'', 2, .)
 		forvalues r = 1(1)`byncatreg' {
 			mat `outmatrixp'[`r', 1] = (`bycatregmatrixout'[`r',1] - invttail((`df'), 0.5-`level'/200) * sqrt(`bycatregmatrixout'[`r',2]^2 + `TAU21'^2  + `TAU22'^2))
 			mat `outmatrixp'[`r', 2] = (`bycatregmatrixout'[`r',1] + invttail((`df'), 0.5-`level'/200)* sqrt(`bycatregmatrixout'[`r',2]^2 + `TAU21'^2 + `TAU22'^2))
@@ -4943,6 +5240,7 @@ end
 			mat `outmatrixp'[`r', 1] = (`catregmatrixout'[`=`r' - `byncatreg'', 1] - invttail((`df'), 0.5-`level'/200) * sqrt(`catregmatrixout'[`=`r' - `byncatreg'', 2]^2 + `TAU21'^2  + `TAU22'^2))
 			mat `outmatrixp'[`r', 2] = (`catregmatrixout'[`=`r' - `byncatreg'', 1] + invttail((`df'), 0.5-`level'/200)* sqrt(`catregmatrixout'[`=`r' - `byncatreg'', 2]^2 + `TAU21'^2  + `TAU22'^2))
 		}
+		*/
 		
 		//Stack the matrices
 		if (`ncatreg' > 0 & `byncatreg' > 0) {
@@ -5085,8 +5383,8 @@ end
 		
 		local rownames = "`contrownames' `catrownames' `Overall'"
 		mat rownames `matrixout' = `rownames'
-		mat colnames `outmatrixp' = Lower Upper
-		mat rownames `outmatrixp' = `catrownames' `Overall'
+		*mat colnames `outmatrixp' = Lower Upper
+		*mat rownames `outmatrixp' = `catrownames' `Overall'
 					
 		if "`cimethod'" == "t" { 
 			mat colnames `matrixout' = Mean SE t P>|t| Lower Upper
@@ -5196,7 +5494,7 @@ end
 		}
 		
 		return matrix exactabsout = `exactabsout'		
-		return matrix outmatrixp = `outmatrixp'	
+		*return matrix outmatrixp = `outmatrixp'	
 		return matrix outmatrix = `matrixout'
 	end	
 
@@ -5209,7 +5507,8 @@ program define postsim, rclass
 	syntax  [if] [in], todo(string) orderid(varname) studyid(varname) estimates(name) 
 	[bayesreps(string asis) event(varname) total(varname) rawest(name) rrout(name) orout(name) link(string) 
 	modeles(varname) modellci(varname) modeluci(varname) outplot(string) baselevel(integer 1) cov(string)
-	model(string) comparative  by(varname) level(real 95) interaction abnetwork mcbnetwork  varx(varname) nsims(string) p(integer 0)]
+	model(string) comparative  by(varname) level(real 95) interaction abnetwork mcbnetwork  varx(varname) 
+	popstat(string) nsims(string) p(integer 0)]
 	;
 	#delimit cr 
 	
@@ -5217,14 +5516,14 @@ program define postsim, rclass
 	
 	tempname betacoef rawcoef varrawcoef ///
 				fullrawcoef fullvarrawcoef X beta sims ///
-				popabsout popabsouti poprrout poprrouti ///
+				popabsout popabsouti poprrout poprrouti poplrrout poplrrouti ///
 				poporout poporouti poplorout poplorouti simvar absexact
 	
 	tempvar feff sfeff reff sreff reff1 sreff1 reff2 sreff2 eta insample ///
 			newobs idpair gid rid hold holdleft holdright ///
 			simmu sumphat meanphat subset subsetid subsetid1 sumphat1 ///
-			meanphat1 gid1 modelp modelrr modelor modellor modelse sumrrhat ///
-			meanrrhat sumorhat meanorhat sumlorhat meanlorhat varint varslope fisherrho ///
+			meanphat1 gid1 modelp modelrr modellrr modelor modellor modelse sumrrhat ///
+			meanrrhat meanlrrhat sumorhat meanorhat meanlorhat sumlorhat varint varslope fisherrho ///
 			simvarint simvarslope simfisherrho simrho covar simcovar lnsigma simlnsigma
 			
 	if "`link'" == "cloglog" {
@@ -5258,10 +5557,15 @@ program define postsim, rclass
 			local ncoef = colsof(`fullrawcoef')
 			local rho = 0
 			if "`model'" == "random" {
-				if "`abnetwork'`cov'" == "" {
+				if "`abnetwork'`cov'" == "" | "`cov'" =="zeroslope"  {
 					local nfeff = `=`ncoef' - 1'
 					local varnames "`varint'"
 					local simvarnames "`simvarint'"
+				}
+				if "`cov'" =="zeroint"  {
+					local nfeff = `=`ncoef' - 1'
+					local varnames "`varslope'"
+					local simvarnames "`simvarslope'"
 				}
 				else if ("`abnetwork'" != "") | ("`cov'" =="independent") {
 					local nfeff = `=`ncoef' - 2'
@@ -5303,7 +5607,7 @@ program define postsim, rclass
 				qui expand `multipler', gen(`newobs')
 			}
 			
-			//log-odds
+			//R
 			if "`model'" == "cbbetabin" {
 				predictnl `feff' = xb() - _b[_cons], se(`sfeff')
 			}
@@ -5316,24 +5620,45 @@ program define postsim, rclass
 			if "`model'" == "random" {
 				if "`abnetwork'`cov'" == "" {
 					predict `reff', reffects reses(`sreff')
-					gen `eta' = `feff' + `reff' //linear predictor
 					gen `modelse' = sqrt(`sreff'^2 + `sfeff'^2) if `insample'==1
 				}
-				else if "`abnetwork'" !="" | "`cov'" !="" {
+				else if ("`cov'" == "zeroslope") {
+					predict `reff2', reffects reses(`sreff2')
+					gen `reff' = `reff2'
+					gen `sreff' = `sreff2'	
+					gen `modelse' = sqrt(`sreff'^2 + `sfeff'^2) if `insample'==1
+				}
+				else if ("`cov'" == "zeroint") {
+					predict `reff1', reffects reses(`sreff1')
+					gen `reff' = `reff1'*2.`varx'
+					gen `sreff' = 2.`varx'*`sreff1'	
+					gen `modelse' = sqrt(`sreff'^2 + `sfeff'^2) if `insample'==1
+				}
+				else if "`abnetwork'" !="" | strpos("`cov'", "zero") == 0 {
 					predict `reff1' `reff2', reffects reses(`sreff1' `sreff2')  //slope=1  int=2 
 					
 					if "`abnetwork'"  == "" {
+						
+						gen `reff' = `reff1'*2.`varx' + `reff2' 
+						gen `sreff' = sqrt(`sreff1'^2 + `sreff2'^2)	
+						/*
 						gen `reff' = `reff1'*`varx' + `reff2' 
-						gen `sreff' = sqrt(`varx'^2 * `sreff1'^2 + `sreff2'^2)	
+						gen `sreff' = sqrt(`sreff1'^2 + `sreff2'^2)	
+						
+						gen `reff' = `reff1'*`varx' + `reff2' 
+						gen `sreff' = sqrt(`varx'^2 * `sreff1'^2 + `sreff2'^2)
+						*/		
 					}
 					else {
 						gen `reff' = `reff1' + `reff2' 
 						gen `sreff' = sqrt(`sreff1'^2 + `sreff2'^2)	
 					}
-								
-					gen `eta' = `feff' + `reff' //linear predictor				
+													
+					*gen `eta' = `feff' + `reff' //linear predictor				
 					gen `modelse' = sqrt(`sreff1'^2 + `sreff2'^2 + `sfeff'^2) if `insample'==1
 				}
+				
+				gen `eta' = `feff' + `reff' //linear predictor
 			}
 			else {
 				gen `eta' = `feff' 
@@ -5360,6 +5685,7 @@ program define postsim, rclass
 				
 				if "`abnetwork'" == "" {
 					gen `modelrr' = `modelp'[_n] / `modelp'[_n-1] if (`gid'[_n]==`gid'[_n-1]) & (`idpair' == 2)
+					gen `modellrr' = ln(`modelrr')
 					gen `modelor' = (`modelp'[_n]/(1 - `modelp'[_n])) / (`modelp'[_n-1]/(1 - `modelp'[_n-1])) if (`gid'[_n]==`gid'[_n-1]) & (`idpair' == 2)
 					gen `modellor' = ln(`modelor')
 				}
@@ -5684,12 +6010,41 @@ program define postsim, rclass
 					}
 					
 					if "`predcmd'" == "meqrlogit_p" {
-						replace `sreff1' = exp(`simvarslope') //Marginal se
-						replace `sreff2' = sqrt((1 - (`simrho')^2)*(exp(`simvarint')^2)) //Conditional se
+						if "`cov'" == "zeroslope" | "`cov'" == "independent"  {	
+							replace `sreff2' = exp(`simvarint') //Marginal se
+							
+							if "`cov'" == "zeroslope" {
+								gen `sreff1' = 0
+								gen `reff1' = 0
+							}
+						}
+						
+						if "`cov'" == "zeroint" | "`cov'" == "independent" {	
+							replace `sreff1' = exp(`simvarslope') //Marginal se
+							if "`cov'" == "zeroint" {
+								gen `sreff2' = 0
+								gen `reff2' = 0
+							}
+						}						
 					}
-					else {
-						replace `sreff1' = sqrt(`simvarslope') //Marginal se
-						replace `sreff2' = sqrt((1 - (`simrho')^2)*(`simvarint')) //Conditional se
+					else {					
+						if "`cov'" == "zeroslope" | "`cov'" == "independent"  {	
+							replace `simvarint' = 0 if `simvarint' < 0
+							replace `sreff2' = sqrt(`simvarint') //Marginal se
+							if "`cov'" == "zeroslope" {
+								gen `sreff1' = 0
+								gen `reff1' = 0
+							}
+						}
+						
+						if "`cov'" == "zeroint" | "`cov'" == "independent" {
+							replace `simvarslope' = 0 if `simvarslope' < 0						
+							replace `sreff1' = sqrt(`simvarslope') //Marginal se
+							if "`cov'" == "zeroint" {
+								gen `sreff2' = 0
+								gen `reff2' = 0
+							}
+						}
 					}
 				}
 				else {
@@ -5760,7 +6115,13 @@ program define postsim, rclass
 							}
 							else if "`abnetwork'" !="" | "`cov'" !="" {
 								replace `reff1' = rnormal(0, `sreff1')
-								replace `reff2' = rnormal(`simrho'*`sreff2'*(`reff1'/`sreff1'), `sreff2')
+								
+								if "`cov'" =="unstructured" { 
+									replace `reff2' = rnormal(`simrho'*`sreff2'*(`reff1'/`sreff1'), `sreff2')
+								}
+								else {
+									replace `reff2' = rnormal(0, `sreff2')
+								}
 								
 								gen `restudy`index'' = `reff1' + `reff2'
 							}
@@ -5777,8 +6138,10 @@ program define postsim, rclass
 						gen `phat_`pair'`index'' = `phat`j''
 						
 						if `pair' == 2 {
-							tempvar rrhat`index' orhat`index' lorhat`index'
+							tempvar rrhat`index' lrrhat`index' orhat`index' lorhat`index'
+							
 							gen `rrhat`index'' = `phat_2`index'' / `phat_1`index''
+							gen `lrrhat`index''  = ln(`rrhat`index'')
 							gen `orhat`index'' = (`phat_2`index''/(1 - `phat_2`index'')) / (`phat_1`index'' /(1 - `phat_1`index''))
 							gen `lorhat`index'' = ln(`orhat`index'')
 						}
@@ -5806,8 +6169,8 @@ program define postsim, rclass
 			
 			//merge with simulations
 			sort `rid'
-			merge 1:1 _n  using `bayesreps', nogenerate
-		
+			merge 1:1 _n  using `bayesreps',  nogenerate 
+									
 			//# of obs
 			count if `insample' == 1
 			local nobs = r(N)
@@ -5816,12 +6179,12 @@ program define postsim, rclass
 			forvalues j=1(1)`nobs' { 
 				tempvar phat`j'  
 			
-				//toal 
+				//total 
 				sum `total' if `rid' == `j' 
 				local total_`j' = r(mean)
-				
-				gen `phat`j'' = _ysim1_`j'/`total_`j''
-					
+											
+				gen `phat`j'' = _mu1_`j'/`total_`j'' //most important value
+	
 				if "`comparative'" != "" | "`mcbnetwork'" != "" | "`abnetwork'" != "" {
 					sum `gid' if `rid' == `j'
 					local index = r(min)
@@ -5837,8 +6200,10 @@ program define postsim, rclass
 						gen `phat_`pair'`index'' = `phat`j''
 						
 						if `pair' == 2 {
-							tempvar rrhat`index' orhat`index' lorhat`index'
+							tempvar rrhat`index' lrrhat`index' orhat`index' lorhat`index'
+							
 							gen `rrhat`index'' = `phat_2`index'' / `phat_1`index''
+							gen `lrrhat`index'' = ln(`rrhat`index'')
 							gen `orhat`index'' = (`phat_2`index''/(1 - `phat_2`index'')) / (`phat_1`index'' /(1 - `phat_1`index''))
 							gen `lorhat`index'' = ln(`orhat`index'')
 						}
@@ -5857,7 +6222,7 @@ program define postsim, rclass
 			local mindex = 0
 			
 			//Add overall
-			if strpos("`model'", "bayes") == 1 {
+			if strpos("`model'", "bayes") == 1 & `nrows' > 1 {
 				local eqnames = "`eqnames' _"
 				local rnames = "`rnames' Overall"
 			}
@@ -5928,11 +6293,14 @@ program define postsim, rclass
 				
 				cap drop `sumphat' `meanphat'
 				
+				local plistvar
 				forvalues j=1(1)`nsubset' { 
 				
 					sum `rid' if `subsetid' == `j'
 					local index = r(min)
 					
+					local plistvar = "`plistvar' `phat`index''"
+
 					//Replace ones/zeros if seperated				
 					if ((`sumones' == `nsubset') | (`sumzeros' == `nsubset')) & `p'== 1 & strpos("`model'", "bayes") == 0 {
 						replace `phat`index'' = `strataevents'/`stratatotal'	
@@ -5951,9 +6319,10 @@ program define postsim, rclass
 					sum `modelp' if `subset' == 1
 					local meanmodelp = r(mean)
 				}
-				
-				gen `meanphat' = `sumphat'/`nsubset'
 								
+				*gen `meanphat' = `sumphat'/`nsubset'
+				egen `meanphat' = rowmean(`plistvar')
+							
 				//Standard error
 				sum `meanphat'	
 				local postse = r(sd)
@@ -6003,8 +6372,8 @@ program define postsim, rclass
 					local baselab:label `vari' `baselevel'
 					
 					//count in basegroup
-					tempvar meanphat`baselevel' meanrrhat`baselevel' meanorhat`baselevel' meanlorhat`baselevel' gid`baselevel' sumphat`baselevel' subsetid`baselevel'
-					tempname poprrouti`baselevel' poporouti`baselevel' poplorouti`baselevel'
+					tempvar meanphat`baselevel' meanrrhat`baselevel' meanlrrhat`baselevel' meanorhat`baselevel' meanlorhat`baselevel' gid`baselevel' sumphat`baselevel' subsetid`baselevel'
+					tempname poprrouti`baselevel' poplrrouti`baselevel' poporouti`baselevel'  poplorouti`baselevel'
 					
 					count if `vari' == `baselevel' & `insample' == 1
 					local ngroup`baselevel' = r(N)
@@ -6075,7 +6444,7 @@ program define postsim, rclass
 					//Other groups
 					forvalues g=1(1)`ngroups' {
 						if `g' != `baselevel' {
-							tempvar meanphat`g' meanrrhat`g' meanorhat`g' meanlorhat`g' gid`g' sumphat`g' subsetid`g'
+							tempvar meanphat`g' meanrrhat`g' meanlrrhat`g' meanorhat`g' meanlorhat`g' gid`g' sumphat`g' subsetid`g'
 							tempname poprrouti`g' poporouti`g' poplorouti`g'
 							
 							local glab:label `vari' `g'
@@ -6126,6 +6495,7 @@ program define postsim, rclass
 							
 							//Generate R 
 							gen `meanrrhat`g'' = `meanphat`g'' / `meanphat`baselevel''
+							gen `meanlrrhat`g'' = ln(`meanrrhat`g'')
 							gen `meanorhat`g'' = (`meanphat`g''/(1 - `meanphat`g'')) / (`meanphat`baselevel''/(1 - `meanphat`baselevel''))
 							gen `meanlorhat`g'' = ln(`meanorhat`g'')
 
@@ -6135,6 +6505,7 @@ program define postsim, rclass
 								local meanmodelp`g' = r(mean)
 								
 								local meanmodelrr`g' = `meanmodelp`g'' / `meanmodelp`baselevel''
+								local meanmodellrr`g' = ln(`meanmodelp`g'' / `meanmodelp`baselevel'')
 								local meanmodelor`g' = (`meanmodelp`g''/(1 - `meanmodelp`g'')) / (`meanmodelp`baselevel''/(1 - `meanmodelp`baselevel''))
 								local meanmodellor`g' = ln((`meanmodelp`g''/(1 - `meanmodelp`g'')) / (`meanmodelp`baselevel''/(1 - `meanmodelp`baselevel'')))
 							}
@@ -6143,6 +6514,10 @@ program define postsim, rclass
 							sum `meanrrhat`g''
 							local postserr = r(sd)
 							local postmeanrr = r(mean)
+							
+							sum `meanlrrhat`g''
+							local postselrr = r(sd)
+							local postmeanlrr = r(mean)
 							
 							sum `meanorhat`g''
 							local postseor = r(sd)
@@ -6159,6 +6534,12 @@ program define postsim, rclass
 							local upperprr = r(c_3) //Upper centile
 							local nrrreps = r(N)
 							
+							centile `meanlrrhat`g'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+							local medianlrr = r(c_1) //Median
+							local lowerplrr = r(c_2) //Lower centile
+							local upperplrr = r(c_3) //Upper centile
+							local nlrrreps = r(N)
+							
 							centile `meanorhat`g'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
 							local medianor = r(c_1) //Median
 							local lowerpor = r(c_2) //Lower centile
@@ -6173,29 +6554,33 @@ program define postsim, rclass
 							
 							if strpos("`model'", "bayes") == 0 { 						
 								mat `poprrouti`g'' = (`meanmodelrr`g'', `postserr', `medianrr', `lowerprr', `upperprr', `nrrreps')
+								mat `poplrrouti`g'' = (`meanmodellrr`g'', `postselrr', `medianlrr', `lowerplrr', `upperplrr', `nlrrreps')
 								mat `poporouti`g'' = (`meanmodelor`g'', `postseor', `medianor', `lowerpor', `upperpor', `norreps')
 								mat `poplorouti`g'' = (`meanmodellor`g'', `postselor', `medianlor', `lowerplor', `upperplor', `nlorreps')
 							}
 							else {
 								mat `poprrouti`g'' = (`postmeanrr', `postserr', `medianrr', `lowerprr', `upperprr',  `nrrreps')
+								mat `poplrrouti`g'' = (`postmeanlrr', `postselrr', `medianlrr', `lowerplrr', `upperplrr', `nlrrreps')
 								mat `poporouti`g'' = (`postmeanor', `postseor', `medianor', `lowerpor', `upperpor', `norreps')
 								mat `poplorouti`g'' = (`postmeanlor', `postselor', `medianlor', `lowerplor', `upperplor', `nlorreps')
-
 							}
 							
 							local glab = ustrregexra("`glab'", " ", "_")
 							mat rownames `poprrouti`g'' = `vari':`glab'
+							mat rownames `poplrrouti`g'' = `vari':`glab'
 							mat rownames `poporouti`g'' = `vari':`glab'
 							mat rownames `poplorouti`g'' = `vari':`glab'
 						}
 						if `g' == 1 {
 							mat `poprrouti' = `poprrouti`g''
+							mat `poplrrouti' = `poplrrouti`g''
 							mat `poporouti' = `poporouti`g''
 							mat `poplorouti' = `poplorouti`g''
 						}
 						else {
 							//Stack the matrices
 							mat `poprrouti' = `poprrouti'	\  `poprrouti`g''
+							mat `poplrrouti' = `poplrrouti'	\  `poplrrouti`g''
 							mat `poporouti' = `poporouti'	\  `poporouti`g''
 							mat `poplorouti' = `poplorouti'	\  `poplorouti`g''
 						}
@@ -6204,11 +6589,13 @@ program define postsim, rclass
 					local ++newnrows
 					if `newnrows' == 1 {
 						mat `poprrout' = `poprrouti'
+						mat `poplrrout' = `poplrrouti'
 						mat `poporout' = `poporouti'
 						mat `poplorout' = `poplorouti'
 					}
 					else {
 						mat `poprrout' = `poprrout'	\  `poprrouti'
+						mat `poplrrout' = `poplrrout'	\  `poplrrouti'
 						mat `poporout' = `poporout'	\  `poporouti'
 						mat `poplorout' = `poplorout'	\  `poplorouti'
 					}
@@ -6252,6 +6639,7 @@ program define postsim, rclass
 					*/
 					
 					local rrlistvar
+					local lrrlistvar
 					local orlistvar
 					local lorlistvar
 		
@@ -6264,10 +6652,10 @@ program define postsim, rclass
 						
 						if `pair' == 2 {
 							local rrlistvar = `"`rrlistvar' `rrhat`index''"'
+							local lrrlistvar = `"`lrrlistvar' `lrrhat`index''"'
 							local orlistvar = `"`orlistvar' `orhat`index''"'
 							local lorlistvar = `"`lorlistvar' `lorhat`index''"'
-							
-														
+																
 							/*
 							replace `sumrrhat' = `sumrrhat' + `rrhat`index''
 							replace `sumorhat' = `sumorhat' + `orhat`index''
@@ -6281,6 +6669,9 @@ program define postsim, rclass
 						sum `modelrr' if `subset' == 1
 						local meanmodelrr = r(mean)
 						
+						sum `modellrr' if `subset' == 1
+						local meanmodellrr = r(mean)
+						
 						sum `modelor' if `subset' == 1
 						local meanmodelor = r(mean)
 						
@@ -6288,7 +6679,7 @@ program define postsim, rclass
 						local meanmodellor = r(mean)
 					}
 					
-					cap drop `meanrrhat' `meanorhat' `meanlorhat'
+					cap drop `meanrrhat' `meanlrrhat' `meanorhat' `meanlorhat'
 					/*
 					gen `meanrrhat' = `sumrrhat'/`nsubset'
 					gen `meanorhat' = `sumorhat'/`nsubset'
@@ -6296,6 +6687,7 @@ program define postsim, rclass
 					*/
 					
 					egen `meanrrhat' = rowmean(`rrlistvar')
+					egen `meanlrrhat' = rowmean(`lrrlistvar')
 					egen `meanorhat' = rowmean(`orlistvar')
 					egen `meanlorhat' = rowmean(`lorlistvar')
 
@@ -6304,6 +6696,10 @@ program define postsim, rclass
 					sum `meanrrhat'	
 					local postserr = r(sd)
 					local postmeanrr = r(mean)
+					
+					sum `meanlrrhat'	
+					local postselrr = r(sd)
+					local postmeanlrr = r(mean)
 					
 					sum `meanorhat'	
 					local postseor = r(sd)
@@ -6320,6 +6716,12 @@ program define postsim, rclass
 					local upperprr = r(c_3) //Upper centile
 					local nrrreps = r(N)
 					
+					centile `meanlrrhat' , centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+					local medianlrr = r(c_1) //Median
+					local lowerplrr = r(c_2) //Lower centile
+					local upperplrr = r(c_3) //Upper centile
+					local nlrrreps = r(N)
+					
 					centile `meanorhat' , centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
 					local medianor = r(c_1) //Median
 					local lowerpor = r(c_2) //Lower centile
@@ -6334,16 +6736,19 @@ program define postsim, rclass
 					
 					if strpos("`model'", "bayes") == 0 {
 						mat `poprrouti' = (`meanmodelrr', `postserr', `medianrr', `lowerprr', `upperprr', `nrrreps')
+						mat `poplrrouti' = (`meanmodellrr', `postselrr', `medianlrr', `lowerplrr', `upperplrr', `nlrrreps')
 						mat `poporouti' = (`meanmodelor', `postseor', `medianor', `lowerpor', `upperpor', `norreps')
 						mat `poplorouti' = (`meanmodellor', `postselor', `medianlor', `lowerplor', `upperplor', `nlorreps')
 					}
 					else {
 						mat `poprrouti' = (`postmeanrr', `postserr', `medianrr', `lowerprr', `upperprr', `nrrreps')
+						mat `poplrrouti' = (`postmeanlrr', `postselrr', `medianlrr', `lowerplrr', `upperplrr', `nlrrreps')
 						mat `poporouti' = (`postmeanor', `postseor', `medianor', `lowerpor', `upperpor', `norreps')
 						mat `poplorouti' = (`postmeanlor', `postselor', `medianlor', `lowerplor', `upperplor', `nlorreps')
 					}
 					
 					mat rownames `poprrouti' = `vari':`group'
+					mat rownames `poplrrouti' = `vari':`group'
 					mat rownames `poporouti' = `vari':`group'
 					mat rownames `poplorouti' = `vari':`group'
 					
@@ -6351,11 +6756,13 @@ program define postsim, rclass
 					local ++newnrows
 					if `newnrows' == 1 {
 						mat `poprrout' = `poprrouti'
+						mat `poplrrout' = `poplrrouti'
 						mat `poporout' = `poporouti'
 						mat `poplorout' = `poplorouti'
 					}
 					else {
 						mat `poprrout' = `poprrout'	\  `poprrouti'
+						mat `poplrrout' = `poplrrout'	\  `poplrrouti'
 						mat `poporout' = `poporout'	\  `poporouti'
 						mat `poplorout' = `poplorout'	\  `poplorouti'
 					}
@@ -6380,17 +6787,42 @@ program define postsim, rclass
 								
 				forvalues j=1(1)`nobs' {			
 					if "`outplot'" == "abs" {
+					
+						sum `phat`j''
+						local muphat = r(mean)
+						
 						centile `phat`j'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+						
+
 					}
 					else {
 						sum `gid' if `subsetid' == `j'
 						local index = r(min)
 							
 						if "`outplot'" == "rr" {
+							sum `rrhat`index''
+							local murhat = r(mean)
+							
 							centile `rrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+							
 						}
-						else {
-							centile `orhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+						else if "`outplot'" == "lrr"  {
+							sum `lrrhat`index''
+							local murhat = r(mean) 
+							
+							centile `lrrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')	
+						}
+						else if "`outplot'" == "or"  {
+							sum `orhat`index''
+							local murhat = r(mean) 
+							
+							centile `orhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')	
+						}
+						else if "`outplot'" == "lor"  {
+							sum `lorhat`index''
+							local murhat = r(mean) 
+							
+							centile `lorhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')	
 						}
 					}
 					
@@ -6398,13 +6830,24 @@ program define postsim, rclass
 					local lowerp = r(c_2) //Lower centile
 					local upperp = r(c_3) //Upper centile
 					
-					if "`outplot'" == "abs" {		
-						replace `modeles' = `median' if `insample' == 1 & `rid' == `j'
+					if "`outplot'" == "abs" {							
+						if "`popstat'" == "Median" {
+							replace `modeles' = `median' if `insample' == 1 & `rid' == `j'
+						}
+						else {
+							replace `modeles' = `muphat' if `insample' == 1 & `rid' == `j'
+						}
 						replace `modellci' = `lowerp' if `insample' == 1 & `rid' == `j'
 						replace `modeluci' = `upperp' if `insample' == 1 & `rid' == `j'
 					}
 					else {
-						replace `modeles' = `median' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
+						
+						if "`popstat'" == "Median" {
+							replace `modeles' = `median' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
+						}
+						else {
+							replace `modeles' = `murhat' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
+						}
 						replace `modellci' = `lowerp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
 						replace `modeluci' = `upperp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
 					}
@@ -6424,14 +6867,19 @@ program define postsim, rclass
 					replace `modeluci' = `invfn'(`eta' +  `sign' `critvalue'*`modelse') if  `insample' == 1 //upper
 				
 				}
-							
-				//Smooth r's
-				if "`outplot'" == "rr" | "`outplot'" == "or" {
+				else /*if "`outplot'" == "rr" | "`outplot'" == "or"*/ {
+					//Smooth r's
 					if "`outplot'" == "rr" { 
 						replace `modeles' = `modelrr' if  `insample' == 1
 					}
-					else {
+					else if "`outplot'" == "lrr" {
+						replace `modeles' = `modellrr' if  `insample' == 1
+					}
+					else if "`outplot'" == "or" {
 						replace `modeles' = `modelor' if  `insample' == 1
+					}
+					else if "`outplot'" == "lor" {
+						replace `modeles' = `modellor' if  `insample' == 1
 					}
 					
 					*sum `gid' if `insample' == 1 
@@ -6449,8 +6897,14 @@ program define postsim, rclass
 						if "`outplot'" == "rr" {
 							centile `rrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
 						}
-						else {
+						else if "`outplot'" == "lrr"  {
+							centile `lrrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+						}
+						else if "`outplot'" == "or"  {
 							centile `orhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
+						}
+						else if "`outplot'" == "lor"  {
+							centile `lorhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
 						}
 						local median = r(c_1) //Median
 						local lowerp = r(c_2) //Lower centile
@@ -6478,10 +6932,12 @@ program define postsim, rclass
 	}
 	if "`todo'" == "r" {
 		mat colnames `poprrout' = Mean SE Median Lower Upper Sample_size
+		mat colnames `poplrrout' = Mean SE Median Lower Upper Sample_size
 		mat colnames `poporout' = Mean SE Median Lower Upper Sample_size
 		mat colnames `poplorout' = Mean SE Median Lower Upper Sample_size
 		
 		return matrix rroutmatrix = `poprrout'
+		return matrix lrroutmatrix = `poplrrout'
 		return matrix oroutmatrix = `poporout'
 		return matrix loroutmatrix = `poplorout'
 	}
@@ -6782,14 +7238,7 @@ program define printmat
 		}
 		
 		if ("`type'" == "popabs") | ("`type'" == "poprr") | ("`type'" == "popor")  {
-			/*if `patho' {
-				di as txt "NOTE: `level'% centiles obtained from Nreps successful replications out of `nsims' simulations of the posterior distribution"
-				di as text "NOTE: Estimates not reliable."
-			}
-			else{*/
-				di as txt "NOTE: `level'% centiles obtained from simulations of the posterior distribution"
-			*}
-			
+			di as txt "NOTE: `level'% centiles obtained from `nsims' simulations of the posterior distribution"
 		}		
 end	
 /*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: BAYESESTRCORE +++++++++++++++++++++++++
@@ -6866,11 +7315,11 @@ syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
 	}
 	
 	//RR
-	bayesstats summary `EstRRexpression', clevel(`level')  /*`cimethod'*/
+	bayesstats summary `EstRRexpression', clevel(`level')  `cimethod'
 	mat `RRoutmatrix' = r(summary)	
 	
 	//OR
-	bayesstats summary `EstORexpression', clevel(`level')  /*`cimethod'*/
+	bayesstats summary `EstORexpression', clevel(`level') `cimethod'
 	mat `ORoutmatrix' = r(summary)	
 	
 	//Nice labels
@@ -7272,7 +7721,7 @@ end
 		local invfn "invlogit"
 		//Approximate sampling distribution critical value
 		if "`cimethod'" != "wald" {
-			qui estimates restore `estimates'
+			estimates restore `estimates'
 			local df = e(N) -  e(k)
 			local critvalue invttail(`df', `=(100-`level')/200')
 		}
@@ -7344,7 +7793,7 @@ end
 		}
 		
 		if ("`by'" != "`comparator'") & ("`comparator'" != ""){
-			qui label list `comparator'
+			label list `comparator'
 			local nc = r(max)
 			if (`nc' > 1) {	
 		
@@ -7424,10 +7873,10 @@ end
 			mat `overallRR' = J(1, 6, .)
 			mat `overallOR' = J(1, 6, .)			
 						
-			qui estimates restore `estimates'
+			estimates restore `estimates'
 			local df = e(N) -  e(k)
 			
-			qui margins `varx', `expression' post level(`level')
+			margins `varx', `expression' post level(`level')
 			
 			mat `varxcoef' = e(b)'
 			local varxcats:rownames `varxcoef'
@@ -7442,13 +7891,13 @@ end
 			}
 					
 			//log rr metric
-			qui nlcom (Overall: ln(`invfn'(_b[`coef2'.`varx'])) - ln(`invfn'(_b[`coef1'.`varx']))) 		  
+			nlcom (Overall: ln(`invfn'(_b[`coef2'.`varx'])) - ln(`invfn'(_b[`coef1'.`varx']))) 		  
 			mat `lRRcoef' = r(b)
 			mat `lRRV' = r(V)
 			mat `lRRV' = vecdiag(`lRRV')
 			
 			//log or metric
-			qui nlcom (Overall: _b[`coef2'.`varx'] - _b[`coef1'.`varx']) 	  
+			nlcom (Overall: _b[`coef2'.`varx'] - _b[`coef1'.`varx']) 	  
 			mat `lORcoef' = r(b)
 			mat `lORV' = r(V)
 			mat `lORV' = vecdiag(`lORV')
@@ -7460,11 +7909,10 @@ end
 			mat `overallOR'[1, 1] = exp(`lORcoef'[1,1])  //or
 			mat `overallOR'[1, 2] = sqrt(`lORV'[1, 1]) //se
 			mat `overallOR'[1, 3] = `lORcoef'[1, 1]/sqrt(`lORV'[1, 1]) //zvalue
-			
-			
+						
 			if "`cimethod'" != "wald" {
-				mat `overallRR'[1, 4] = ttail(`df', -abs(`overallRR'[1, 3]))*2 //pvalue
-				mat `overallOR'[1, 4] = ttail(`df', -abs(`overallOR'[1, 3]))*2 //pvalue
+				mat `overallRR'[1, 4] = ttail(`df', abs(`overallRR'[1, 3]))*2 //pvalue
+				mat `overallOR'[1, 4] = ttail(`df', abs(`overallOR'[1, 3]))*2 //pvalue
 			}
 			else {
 				mat `overallRR'[1, 4] = normprob(-abs(`overallRR'[1, 3]))*2 //pvalue
@@ -7699,7 +8147,7 @@ end
 	cap program drop rrci
 	program define rrci
 	
-		syntax varlist, R(name) lowerci(name) upperci(name) cimethod(string) [alpha(real 0.05)]
+		syntax varlist, R(name) lowerci(name) upperci(name) cimethod(string) [alpha(real 0.05) transform]
 		
 		qui {	
 			tokenize `varlist'
@@ -7709,6 +8157,10 @@ end
 			
 			local zstar =  -invnorm(`alpha'/2)
 			local chisq = invchi2(1, `=1-`alpha'')
+			
+			if "`transform'" != "" {
+				local transform "ln"
+			}
 			
 			count
 			forvalues i = 1/`r(N)' {
@@ -7991,9 +8443,9 @@ end
 					local lorr = max(0, `lorr')
 				}
 				
-				replace `r' = `rr' in `i'
-				replace `lowerci' = `lorr' in `i'
-				replace `upperci' = `uprr' in `i'
+				replace `r' = `transform'(`rr') in `i'
+				replace `lowerci' = `transform'(`lorr') in `i'
+				replace `upperci' = `transform'(`uprr') in `i'
 			}
 		}
 	end
@@ -8001,7 +8453,7 @@ end
 	/*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: 	KOOPMANCI +++++++++++++++++++++++++
 								CI for RR
 	++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-	cap program drop koopmanci
+	/*cap program drop koopmanci
 	program define koopmanci
 
 		syntax varlist, r(name) lowerci(name) upperci(name) [alpha(real 0.05)]
@@ -8034,7 +8486,7 @@ end
 			}
 		}
 	end
-	
+	*/
 	/*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: KOOPMANCII +++++++++++++++++++++++++
 								CI for RR
 	++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -8076,7 +8528,11 @@ end
 	cap program drop cmlci
 	program define cmlci
 
-		syntax varlist, r(name) lowerci(name) upperci(name) [alpha(real 0.05)]
+		syntax varlist, r(name) lowerci(name) upperci(name) [alpha(real 0.05) transform]
+		
+		if "`transform'" != "" {
+			local transform "ln"
+		}
 		
 		qui {	
 			tokenize `varlist'
@@ -8102,9 +8558,9 @@ end
 				
 				local RR = `p1'/`p0'
 				
-				replace `r' = `RR' in `i'
-				replace `lowerci' = `matci'[1, 1] in `i'
-				replace `upperci' = `matci'[1, 2] in `i'
+				replace `r' = `transform'(`RR') in `i'
+				replace `lowerci' = `transform'(`matci'[1, 1]) in `i'
+				replace `upperci' = `transform'(`matci'[1, 2]) in `i'
 			}
 		}
 	end
@@ -8143,7 +8599,11 @@ end
 	cap program drop orccci
 	program define orccci
 
-		syntax varlist, r(name) lowerci(name) upperci(name) [level(real 95) mcbnetwork cimethod(string)]
+		syntax varlist, r(name) lowerci(name) upperci(name) [level(real 95) mcbnetwork cimethod(string) transform]
+		
+		if "`transform'" != "" {
+			local transform "ln"
+		}
 		
 		qui {	
 			tokenize `varlist'
@@ -8173,9 +8633,9 @@ end
 				local lor = r(lb_or)
 				local uor = r(ub_or)
 				
-				replace `r' = `OR' in `i'
-				replace `lowerci' = `lor' in `i'
-				replace `upperci' = `uor' in `i'
+				replace `r' = `transform'(`OR') in `i'
+				replace `lowerci' = `transform'(`lor') in `i'
+				replace `upperci' = `transform'(`uor') in `i'
 			}
 		}
 	end
@@ -8243,7 +8703,6 @@ qui{
 		replace `2' =  `width' in `i'
 	}
 } 
-
 end
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -8253,10 +8712,10 @@ capture program drop metabayesoptscheck
 program define metabayesoptscheck, rclass
 	#delimit ;
 	syntax [,
-		nchains(integer 4)
+		nchains(integer 3)
 		thinning(integer 5) /*5*/
 		burnin(integer 5000) /*5000*/
-		mcmcsize(integer 2500) /*3000*/
+		mcmcsize(integer 2500) /*2500*/
 		rseed(integer 1)
 		refsampling(integer 1)
 		varprior(passthru)
@@ -8562,7 +9021,17 @@ end
 			}
 		}
 		if "`xlabel'"=="" {
-			local xlabel "0, `DXmax'"
+			if `DXmin' < 0 {
+				local xlabel "`DXmin', 0, `DXmax'"
+			}
+			else {
+				if `DXmax' > 1 {
+					local xlabel "0, 1, `DXmax'"
+				}
+				else {
+					local xlabel "0, `DXmax'"
+				}
+			}
 		}
 
 		local lblcmd ""
@@ -9027,7 +9496,8 @@ end
 			qui replace `leftLB`i'' = "" if (`expanded')
 			if `i'==1 {
 				qui replace `leftLB`i'' = "" if (`order' == 2 & `use'==1) | (`use' == -2 & `id' == `=`startg1'-1')
-				qui replace `leftLB`i'' = "Mean: " + "`groupvar'" + " = " + `strgroupvar' if `use'==2
+				*qui replace `leftLB`i'' = "Mean: " + "`groupvar'" + " = " + `strgroupvar' if `use'==2
+				qui replace `leftLB`i'' = "Summary: " + "`groupvar'" + " = " + `strgroupvar' if `use'==2
 			}
 		}
 		local lcolCommands`i' "(scatter `id' `left`i'', msymbol(none) mlabel(`leftLB`i'') mlabcolor(black) mlabpos(3) mlabsize(`texts'))"
@@ -9060,8 +9530,13 @@ end
 	}
 	
 	if "`compabs'" != "" {
+		/*
 		local diamopts0 "lcolor("0 0 0")"
 		local diamopts1 "lcolor("255 127 0")"
+		*/
+		
+		local diamopts0 "lcolor("40 40 85")"
+		local diamopts1 "lcolor("163 100 249")"
 	}
 	
 	//Box options
@@ -9087,7 +9562,6 @@ end
 		local boxopts "msymbol(none)"
 		local iw
 	}
-	
 	
 	//Point options
 	if "`smooth'" != "" {
@@ -9118,32 +9592,34 @@ end
 	}
 	
 	//Smooth Point options
-	if `"`smoothpointopts'"' != "" & strpos(`"`smoothpointopts'"',"msy") == 0 {
-		local smoothpointopts = `"`smoothpointopts' msymbol(D)"' 
-	}
-	if `"`smoothpointopts'"' != "" & strpos(`"`smoothpointopts'"',"ms") == 0 {
-		local smoothpointopts = `"`smoothpointopts' msize(vsmall)"' 
-	}
-	if `"`smoothpointopts'"' != "" & strpos(`"`smoothpointopts'"',"mc") == 0 {
-		local smoothpointopts = `"`smoothpointopts' mcolor("0 0 0")"' 
-	}
-	if `"`smoothpointopts'"' == ""{
+
+	if `"`smoothpointopts'"' == "" {
 		local smoothpointopts "msymbol(D) msize(vsmall) mcolor("0 0 0")"
 		if "`compabs'" != "" {
+			/*
 			local smoothpointopts0 "msymbol(D) msize(vsmall) mcolor("0 0 0")"
 			local smoothpointopts1 "msymbol(D) msize(vsmall) mcolor("255 127 0")"
+			*/
+			local smoothpointopts0 "msymbol(D) msize(vsmall) mcolor("40 40 85")"
+			local smoothpointopts1 "msymbol(D) msize(vsmall) mcolor("163 100 249")"
 		}
 	}
-	else{
+	else {
 		local smoothpointopts `"`smoothpointopts'"'
 	}
 	
 	// CI options
 	if `"`ciopts'"' == "" {
+		
 		if "`compabs'" != "" {
+				/*
 				local ciopts0 = `"lcolor("0 0 0")"' 
 				local ciopts1 = `" lcolor("255 127 0")"'
+				*/
+				local ciopts0 = `"lcolor("40 40 85")"' 
+				local ciopts1 = `" lcolor("163 100 249")"'
 		}
+		
 		if "`smooth'" != "" {
 			local ciopts = `"`ciopts' lwidth(1.25) lcolor(gs13)"'
 		}
@@ -9164,6 +9640,7 @@ end
 			di as error "Option lpattern() not allowed in ciopts()"
 			exit
 		}
+		/*
 		if "`smooth'" != "" {
 			if strpos(`"`ciopts'"',"lc") == 0 {
 				if "`compabs'" != "" {
@@ -9177,7 +9654,8 @@ end
 			if strpos(`"`ciopts'"',"lw") == 0 {
 				local ciopts = `"`ciopts' lwidth(2)"' 
 			}
-		}		
+		}
+		*/		
 		local ciopts `"`ciopts'"'
 	}
 	//Smooth ci
@@ -9185,8 +9663,13 @@ end
 		local smoothciopts "lcolor("0 0 0")"
 		
 		if "`compabs'" != "" {
-			local smoothciopts0 "lcolor("0 0 0")"
-			local smoothciopts1 "lcolor("255 127 0")"
+			*local smoothciopts0 "lcolor("0 0 0")"
+			*local smoothciopts1 "lcolor("255 127 0")"
+			*local smoothciopts0 "lcolor("9 44 72")"
+			local smoothciopts0 "lcolor("40 40 85")"
+			local smoothciopts1 "lcolor("163 100 249")"
+			*local smoothciopts1 "lcolor("40 40 85")"
+			*local smoothciopts1 "lcolor("255 127 0")"
 		}
 	}
 	else {
@@ -9209,6 +9692,7 @@ end
 		local smoothciopts `"`smoothciopts'"'
 	}
 	
+	/*
 	// PREDCI options
 	if `"`predciopts'"' == "" {
 		local predciopts "lcolor(red) lpattern(solid)"
@@ -9230,6 +9714,7 @@ end
 		}
 		local predciopts `"`predciopts'"'
 	}
+	*/
 	// Arrow options
 	if `"`arrowopts'"' == "" {
 		if "`smooth'" != "" {
@@ -9413,7 +9898,7 @@ end
 			gen `gridxmin' = `left1'
 			local betweengrids "(pcspike `gridy' `gridxmin' `gridy' `gridxmax'  if `use' == 1 , lwidth(vvthin) lcolor(gs12))"	
 		}
-
+		/*
 		//prediction
 		if "`prediction'" != "" {
 			gen `ilci' = `lci'[_n-1]
@@ -9425,11 +9910,13 @@ end
 			
 			local cipred0 "(pcspike `predid' `lci' `predid' `ilci' if `use' == 4 , `predciopts') (pcspike `predid' `uci' `predid' `iuci' if `use' == 4 , `predciopts')"
 			local cipred1 "(pcarrow `predid' `ilci' `predid' `lci' if `leftarrow' == 1  & `use' == 4, `arrowopts')	(pcarrow `predid' `iuci' `predid' `uci' if `rightarrow' == 1 & `use' == 4, `arrowopts')"
-		}		
+		}	
+		*/		
 	}	// end qui	
 	/*===============================================================================================*/
 	/*====================================  GRAPH    ================================================*/
 	/*===============================================================================================*/
+	//Smooth stats
 	if "`smooth'" != "" {
 		local xboxcenter "`modeles'"
 		local smoothcommands1 "(pcspike `id' `modellci' `id' `modeluci' if `use' == 1 , `smoothciopts')"
@@ -9478,6 +9965,7 @@ end
 		local diamondcommand3 "(pcspike `DIAMrightY2' `DIAMrightX' `DIAMbottomY' `DIAMbottomX' if (`use' == 2 |`use' == 5) , `diamopts')"
 		local diamondcommand4 "(pcspike `DIAMbottomY' `DIAMbottomX' `DIAMleftY2' `DIAMleftX' if (`use' == 2 |`use' == 5) , `diamopts')"
 	}
+	
 	//legend
 	if "`compabs'" != "" {
 		local lab0:label `groupvar' 1
@@ -9509,11 +9997,10 @@ end
 	 // Draw diamond to make it to construct the legend
 		`diamondcommand11' `diamondcommand21'
 		
-		`overallCommand' `sublineCommand' `xlineCommand' `xaxis' `xaxistitle' 
+		`xlineCommand' `xaxis' `xaxistitle' 
 		`ticksx' `xaxislabels' 
 		
-	 /*COLUMN VARIABLES */
-	 
+	 /*COLUMN VARIABLES */	 
 		`lcolCommands1' `lcolCommands2' `lcolCommands3' `lcolCommands4'  `lcolCommands5'  `lcolCommands6'
 		`lcolCommands7' `lcolCommands8' `lcolCommands9' `lcolCommands10' `lcolCommands11' `lcolCommands12'
 		`rcolCommands1' `rcolCommands2' `rcolCommands3' `rcolCommands4'  `rcolCommands5'  `rcolCommands6' 
@@ -9533,8 +10020,8 @@ end
 		`betweengrids'			
 	 /*HERE ARE THE CONFIDENCE INTERVALS */
 	
-		`cicommand' `cicommand1' `cicommand2'
-		`smoothcommands1'	`smoothcommands10' `smoothcommands11' `smoothcommands21' `smoothcommands20'	
+		`cicommand' /*`cicommand1' `cicommand2'*/
+		`smoothcommands1'	`smoothcommands10' `smoothcommands11' `smoothcommands2' `smoothcommands21' `smoothcommands20'	
 	 /*ADD ARROWS */
 		(pcarrow `id' `uci' `id' `lci' if `leftarrow' == 1 &  `use' == 1 , `arrowopts')	
 		(pcarrow `id' `lci' `id' `uci' if `rightarrow' == 1 &  `use' == 1, `arrowopts')	
@@ -9552,8 +10039,13 @@ end
 		`cipred1'
 	 /*POINTS */
 	 
-		(scatter `id' `es' if `use' == 1 , `pointopts')	
-		`smoothcommands2' `overallCommand'	
+		(scatter `id' `es' if `use' == 1 , `pointopts')
+		
+	//overall & sublines	
+		`overallCommand' `sublineCommand'
+		
+	//Others	
+		/*`smoothcommands2' `overallCommand'*/	
 		,`plotopts' `legendon' `plotname' 
 		;
 		#delimit cr	
