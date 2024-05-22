@@ -13,10 +13,9 @@ program define metapreg_example_one_one
 	di "	studyid(study) ///"
 	di "	by(STRtgroup)  ///"
 	di "	cimethod(exact) ///"
-	di "	label(namevar=author, yearvar=year) ///"
+	di "	label(namevar=author, yearvar=year) catpplot ///"
 	di "	xlab(.25, 0.5, .75, 1) ///"
 	di "	subti(Atypical cervical cytology, size(4)) ///"
-	di "	graphregion(color(white)) ///"
 	di "	texts(1.25)  smooth gof	"
 
 	set more off
@@ -27,10 +26,9 @@ program define metapreg_example_one_one
 		studyid(study) ///
 		by(STRtgroup) ///
 		cimethod(exact) ///
-		label(namevar=author, yearvar=year) ///
+		label(namevar=author, yearvar=year) catpplot ///
 		xlab(.25, 0.5, .75, 1) ///
 		subti(Atypical cervical cytology, size(4)) ///
-		graphregion(color(white)) /// 
 		texts(1.25) smooth gof	
 	restore
 end
@@ -44,7 +42,6 @@ program define metapreg_example_one_two
 	di "	label(namevar=author, yearvar=year) ///"
 	di "	xlab(.25, 0.5, .75, 1) ///"
 	di "	subti(Atypical cervical cytology, size(4)) ///"
-	di "	graphregion(color(white)) /// "
 	di "	texts(1.5) smooth"
 
 	set more off
@@ -71,7 +68,6 @@ program define metapreg_example_one_three
 	di "	label(namevar=author, yearvar=year) ///"
 	di "	xlab(.25, 0.5, .75, 1) ///"
 	di "	subti(Atypical cervical cytology, size(4)) ///"
-	di "	graphregion(color(white)) ///" 
 	di "	texts(1.5)  summaryonly"
 	
 	set more off
@@ -85,7 +81,6 @@ program define metapreg_example_one_three
 		label(namevar=author, yearvar=year) ///
 		xlab(0, .25, 0.5, .75, 1) ///
 		subti(Atypical cervical cytology, size(4)) ///
-		graphregion(color(white)) /// 
 		texts(1.5)  summaryonly
 		
 	restore
@@ -97,13 +92,12 @@ program define metapreg_example_two_one
 	di ". metapreg p16p p16ptot, ///" 
 	di "	studyid(study)  sumtable(all) ///"
 	di "	label(namevar=author, yearvar=year) ///" 
-	di "	sortby(year author) ///"
+	di "	sortby(year author) catpplot ///"
 	di "	xlab(0, .1, .2, 0.3,0.4,0.5)  ///"
 	di "	xline(0, lcolor(black)) ///"
 	di "	ti(Positivity of p16 immunostaining, size(4) color(blue)) ///"
 	di "	subti(Cytology = WNL, size(4) color(blue)) ///"
 	di "	pointopt(msymbol(x)msize(2)) ///"
-	di "	graphregion(color(white)) ///"
 	di "	texts(1.5) smooth gof"
 
 	set more off
@@ -111,12 +105,11 @@ program define metapreg_example_two_one
 	metapreg p16p p16tot, ///		
 		studyid(study) sumtable(all) ///
 		label(namevar=author, yearvar=year) ///
-		sortby(year author) ///
+		sortby(year author) catpplot ///
 		xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
 		xline(0, lcolor(black)) ///
 		ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
 		subti(Cytology = WNL, size(4) color(blue)) ///
-		graphregion(color(white)) /// 
 		pointopt(msymbol(X)msize(2)) /// 
 		texts(1.5) smooth gof
 	restore
@@ -128,13 +121,12 @@ program define metapreg_example_two_two
 	di ". metapreg p16p p16ptot, link(loglog) ///" 
 	di "	studyid(study) sumtable(all) ///"
 	di "	label(namevar=author, yearvar=year) ///" 
-	di "	sortby(year author) ///"
+	di "	sortby(year author) catpplot ///"
 	di "	xlab(0, .1, .2, 0.3,0.4,0.5)  ///"
 	di "	xline(0, lcolor(black)) ///"
 	di "	ti(Positivity of p16 immunostaining, size(4) color(blue)) ///"
 	di "	subti(Cytology = WNL, size(4) color(blue)) ///"
 	di "	pointopt(msymbol(x)msize(2)) ///"
-	di "	graphregion(color(white)) ///"
 	di "	texts(1.5) smooth gof"
 
 	set more off
@@ -142,12 +134,11 @@ program define metapreg_example_two_two
 	metapreg p16p p16tot, link(loglog) ///		
 		studyid(study) sumtable(all) ///
 		label(namevar=author, yearvar=year) ///
-		sortby(year author) ///
+		sortby(year author) catpplot ///
 		xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
 		xline(0, lcolor(black)) ///
 		ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
 		subti(Cytology = WNL, size(4) color(blue)) ///
-		graphregion(color(white)) /// 
 		pointopt(msymbol(X)msize(2)) /// 
 		texts(1.5) smooth gof
 	restore
@@ -163,7 +154,6 @@ program define metapreg_example_three_one
 	di "	design(comparative)	///"
 	di "	outplot(rr) ///"
 	di "	sumstat(Risk ratio) ///"
-	di "	graphregion(color(white)) /// "
 	di "	xlab(0, 1, 2) ///"
 	di "	xtick(0, 1, 2)  /// "
 	di "	rcols(cases_tb population) /// "
@@ -171,14 +161,13 @@ program define metapreg_example_three_one
 	di "	texts(1.5) logscale smooth" 
 
 	set more off
-	
-	metapreg cases_tb population bcg,  /// 
+		
+	metapreg cases_tb population bcg, gof /// 
 		studyid(study) ///
 		sumtable(all)  ///
 		design(comparative)	///
 		outplot(rr) ///
 		sumstat(Risk ratio) ///
-		graphregion(color(white)) /// 
 		xlab(0, 1, 2) /// 
 		xtick(0, 1, 2)  /// 
 		rcols(cases_tb population) /// 
@@ -204,11 +193,10 @@ program define metapreg_example_three_two
 		
 	set more off
 	
-	metapreg cases_tb population lat,  /// 
+	metapreg cases_tb population lat, gof /// 
 		studyid(study) ///
 		sortby(lat) ///
 		sumtable(all) by(bcg) ///
-		graphregion(color(white)) /// 
 		xlab(0, 0.05, 0.15) /// 
 		xtick(0, 0.05, 0.15)  /// 
 		sumstat(Proportion) ///
@@ -228,7 +216,6 @@ program define metapreg_example_three_three
 	di "	design(comparative)  ///"
 	di "	outplot(rr) ///"
 	di "	interaction ///"
-	di "	graphregion(color(white)) /// "
 	di "	xlab(0, 1, 2) /// "
 	di "	xtick(0, 1, 2)  /// "
 	di "	rcols(cases_tb population) /// "
@@ -237,14 +224,46 @@ program define metapreg_example_three_three
 	
 	set more off
 
-	metapreg cases_tb population bcg lat,  /// 
+	metapreg cases_tb population bcg lat,  gof /// 
 		studyid(study) ///
 		sortby(lat) ///
 		sumtable(all) ///
 		design(comparative)  ///
 		outplot(rr) ///
 		interaction ///
-		graphregion(color(white)) /// 
+		xlab(0, 1, 2) /// 
+		xtick(0, 1, 2)  /// 
+		rcols(cases_tb population) /// 
+		astext(80)  /// 
+		texts(1.5) logscale smooth
+	restore
+end
+
+program define metapreg_example_three_four
+	preserve
+	use "http://fmwww.bc.edu/repec/bocode/b/bcg.dta", clear
+	di ". metapreg cases_tb population bcg lat,  ///" 
+	di "	studyid(study) ///"
+	di "	sortby(lat) ///"
+	di "	sumtable(all) gof ///"
+	di "	design(comparative, cov(zeroslope))  ///"
+	di "	outplot(rr) ///"
+	di "	interaction ///"
+	di "	xlab(0, 1, 2) /// "
+	di "	xtick(0, 1, 2)  /// "
+	di "	rcols(cases_tb population) /// "
+	di "	astext(80) ///" 
+	di "	texts(1.5) logscale smooth" 
+	
+	set more off
+
+	metapreg cases_tb population bcg lat, gof /// 
+		studyid(study) ///
+		sortby(lat) ///
+		sumtable(all) ///
+		design(comparative, cov(zeroslope))  ///
+		outplot(rr) ///
+		interaction ///
 		xlab(0, 1, 2) /// 
 		xtick(0, 1, 2)  /// 
 		rcols(cases_tb population) /// 
@@ -262,10 +281,9 @@ program define metapreg_example_four_one
 	di "	studyid(firstauthor) ///"
 	di "	sortby(year) link(loglog) ///"
 	di "	sumtable(all) ///"
-	di "	design(comparative)   ///"
+	di "	design(comparative, cov(zeroslope))   ///"
 	di "	outplot(rr) ///"
 	di "	interaction ///"
-	di "	graphregion(color(white)) /// "
 	di "	xlab(0, 5, 15) /// "
 	di "	xtick(0, 5, 15)  ///" 
 	di "	sumstat(Rel Ratio) ///"
@@ -279,14 +297,13 @@ program define metapreg_example_four_one
 	
 	gsort firstauthor arm
 	
-	metapreg response total arm missingdata,  /// 
+	metapreg response total arm missingdata, gof /// 
 		studyid(firstauthor) ///
 		sortby(year) link(loglog) ///
 		sumtable(all) ///
-		design(comparative)  ///
+		design(comparative, cov(zeroslope))  ///
 		outplot(rr) ///
 		interaction ///
-		graphregion(color(white)) /// 
 		xlab(0, 0.5, 1.5) /// 
 		xtick(0, .5, 1.5)  /// 
 		sumstat(Rel Ratio) ///
@@ -305,7 +322,6 @@ program define metapreg_example_five_one
 	di "	sumtable(all) ///"
 	di "	design(mcbnetwork)  ///"
 	di "	by(comparator)  ///"
-	di "	graphregion(color(white)) /// "
 	di "	xlab(0.9, 1, 1.1) /// "
 	di "	xtick(0.9, 1, 1.1)  ///" 
 	di "	sumstat(Ratio) ///"
@@ -321,7 +337,6 @@ program define metapreg_example_five_one
 		sumtable(all) ///
 		design(mcbnetwork) ///
 		by(comparator) ///
-		graphregion(color(white)) /// 
 		xlab(0.9, 1, 1.1) /// 
 		xtick(0.9, 1, 1.1)  /// 
 		sumstat(Ratio) ///
