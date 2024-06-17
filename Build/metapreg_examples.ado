@@ -39,7 +39,7 @@ program define metapreg_example_one_two
 	di ". bys tgroup, rc0: metapreg num denom, ///"
 	di "	studyid(study) ///"
 	di "	cimethod(wilson) ///"
-	di "	label(namevar=author, yearvar=year) ///"
+	di "	label(namevar=author, yearvar=year) catpplot ///"
 	di "	xlab(.25, 0.5, .75, 1) ///"
 	di "	subti(Atypical cervical cytology, size(4)) ///"
 	di "	texts(1.5) smooth"
@@ -48,7 +48,7 @@ program define metapreg_example_one_two
 	bys tgroup, rc0: metapreg num denom, ///
 		studyid(study) ///
 		cimethod(wilson) ///
-		label(namevar=author, yearvar=year) ///
+		label(namevar=author, yearvar=year) catpplot ///
 		xlab(0, .25, 0.5, .75, 1) ///
 		subti(Atypical cervical cytology, size(4)) ///
 		graphregion(color(white)) /// 
@@ -63,9 +63,9 @@ program define metapreg_example_one_three
 	di ""
 	di ". metapreg num denom STRtgroup, ///"
 	di "	studyid(study) ///"
-	di "	sumtable(all) ///"
+	di "	sumtable(rd rr) ///"
 	di "	cimethod(exact) ///"
-	di "	label(namevar=author, yearvar=year) ///"
+	di "	label(namevar=author, yearvar=year) catpplot ///"
 	di "	xlab(.25, 0.5, .75, 1) ///"
 	di "	subti(Atypical cervical cytology, size(4)) ///"
 	di "	texts(1.5)  summaryonly"
@@ -77,8 +77,8 @@ program define metapreg_example_one_three
 	metapreg num denom STRtgroup, ///
 		studyid(study) ///
 		cimethod(exact) ///
-		sumtable(all)  ///
-		label(namevar=author, yearvar=year) ///
+		sumtable(rd rr)  ///
+		label(namevar=author, yearvar=year) catpplot ///
 		xlab(0, .25, 0.5, .75, 1) ///
 		subti(Atypical cervical cytology, size(4)) ///
 		texts(1.5)  summaryonly
@@ -164,7 +164,7 @@ program define metapreg_example_three_one
 		
 	metapreg cases_tb population bcg, gof /// 
 		studyid(study) ///
-		sumtable(all)  ///
+		sumtable(rr rf)  ///
 		design(comparative)	///
 		outplot(rr) ///
 		sumstat(Risk ratio) ///
@@ -182,8 +182,7 @@ program define metapreg_example_three_two
 	di ". metapreg cases_tb population lat,  /// "
 	di "	studyid(study) ///"
 	di "	sumtable(all) by(bcg)  ///"
-	di "	design(comparative)	sortby(lat) ///"
-	di "	graphregion(color(white)) /// "
+	di "	sortby(lat) ///"
 	di "	xlab(0, 0.05, 0.1) /// "
 	di "	xtick(0, 0.05, 0.1)  /// "
 	di "	sumstat(Proportion) ///"
@@ -227,7 +226,7 @@ program define metapreg_example_three_three
 	metapreg cases_tb population bcg lat,  gof /// 
 		studyid(study) ///
 		sortby(lat) ///
-		sumtable(all) ///
+		sumtable(rr rd) ///
 		design(comparative)  ///
 		outplot(rr) ///
 		interaction ///
@@ -246,7 +245,7 @@ program define metapreg_example_three_four
 	di "	studyid(study) ///"
 	di "	sortby(lat) ///"
 	di "	sumtable(all) gof ///"
-	di "	design(comparative, cov(zeroslope))  ///"
+	di "	design(comparative, cov(commonslope))  ///"
 	di "	outplot(rr) ///"
 	di "	interaction ///"
 	di "	xlab(0, 1, 2) /// "
@@ -261,7 +260,7 @@ program define metapreg_example_three_four
 		studyid(study) ///
 		sortby(lat) ///
 		sumtable(all) ///
-		design(comparative, cov(zeroslope))  ///
+		design(comparative, cov(commonslope))  ///
 		outplot(rr) ///
 		interaction ///
 		xlab(0, 1, 2) /// 
@@ -301,7 +300,7 @@ program define metapreg_example_four_one
 		studyid(firstauthor) ///
 		sortby(year) link(loglog) ///
 		sumtable(all) ///
-		design(comparative, cov(zeroslope))  ///
+		design(comparative, cov(commonslope))  ///
 		outplot(rr) ///
 		interaction ///
 		xlab(0, 0.5, 1.5) /// 
@@ -310,6 +309,47 @@ program define metapreg_example_four_one
 		lcols(response total) /// 
 		astext(70) /// 
 		texts(1.5) logscale smooth xsize(12) ysize(6) 
+	restore
+end
+
+program define metapreg_example_four_two
+	preserve
+	use "http://fmwww.bc.edu/repec/bocode/s/schizo.dta", clear
+	di ". gsort firstauthor arm  "
+	di ""
+	di ". metapreg response total arm missingdata,  /// "
+	di "	studyid(firstauthor) ///"
+	di "	sortby(year) inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults) ///"
+	di "	sumtable(all) ///"
+	di "	design(comparative, cov(zeroslope))   ///"
+	di "	outplot(rr) ///"
+	di "	interaction ///"
+	di "	xlab(0, 5, 15) /// "
+	di "	xtick(0, 5, 15)  ///" 
+	di "	sumstat(Rel Ratio) ///"
+	di "	lcols(response total) /// "
+	di "	astext(70) /// "
+	di "	texts(1.5) logscale smooth ///"
+	di "	xsize(12) ysize(6)"
+			
+
+	set more off
+	
+	gsort firstauthor arm
+	
+	metapreg response total arm missingdata, gof /// 
+		studyid(firstauthor) ///
+		sortby(year) inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults) /// 
+		sumtable(all) ///
+		design(comparative, cov(commonslope))  ///
+		outplot(rr) ///
+		interaction ///
+		xlab(0, 0.5, 1.5) /// 
+		xtick(0, .5, 1.5)  /// 
+		sumstat(Rel Ratio) ///
+		lcols(response total) /// 
+		astext(70) /// 
+		texts(1.5) logscale smooth xsize(12) ysize(6)  name(indorr, replace)	
 	restore
 end
 
