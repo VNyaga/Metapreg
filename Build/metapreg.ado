@@ -266,7 +266,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 		}
 		if "`cov'" != "" {
-			cap assert ("`design'" == "comparative")
+			cap assert ("`design'" == "comparative" | "`design'" == "mpair")
 			if _rc!=0 {
 				di as error "The option `cov' only allowed in comparative meta-analysis"
 				exit
@@ -2489,7 +2489,7 @@ program define metapregci, rclass
 					cmlci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') `transform'
 				}
 				if strpos("`outplot'", "or") != 0 {
-					orccci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') level(`level') `mcbnetwork' cimethod(`cimethod') `transform'
+					orccci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') level(`level') `mcbnetwork' `mpair' cimethod(`cimethod') `transform'
 				}
 			}
 			if "`pcbnetwork'" !="" {
@@ -2761,7 +2761,12 @@ program define preg, rclass
 		local echo qui
 	}
 	//Just initialize
-	gettoken first confounders : regressors
+	if "`mpair'" != "" {
+		local first "`varx'"
+	}
+	else {
+		gettoken first confounders : regressors
+	}
 	local p: word count `regressors'
 	
 	
@@ -2797,8 +2802,8 @@ program define preg, rclass
 	}
 	
 	`echo' fitmodel `outcome' `total' if `touse', `modelopts' model(`model') regexpression(`regexpression') ///
-		sid(`sid') studyid(`studyid') level(`level') nested(`first') `abnetwork' `comparative' `mpair' cov(`cov') link(`link') p(`p')  ///
-		bayesest(`bayesest') inference(`inference') refsampling(`refsampling') `progress' `interaction'
+		sid(`sid') studyid(`studyid') level(`level') nested(`first') `abnetwork' `comparative' `mpair' cov(`cov') ///
+		link(`link') p(`p')  bayesest(`bayesest') inference(`inference') refsampling(`refsampling') `progress' `interaction'
 		
 	//Returned model	
 	local getmodel = r(model)
@@ -3756,7 +3761,7 @@ program define fitmodel, rclass
 	local total = "`2'"
 	
 	if "`cov'" != "" {	
-		if ("`comparative'" != "") & ("`cov'" != "commonslope")  {
+		if ("`comparative'" != "" ) & ("`cov'" != "commonslope")  {
 			local slope "2.`nested'"
 		}
 
@@ -3770,7 +3775,7 @@ program define fitmodel, rclass
 		local intercept "mu"
 	}
 	
-	if "`comparative'" != "" & ("`cov'" == "commonint" | "`cov'" == "freeint")  { 
+	if "`comparative'`mpair'" != "" & ("`cov'" == "commonint" | "`cov'" == "freeint")  { 
 		local intercept
 	}
 
@@ -3910,7 +3915,7 @@ program define fitmodel, rclass
 		fvset base none `sid'
 			
 		gettoken mu variableterms: regexpression
-		
+				
 		if "`cov'" != "" {
 			tokenize `variableterms'
 			macro shift
@@ -4023,6 +4028,9 @@ program define fitmodel, rclass
 			else if "`cov'" == "unstructured" {
 				local blockvarcov = `"block({Sigma, matrix}, gibbs)"'
 			}
+		}
+		if "`cov'" == "" & strpos("`model'", "random") != 0 {
+			local neoregexpression "`'"
 		}
 		
 		//assign fe priors			
@@ -9877,7 +9885,7 @@ end
 	cap program drop orccci
 	program define orccci
 
-		syntax varlist, r(name) lowerci(name) upperci(name) [level(real 95) mcbnetwork cimethod(string) transform]
+		syntax varlist, r(name) lowerci(name) upperci(name) [level(real 95) mpair mcbnetwork cimethod(string) transform]
 		
 		if "`transform'" != "" {
 			local transform "ln"
@@ -9891,7 +9899,7 @@ end
 			
 			count
 			forvalues i = 1/`r(N)' {
-				if "`mcbnetwork'" != ""  {
+				if "`mcbnetwork'`mpair'" != ""  {
 					local a = `1'[`i']
 					local b = `2'[`i']
 					local c = `3'[`i']
