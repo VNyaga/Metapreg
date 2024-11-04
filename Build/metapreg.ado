@@ -5613,33 +5613,46 @@ end
 			//Nice labels
 			forvalues r = 1(1)`ncatreg' {
 				local rname`r':word `r' of `rnames'
-				tokenize `rname`r'', parse("_")					
-				if "`7'" != "" {
-					local leftvar = "`1'"
-					local leftlab :label `1' `3' 
-					local rightvar = "`5'"
-					local rightlab : label `5' `7'
-					
-					local nlen1l:strlen local leftlab
-					local nlenrl:strlen local rightlab
-					local nlen1v:strlen local leftvar
-					local nlenrv:strlen local rightvar
-					
-					local nlen = `nlen1l' + `nlenrl' + `nlen1v' + `nlenrv'
-					local rownamesmaxlen = max(`rownamesmaxlen', min(`nlen', 32)) //Check if there is a longer name
-					local rownames = "`rownames' `leftvar'*`rightvar':`leftlab'|`rightlab'" 
+				
+				tokenize `rname`r'', parse("_")	
+								
+				if "`mpair'" == "" {
+					if "`7'" != "" {
+						local leftvar = "`1'"
+						local leftlab :label `1' `3' 
+						local rightvar = "`5'"
+						local rightlab : label `5' `7'
+						
+						local nlen1l:strlen local leftlab
+						local nlenrl:strlen local rightlab
+						local nlen1v:strlen local leftvar
+						local nlenrv:strlen local rightvar
+						
+						local nlen = `nlen1l' + `nlenrl' + `nlen1v' + `nlenrv'
+						local rownamesmaxlen = max(`rownamesmaxlen', min(`nlen', 32)) //Check if there is a longer name
+						local rownames = "`rownames' `leftvar'*`rightvar':`leftlab'|`rightlab'" 
+					}
+					else if "`3'" != "" {
+						local left = "`1'"
+						local right = "`3'"
+						local lab:label `left' `right'
+						local lab = ustrregexra("`lab'", " ", "_")
+						local nlen : strlen local lab
+						local rownamesmaxlen = max(`rownamesmaxlen', min(`nlen', 32)) //Check if there is a longer name
+						local rownames = "`rownames' `left':`lab'" 
+					}
+					else if "`3'" == "" {
+						local rownames = "`rownames' `rname`r''" 
+					}
 				}
-				else if "`3'" != "" {
-					local left = "`1'"
-					local right = "`3'"
+				else {
+					local left = "`1'`2'`3'"
+					local right = "`5'"
 					local lab:label `left' `right'
 					local lab = ustrregexra("`lab'", " ", "_")
 					local nlen : strlen local lab
 					local rownamesmaxlen = max(`rownamesmaxlen', min(`nlen', 32)) //Check if there is a longer name
 					local rownames = "`rownames' `left':`lab'" 
-				}
-				else if "`3'" == "" {
-					local rownames = "`rownames' `rname`r''" 
 				}
 			}
 		}
@@ -5664,7 +5677,7 @@ end
 				local group : word `mindex' of `rnames'
 				
 				//Skip if continous variable
-				if (strpos("`vari'", "_") == 1) & ("`group'" != "Overall"){
+				if (strpos("`vari'", "_") == 1) & ("`group'" != "Overall") & "`mpair'" == ""{
 					continue
 				}
 				
@@ -9999,9 +10012,9 @@ program define metabayesoptscheck, rclass
 	#delimit ;
 	syntax [,
 		nchains(integer 3)  /*3*/
-		thinning(integer 5) /*5*/
-		burnin(integer 5000) /*5000*/
-		mcmcsize(integer 2500) /*2500*/
+		thinning(integer 1) /*5*/
+		burnin(integer 500) /*5000*/
+		mcmcsize(integer 500) /*2500*/
 		rseed(integer 1)
 		refsampling(integer 1)
 		varprior(passthru)
