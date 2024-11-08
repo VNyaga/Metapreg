@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 3.0.3 14Feb2024}{...}
+{* *! version 4.0.0 05Nov2024}{...}
 {viewerdialog metapreg "dialog metapreg"}{...}
 {vieweralsosee "[ME] meqrlogit" "help meqrlogit"}{...}
 {vieweralsosee "[ME] meqrlogit" "mansection ME meqrlogit"}{...}
@@ -38,7 +38,7 @@
 [{it:{help metapreg##options_table:options}}]
 
 {p 8 8 2}
-{it:{depvars}} has the form {cmd: n N} in a {cmd: general/comparative/abnetwork} meta-analysis, {cmd: a b c d} in matched({cmd:mcbnetwork}) studies, and {cmd: ab ac N} in {cmd:pcbnetwork} studies.{p_end}
+{it:{depvars}} has the form {cmd: n N} in a {cmd: general/comparative/abnetwork} meta-analysis, {cmd: a b c d} in matched({cmd:mpair/mcbnetwork}) studies, and {cmd: ab ac N} in {cmd:pcbnetwork} studies.{p_end}
 
 {p 8 8 2}
 {it:studyid} is a variable identifying each study. The identifiers should be unique in a {cmd:general} meta-analysis.{p_end}
@@ -76,7 +76,7 @@ A random- or mixed-effects model accounts for and allows the quantification of h
 By default, the exact binomial distribution is used when there are less than {cmd:3} studies. After fitting a random-effects, the posterior distributions are simulated to propagate uncertainity about the estimates({help metapreg##GH2007:Gelman and Hill 2006}). 
 
 {pstd}
-In a comparative/mcbnetwork/pcbnetwork meta-analysis, the study-specific proportion ratios or odds ratios can be tabulated and/or plotted.
+In a {cmd:comparative/mpair/mcbnetwork/pcbnetwork} meta-analysis, the study-specific proportion ratios/differences or odds ratios can be tabulated and/or plotted.
 
 {pstd}
 In a meta-analysis of rare events, the exact logistic regression model can be fitted for more accurate inferences than the standard maximum-likelihood-based logistic regression estimator. 
@@ -173,8 +173,9 @@ be comma separated.{p_end}
 
 {synopt :{opt general}} notifies the program to perform a general/typical meta-analysis. The program expects atleast {cmd: n N} to be specified {p_end}
 {synopt :{opt comparative}} notifies the program that the data is from comparative studies. The program expects atleast {cmd: n N bicat} to be specified {p_end}
-{synopt :{opt pcbnetwork}} notifies the program that the data is from paired studies. The program expects atleast {cmd: a b c d index comparator} to be is supplied{p_end}
-{synopt :{opt mcbnetwork}} notifies the program that the data is from matched studies. The program expects atleast {cmd: ab ac n index comparator} to be is supplied{p_end}
+{synopt :{opt mpair}} notifies the program that the data is from paired-matched studies. The program expects atleast {cmd: a b c d} to be is supplied{p_end}
+{synopt :{opt pcbnetwork}} notifies the program that the data is from paired studies. The program expects atleast {cmd: ab  ac N index comparator} to be is supplied{p_end}
+{synopt :{opt mcbnetwork}} notifies the program that the data is from matched studies. The program expects atleast {cmd: a b c d index comparator} to be is supplied{p_end}
 {synopt :{opt abnetwork}} instructs the program to perform abnetwork meta-analysis. The program expects atleast {cmd: n N cat} to be specified {p_end}
 
 {synoptline}
@@ -212,14 +213,22 @@ be comma separated.{p_end}
 {synopt :{opt asinh}} uses the inverse hyperbolic sine transformation. {help metapreg##AHO2015:Aho & Bowyer (2015)}{p_end}
 {synopt :{opt noether}} uses the Noether procedure. {help metapreg##AHO2015:Aho & Bowyer (2015)}{p_end}
 
-{synopthdr :mcbnetwork data}
+{synopthdr :mpair/mcbnetwork data}
 {synoptline}
 {synopt :{opt cml}}computes constrained maximum likelihood (cml) confidence intervals; the {cmd:default} for matched data. These intervals have better coverage even for small sample size{p_end}
 
 {dlgtab:or|lor}
+{synopthdr :Comparative/pcbnetwork data}
+{synoptline}
 {synopt :{opt e:xact}}computes the exact CI of the study odds ratio by inverting two one-sided Fishers exact tests. These {cmd:default} intervals are overly convservative. {p_end}
 {synopt :{opt w:oolf}}use Woolf approximation to calculate CI of the study odds ratio.{p_end}
 {synopt :{opt co:rnfield}} use Cornfield approximation to calculate CI of the study odds ratio. These intervals have better coverage even for small sample size{p_end}
+
+
+{synopthdr :mpair/mcbnetwork data}
+{synoptline}
+{synopt :{opt mcnemar}}computes the Mcnemar odds ratio and its confidence interval; the {cmd:default} for matched data{p_end}
+
 
 {dlgtab:rd}
 {synopt :{opt wald}}computes Wald confidence intervals for the difference in proportion{p_end}
@@ -263,12 +272,16 @@ be comma separated.{p_end}
 more control parameterization of the comparative and abnetwork model. 
 
 {pmore}
-{cmd:design(generak)} requests for a general/basic meta-analysis. The required {it:{vars}} has the form {cmd: n N}.
+{cmd:design(general)} requests for a general/basic meta-analysis. The required {it:{vars}} has the form {cmd: n N}.
 
 {pmore}
 {cmd:design(comparative)} indicates that the data is from comparative studies i.e there are two rows of data per each {cmd: studyid}. The required {it:{vars}} has the form {cmd: n N bicat} 
 where {it:bicat} is the first covariate which should be a string variable with two levels. When there are two random effects in the model, their covariance structure can be
 specified as {it:independent} with {cmd:design(comparative,cov(independent))} or {it:unstructured} {cmd:design(comparative,cov(unstructured))}
+
+{pmore}
+{cmd:design(mpair)} indicates that the data is from matched-pair studies. The required {it:{vars}} has the form {cmd: a b c d}. 
+When there are matched observations from each study, the observations are correlated and should be treated accordingly.
 
 {pmore}
 {cmd:design(mcbnetwork)} indicates that the data is from matched studies and instructs to perform contrast-based network meta-analysis. There can be more than one row of data per each {cmd: studyid}. The required {it:{vars}} has the form {cmd: a b c d index comparator}. 
@@ -1018,6 +1031,68 @@ The interaction term allows to test whether the risk-ratios for arm differ betwe
 {pmore}
 We demonstrate the use of {cmd:mcbnetwork} option when matched data is available. The data should be a from a 2x2 table as displayed below;
 
+{p 24} {c |} Clinician sample {p_end}
+{pmore2} 
+Self sample {c |} Positive{space 5}Negative {c |} Total
+{p_end}
+{pmore2}
+{c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -}{c -} {c -} {c -} {c -} {c -}
+{p_end}
+{p 16} 
+Positive{c |} {space 3} a {space 7}	b {space 5 } {c |} a + b
+{p_end}
+{p 16} 
+Negative{c |} {space 3} c {space 7}	d {space 5} {c |}  c + d
+{p_end}
+{pmore2}
+{c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -} {c -}{c -} {c -} {c -} {c -} {c -}
+{p_end}
+{p 18}
+Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
+{p_end}
+
+
+{pmore2}
+{stata `"use "http://fmwww.bc.edu/repec/bocode/m/matched.dta""':. use "http://fmwww.bc.edu/repec/bocode/m/matched.dta"}
+{p_end}
+
+{pmore2}
+{cmd:. metapreg a b c d index comparator,  ///}
+{p_end}
+{pmore3}
+{cmd:studyid(study) ///}
+{p_end}
+{pmore3}
+{cmd:sumtable(all) ///}
+{p_end}
+{pmore3}
+{cmd:design(mpair)  ///}
+{p_end}
+{pmore3}
+{cmd:by(comparator) ///}
+{p_end}
+{pmore3}
+{cmd:xlab(0.9, 1, 1.1) xtick(0.9, 1, 1.1) ///}
+{p_end}
+{pmore3}
+{cmd:sumstat(Ratio) ///}
+{p_end}
+{pmore3}
+{cmd:lcols(comparator index) ///}
+{p_end}
+{pmore3}
+{cmd:astext(80) texts(1.2) logscale smooth }
+{p_end}
+
+
+{pmore2}		
+{it:({stata "metapreg_examples metapreg_example_five_one":click to run})}
+
+{marker example_five_two}{...}
+{cmd : 5.2 Meta-regression - matched Studies - sparse data }
+{pmore}
+We demonstrate the use of {cmd:mcbnetwork} option when matched data is available. The data should be a from a 2x2 table as displayed below;
+
 {p 18} 
 {c |} comparator
 {p_end}
@@ -1075,8 +1150,7 @@ Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
 
 
 {pmore2}		
-{it:({stata "metapreg_examples metapreg_example_five_one":click to run})}
-
+{it:({stata "metapreg_examples metapreg_example_five_two":click to run})}
 
 {marker results}{...}
 {title:Stored results}
