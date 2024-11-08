@@ -1405,9 +1405,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 				di "{phang} `1' ~ binomial(p, `2'){p_end}"
 			}
 		}
-		else if ( "`design'" == "mcbnetwork" | "`design'" == "mpair" ) {
+		else if ( "`design'" == "mcbnetwork" ) {
 			di "{phang} `1' + `2'  ~ binomial(p, `1' + `2' + `3' + `4'){p_end}"
 			di "{phang} `1' + `3' ~ binomial(p, `1' + `2' + `3' + `4'){p_end}"
+		}
+		else if ( "`design'" == "mpair" ) {
+			di "{phang} `1' + `2'  ~ binomial(p, `1' + `2' + `3' + `4')  << Response1{p_end}"
+			di "{phang} `1' + `3' ~ binomial(p, `1' + `2' + `3' + `4') << Response2{p_end}"
 		}
 		else if "`design'" == "pcbnetwork" {
 			di "{phang} `1' ~ binomial(p, `3'){p_end}"
@@ -1419,20 +1423,47 @@ program define metapreg, eclass sortpreserve byable(recall)
 				di "{phang} `link'(p) = `nu' + `studyid'{p_end}"	
 			}
 			else {
-				di "{phang} `link'(p) = `nu' + `first'.`studyid' + `studyid'{p_end}"	
+				if "`cov'" != "commonslope" {
+					if ("`design'" == "mpair")  {
+						di "{phang} `link'(p) = `nu' + Ipair.`studyid' + `studyid'{p_end}"
+					}
+					else {
+						di "{phang} `link'(p) = `nu' + `first'.`studyid' + `studyid'{p_end}"
+					}
+				}
+				else {
+					di "{phang} `link'(p) = `nu' + `studyid'{p_end}"
+				}	
 			}
-			if ("`cov'" == "commonslope" & "`design'" == "comparative" ) | ("`cov'" == "" & "`design'" != "comparative" ) | ("`design'" == "mpair") {
+			
+			if ("`cov'" == "commonslope" & ("`design'" == "comparative"  | "`design'" == "mpair" )) | ("`cov'" == "" & "`design'" != "comparative" )  {
 				di "{phang}`studyid' ~ N(0, tau2){p_end}"
 			}
+			
 			if (("`cov'" == "commonint" | "`cov'" == "freeint")& "`design'" == "comparative" ) {
 				di "{phang}`first'.`studyid' ~ N(0, sigma2){p_end}"
 			}
+			
 			if "`cov'" == "independent" {
 				di "{phang}`studyid' ~ N(0, tau2){p_end}"
-				di "{phang}`first'.`studyid' ~ N(0, sigma2){p_end}"
+				if ("`design'" == "mpair") {
+					di "{phang}Ipair.`studyid' ~ N(0, sigma2){p_end}"
+				}
+				else {
+					di "{phang}`first'.`studyid' ~ N(0, sigma2){p_end}"
+				}
 			}
+			
 			if "`cov'" == "unstructured" {
-				di "{phang}`studyid',`first'.`studyid'  ~ biv.normal(0, Sigma){p_end}"
+				if ("`design'" == "mpair") {
+					di "{phang}`studyid',Ipair.`studyid'  ~ biv.normal(0, Sigma){p_end}"
+				}
+				else {
+					di "{phang}`studyid',`first'.`studyid'  ~ biv.normal(0, Sigma){p_end}"
+				}
+				
+				di "{p 20}  Sigma = {c |}tau2, {space 1} rho{c |}{p_end}"
+				di "{p 28}   {c |}rho, sigma2{c |}{p_end}"
 			}
 		}
 		else if "`model'" == "crbetabin" {
@@ -1446,7 +1477,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		else /*if "`getmodeli'" == "fixed" | "`getmodeli'" == "betabin"*/ {
 			di "{phang} `link'(p) = `nu'{p_end}"		
 		}
-		if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" | "`design'" == "mpair" {
+		if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork"  {
 			di "{phang} Ipair = 0 if 1st pair{p_end}"
 			di "{phang} Ipair = 1 if 2nd pair{p_end}"
 		}
@@ -1477,6 +1508,10 @@ program define metapreg, eclass sortpreserve byable(recall)
 		if "`design'" == "abnetwork" {
 			local lab:label `first' `basecode'
 			di "{pmore} `first'  -- `lab'{p_end}"
+		}
+		if "`design'" == "mpair" {
+			local lab:label `varx' `basecode'
+			di "{pmore} Ipair  -- `lab'{p_end}"
 		}
 			
 		di _n
@@ -1878,8 +1913,14 @@ program define metapreg, eclass sortpreserve byable(recall)
 						exit	
 					}
 				}
+				
 				if ("`icimethod'" == "") & strpos("`metric'",  "or") != 0  {
-					local icimethod "woolf"
+					if ("`design'" == "mcbnetwork" | "`design'" == "mpair") {
+						local icimethod "E.Fisher"
+					}
+					else {
+						local icimethod "woolf"
+					}
 				}
 				
 				//iRR/iLRR
@@ -2489,7 +2530,7 @@ program define metapregci, rclass
 					cmlci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') `transform'
 				}
 				if strpos("`outplot'", "or") != 0 {
-					orccci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') level(`level') `mcbnetwork' `mpair' cimethod(`cimethod') `transform'
+					orccci `a' `b' `c' `d', r(`es') upperci(`uci') lowerci(`lci') level(`level') `mcbnetwork' `mpair' `transform'
 				}
 			}
 			if "`pcbnetwork'" !="" {
@@ -7047,7 +7088,7 @@ program define postsim, rclass
 				local group : word `mindex' of `rnames'
 				
 				//Skip if continous variable
-				if (strpos("`vari'", "_") == 1) & ("`group'" != "Overall"){
+				if (strpos("`vari'", "_") == 1) & ("`group'" != "Overall") & "`mpair'" == "" {
 					continue
 				}
 				
@@ -9912,15 +9953,17 @@ end
 			
 			count
 			forvalues i = 1/`r(N)' {
+				//matched data
 				if "`mcbnetwork'`mpair'" != ""  {
 					local a = `1'[`i']
 					local b = `2'[`i']
 					local c = `3'[`i']
 					local d = `4'[`i']
 
-					cci `=`a'+`b'' `=`c'+`d'' `=`a'+`c'' `=`b' +`d'', l(`level') `cimethod'
+					mcci `a' `b' `c' `d', l(`level') 
 				}
 				else {
+					//unmatched data
 					local n1 = `1'[`i']
 					local N1 = `2'[`i']
 					local n2 = `3'[`i']
@@ -10012,9 +10055,9 @@ program define metabayesoptscheck, rclass
 	#delimit ;
 	syntax [,
 		nchains(integer 3)  /*3*/
-		thinning(integer 1) /*5*/
-		burnin(integer 500) /*5000*/
-		mcmcsize(integer 500) /*2500*/
+		thinning(integer 5) /*5*/
+		burnin(integer 5000) /*5000*/
+		mcmcsize(integer 2500) /*2500*/
 		rseed(integer 1)
 		refsampling(integer 1)
 		varprior(passthru)
