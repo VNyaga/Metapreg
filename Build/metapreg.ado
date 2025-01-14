@@ -64,7 +64,7 @@ DATE:						DETAILS:
 04.06.2024					outplot(rd)	
 24.06.2024					Print all table unless otherwise
 02.07.2024					Generate graphs in all scales	
-25.10.2024					Regresss a b c d data when there is one test, i.e simplified mcbnetwork.matched-pair, introduce design(mpair)					
+25.10.2024					Regresss a b c d data when there is one test, i.e simplified mcbnetwork.matched-pair, introduce design(mpair)									
 */
 
 /*++++++++++++++++++++++	METAPREG +++++++++++++++++++++++++++++++++++++++++++
@@ -486,9 +486,16 @@ program define metapreg, eclass sortpreserve byable(recall)
 				exit
 			}
 		}
+		
 		cap assert `total' >= `event' if (`event' ~= .)
 		if _rc != 0 {
 			di as err "Order should be {n N}. Check your data."
+			exit _rc
+		}
+		
+		cap assert `total' > 0 if (`total' ~= .)
+		if _rc != 0 {
+			di as err "`total' has nonpositive values. Check your data. Ensure all `total' > 0"
 			exit _rc
 		}
 		local depvars "`1' `2'" 
@@ -1651,30 +1658,38 @@ program define metapreg, eclass sortpreserve byable(recall)
 	if "`ocimethod'" == "t" {
 		mat `neorawest' = (`rawest'[1..., 1..3] , `rawest'[1..., 7..9])
 		mat `neoabsout' = (`absout'[1..., 1..3] , `absout'[1..., 7..9])
-		mat `neorrout' = (`rrout'[1..., 1..3] , `rrout'[1..., 7..9])
-		mat `neordout' = (`rdout'[1..., 1..3] , `rdout'[1..., 7..9])
-		mat `neoorout' = (`orout'[1..., 1..3] , `orout'[1..., 7..9])
+		if "`ratios'" == "" {
+			mat `neorrout' = (`rrout'[1..., 1..3] , `rrout'[1..., 7..9])
+			mat `neordout' = (`rdout'[1..., 1..3] , `rdout'[1..., 7..9])
+			mat `neoorout' = (`orout'[1..., 1..3] , `orout'[1..., 7..9])
+		}
 	}
 	else if "`ocimethod'" == "wald" {
 		mat `neorawest' = `rawest'[1..., 1..6] 
 		mat `neoabsout' = `absout'[1..., 1..6]
-		mat `neorrout' 	= `rrout'[1..., 1..6]
-		mat `neordout' 	= `rdout'[1..., 1..6]
-		mat `neoorout' 	= `orout'[1..., 1..6]
+		if "`ratios'" == "" {
+			mat `neorrout' 	= `rrout'[1..., 1..6]
+			mat `neordout' 	= `rdout'[1..., 1..6]
+			mat `neoorout' 	= `orout'[1..., 1..6]
+		}
 	}
 	else if "`ocimethod'" == "eti" {
 		mat `neorawest' = `rawest'[1..., 1..6] 
 		mat `neoabsout' = `absout'[1..., 1..6]
-		mat `neorrout' 	= `rrout'[1..., 1..6]
-		mat `neordout' 	= `rdout'[1..., 1..6]
-		mat `neoorout' 	= `orout'[1..., 1..6]
+		if "`ratios'" == "" {
+			mat `neorrout' 	= `rrout'[1..., 1..6]
+			mat `neordout' 	= `rdout'[1..., 1..6]
+			mat `neoorout' 	= `orout'[1..., 1..6]
+		}
 	}
 	else if "`ocimethod'" == "hpd" {
 		mat `neorawest' = (`rawest'[1..., 1..4] , `rawest'[1..., 7..8])
 		mat `neoabsout' = (`absout'[1..., 1..4] , `absout'[1..., 7..8])
-		mat `neorrout' = (`rrout'[1..., 1..4] , `rrout'[1..., 7..8])
-		mat `neordout' = (`rdout'[1..., 1..4] , `rdout'[1..., 7..8])
-		mat `neoorout' = (`orout'[1..., 1..4] , `orout'[1..., 7..8])
+		if "`ratios'" == "" {
+			mat `neorrout' = (`rrout'[1..., 1..4] , `rrout'[1..., 7..8])
+			mat `neordout' = (`rdout'[1..., 1..4] , `rdout'[1..., 7..8])
+			mat `neoorout' = (`orout'[1..., 1..4] , `orout'[1..., 7..8])
+		}
 	}
 	
 	if "`model'" == "hexact"  {
@@ -5913,8 +5928,12 @@ end
 		}
 		
 		estimates restore `estimates'
-		
-		local df = e(N) -  e(k) 
+		if "`model'" == "random" {
+			local df = e(N) -  e(k_f) - e(k_r)
+		}
+		else {
+			local df = e(N) -  e(k)
+		}		
 		mat `coefmat' = e(b)
 		local predcmd = e(predict)
 		
@@ -8723,7 +8742,12 @@ syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(
 	qui {
 		//Approximate sampling distribution critical value
 		estimates restore `estimates'
-		local df = e(N) -  e(k)
+		if "`model'" == "random" {
+			local df = e(N) -  e(k_f) - e(k_r)
+		}
+		else {
+			local df = e(N) -  e(k)
+		}	
 		local predcmd = e(predict)
 		
 		if "`predcmd'" == "mepoisson_p" {
@@ -9326,7 +9350,7 @@ end
 							
 							replace `varx' = 1 if `vari' == `g' & `insample' == 1
 							
-							cap exlogistic `event' `varx' if (`vari' == `g' | `vari' == `baselevel') & `insample' == 1, binomial(`total') level(`level') `progress'
+							cap noisily exlogistic `event' `varx' if (`vari' == `g' | `vari' == `baselevel') & `insample' == 1, binomial(`total') level(`level') `progress'
 							
 							if _rc == 0 {
 								mat `lorci' = e(ci)	
