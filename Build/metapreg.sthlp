@@ -115,7 +115,9 @@ The command requires {cmd:Stata 14.1} or later versions. {cmd:Stata 16.1} or lat
 {synopt :{opth l:evel(level)}}sets confidence level; default is {cmd: level(95)}{p_end}
 {synopt :{opth pow:er(int:#)}}sets the exponentiating power; default is {cmd: power(0)}. {cmd:#} is any real value {p_end}
 {synopt :{opt sums:tat(label)}}specifies the label(name) for proportions/relative ratios in the graph {p_end}
-{synopt :{opt pop:stat(mean|median)}}specifies the population summary statistic. The default is the mean {p_end}
+{synopt :{opt pop:stat(mean|median)}}specifies the population summary statistic. The default is the median.
+	The mean can be easily influenced by a small number of extreme values, hence may not be the most approapriate summary statistic of a skewed distribution. 
+	The median may be more appropriate.{p_end}
 {synopt :{opth sor:tby(varlist)}}requests to sort the data by variables in {it:varlist}{p_end}
 {synopt :{opth ci:method(metapreg##citype:icitype,ocitype)}}specifies how the confidence intervals 
 for the individuals({it:icytpe}) studies or the overall({it:ociytpe}) summaries are computed; default {it:icytpe} is {cmd:cimethod(exact)} for proportions and {cmd:cimethod(koopman)} for relative ratios{p_end}
