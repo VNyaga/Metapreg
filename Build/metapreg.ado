@@ -2311,7 +2311,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	
 	
 	//Save the matrices if only relevent. For cov==freeint, the conditional matrices are irrelevant
-	if "`cov'" != "freeint" {
+	*if "`cov'" != "freeint" {
 		cap confirm matrix `nltestRR'
 		if _rc == 0 {
 			ereturn matrix rrtest = `nltestRR'
@@ -2341,7 +2341,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			ereturn matrix rrout = `rrout'
 			ereturn matrix orout = `orout'
 		}
-	}
+	*}
 	
 	cap confirm matrix `matgof'
 	if _rc == 0 {
@@ -7804,15 +7804,15 @@ program define postsim, rclass
 								if "`popstat'" == "Median" {
 									replace `modelp' = `median' if `insample' == 1 & `rid' == `j'
 								}
-								replace `modelplci' = `lowerp' if `insample' == 1 & `rid' == `j'
-								replace `modelpuci' = `upperp' if `insample' == 1 & `rid' == `j'
+								//This introduces sampling error
+								*replace `modelplci' = `lowerp' if `insample' == 1 & `rid' == `j'  
+								*replace `modelpuci' = `upperp' if `insample' == 1 & `rid' == `j'
 							}
 						
 						//obtain the CI's -- quick way
-						*local critvalue -invnorm((100-`level')/200)
-						*replace `modelplci' = `invfn'(`eta' - `sign' `critvalue'*`modelse')`closebracket' if  `insample' == 1 //lower
-						*replace `modelpuci' = `invfn'(`eta' +  `sign' `critvalue'*`modelse')`closebracket' if  `insample' == 1 //upper
-						
+						local critvalue -invnorm((100-`level')/200)
+						replace `modelplci' = `invfn'(`eta' - `sign' `critvalue'*`modelse')`closebracket' if  `insample' == 1 //lower
+						replace `modelpuci' = `invfn'(`eta' +  `sign' `critvalue'*`modelse')`closebracket' if  `insample' == 1 //upper
 					}
 					else {
 						*sum `gid' if `insample' == 1 
