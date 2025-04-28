@@ -6,8 +6,8 @@ library(forcats)
 library(simhelpers)
 library(gghalves)
 
-#=================immuno ====================
-review <- "immuno"
+
+review <- "crins201"
 lo <- 0
 up <- 1
 scale <- 0.5
@@ -16,7 +16,7 @@ scale2 <- 1
 
 #=====================================
 
-rootdir <- "C:/DATA/WIV/Projects/GitHub/Metapreg/Data"
+rootdir <- "C:/DATA/WIV/Projects/GitHub/Metapreg/RSM2025/"
 
 graphpath <- paste(rootdir,'/', review, '/Graphs', sep='')
 
@@ -79,8 +79,8 @@ for (run in 1:7) {
                     sim$Design == "comparative")
                ,]
   
-  source('C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/perfomance-stats.R')
-  
+  source(paste(rootdir, '/Scripts/perfomance-stats.R', sep=""))
+
   min <- lo
   max <- up
   
@@ -108,25 +108,25 @@ for (run in 1:7) {
   
   if (run == 1) {
     #Stata suite
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-smeta-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-smeta-perfomance-stats.R', sep=""))
   } else if (run == 2) { 
     #metan
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-metan-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-metan-perfomance-stats.R', sep=""))
   } else if (run == 3) {
     #metafor
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-metafor-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-metafor-perfomance-stats.R', sep=""))
   } else if (run == 4) {
     #metastan
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-metastan-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-metastan-perfomance-stats.R', sep=""))
   } else if (run == 5) {
     #meta
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-R-meta-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-R-meta-perfomance-stats.R', sep=""))
   } else if (run == 6) {
     #bayesmeta
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-bayesmeta-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-bayesmeta-perfomance-stats.R', sep=""))
   } else if (run == 7) {
     #metaplus
-    source("C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-metaplus-perfomance-stats.R")
+    source(paste(rootdir, '/Scripts/plot-metaplus-perfomance-stats.R', sep=""))
   }
 }
 
@@ -165,7 +165,7 @@ simor <- data.frame(sim[(sim$stat %in% c('mean-orout', 'median-orout')==TRUE) &
 
 simor$id <- with(simor, paste(package, Env, Dist, param, Sigmethod, Prior, inf, sep='-'))
 #==========================Performance===========================================
-source('C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/perfomance-stats.R')
+source(paste(rootdir, '/Scripts/perfomance-stats.R', sep=""))
 #===================================================================================
 # coverage$left1 <- (min - 0.25 - 0.3)*0.25
 # coverage$left2 <- (min -0.75 - 0.3)*0.25
@@ -206,7 +206,7 @@ coverage$right6 <- (trueor + 3.25)
 mintick <- 0
 maxtick <- 0.5
 #==========================Plot Performance===========================================
-source('C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/plot-perfomance-stats.R')
+source(paste(rootdir, '/Scripts/plot-perfomance-stats.R', sep=""))
 
 windows()
 g
@@ -224,7 +224,7 @@ simor <- data.frame(sim[(sim$stat %in% c('mean-orout', 'median-orout')==TRUE) &
 simor$id <- with(simor, paste(Dist, Covariance, sep='-'))
 
 #==========================Performance===========================================
-source('C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/perfomance-stats.R')
+source(paste(rootdir, '/Scripts/perfomance-stats.R', sep=""))
 
 #=============================================
 max <- ceiling(max(simor$esthat))
@@ -246,7 +246,7 @@ rbias$rel_bias <- format(rbias$rel_bias, digits=3)
 rbias$rel_mse <- format(rbias$rel_mse, digits=1)
 #==========================Plot Performance===========================================
 orange = "IND"
-source('C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts/Link-Cov-Mispecification.R')
+source(paste(rootdir, '/Scripts/Link-Cov-Mispecification.R', sep=""))
 
 windows()
 F

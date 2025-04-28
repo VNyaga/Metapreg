@@ -267,6 +267,7 @@ do "$scriptdir\process.do"
 save "$wdir/simulatedresults.dta", replace
 
  *=========Run R script
-rsource using "$scriptdir/bender2018.R"  , noloutput
+rsource using "$scriptdir/bender2018.R" 
+ , noloutput
 
  
