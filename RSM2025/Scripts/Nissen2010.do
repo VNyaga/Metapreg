@@ -19,59 +19,59 @@ ssc install rsource
 help rsource
 */
 
-global review "Rosiglitazone"
-global rootdir "C:/DATA/WIV/Projects/GitHub/Metapreg"
-global graphs "C:/DATA/WIV/Projects/GitHub/Metapreg/Data/$review/Graphs"
+//Specify directories
+global review "nissen2010"
+global rootdir "C:/DATA/WIV/Projects/GitHub/Metapreg/RSM2025"
+global graphs "$rootdir/$review/Graphs"
 
-*mkdir "$rootdir/Data/$review"
-*mkdir "$graphs"
+global wdir "$rootdir/$review"
+global scriptdir "$rootdir/Scripts"
 
-//observed results
-global wdir "$rootdir/Data/$review"
 global observedresults "$wdir/$review.txt"
 global simresults "$wdir/simresults.txt"
 
-/*
-//Heads for the results file 
-foreach name in observedresults simresults {
+//Make folders
+mkdir "$rootdir/$review"
+mkdir "$graphs"
+
+//Put headers on results files 
+foreach name in observedresults simresults  {
 	local s = "sim; model; stat; esthat; esthatlo; esthatup; tau2hat; tau2hatlo; tau2hatup; sigma2hat; sigma2hatlo; sigma2hatup; IC; truemu0; trueor;  truetausq; truesigmasq; k; nstudies; studysize"
-	file open results using $`name',  text write replace //append or replace
+	file open results using $`name',  text write replace 
 	file write results "`s'" _n
 	file close results
 }
-*/
-global scriptdir "$rootdir/Scripts"
-/*
+
+//Specify where R is installed
 global Rterm_path `"C:\DATA\Software\R-4.4.2\bin\x64\Rterm.exe"'
 global Rterm_options `"--vanilla"'
 
-do "C:\DATA\WIV\Projects\GitHub\Metapreg\Build\metapreg.ado"	
+//Run metapreg if not installed
+do "$scriptdir/metapreg.ado"	
 */
 }
-*===========================ORIGINAL Long DATA===========================
+*===========================ORIGINAL Wide DATA===========================
 {
 /*
-frame create longdata
-frame change longdata
 
-import excel using "$rootdir/Data/metadat.xlsx",sheet("Rosiglitazone2010") ///
+frame create widedata
+frame change widedata
+
+import excel using "$rootdir/Data/metadata.xlsx",sheet("nissen2010") ///
       firstrow clear
 
 //To long format
-reshape long event total, i(Trial) j(class)
+reshape long event total, i(trial) j(class)
 
 gen treatment = "Control" if class==0
 replace treatment = "Treatment" if class==1	
 
-gen T = "T" if treatment ! = "Control"
-replace T = "C" if treatment == "Control"
-
-rename Trial study
+rename trial study
 
 set more off
 
-metapreg event total T,  model(mixed) smooth gof progress  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults) ///
+metapreg event total treatment,  model(mixed) smooth gof progress  ///
+	/*inference(bayesian)  bwd($wdir)*/ ///
 	studyid(study) design(comparative, cov(commonslope)) sumtable(none) 	///
 	xlab(0, 0.05, 0.5)  ///
 	texts(0.75)  astext(75)  outplot(abs)   ///
@@ -79,8 +79,8 @@ metapreg event total T,  model(mixed) smooth gof progress  ///
 	
 graph export "$graphs\data-P-F.png", as(png) width(2000) height(1750) replace	
 
-metapreg event total T,  model(mixed) smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults) ///
+metapreg event total treatment,  model(mixed) smooth gof  catpplot nofplot  ///
+	inference(bayesian)  bwd($wdir) ///
 	studyid(study) design(comparative, cov(commonslope)) 	///
 	xlab(-.15, 0, .15)  ///
 	lcols(event total) texts(1.25)  astext(70)  outplot(rd) sumstat(Risk Difference) ///
@@ -89,8 +89,8 @@ metapreg event total T,  model(mixed) smooth gof  catpplot nofplot  ///
 graph export "$graphs\data-RD-F.png", as(png) width(2000) height(1750) replace	
 
 
-metapreg event total T,  model(mixed ) smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults) ///
+metapreg event total treatment,  model(mixed ) smooth gof  catpplot nofplot  ///
+	inference(bayesian)  bwd($wdir) ///
 	studyid(study) design(comparative, cov(commonslope)) sumtable(all)	///
 	xlab(0.01, 1,  30) logscale  ///
 	lcols(event total) texts(1.25)   astext(70)  outplot(or)  xline(1)  ///
@@ -98,8 +98,8 @@ metapreg event total T,  model(mixed ) smooth gof  catpplot nofplot  ///
 
 graph export "$graphs\data-OR-F.png", as(png) width(2000) height(1750) replace	
 	 
-metapreg event total T,  model(mixed) smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+metapreg event total treatment,  model(mixed) smooth gof  catpplot nofplot  ///
+	inference(bayesian)  bwd($wdir)  ///
 	studyid(study) design(comparative, cov(commonslope)) sumtable(all)	///
 	xlab(0.01, 1,  30) logscale sumstat(Risk Ratio) ///
 	lcols(event total) texts(1.25)  astext(70)  outplot(rr)  xline(1)  ///
@@ -114,11 +114,12 @@ graph export "$graphs\data-RR-F.png", as(png) width(2000) height(1750) replace
 /*
 frame create widedata
 frame change widedata
-import excel using "$rootdir/Data/metadat.xlsx",sheet("Rosiglitazone2010") ///
-      firstrow clear
 
+import excel using "$rootdir/Data/metadata.xlsx", sheet("nissen2010") ///
+      firstrow clear
  
-rename Trial studyid	 
+rename trial studyid
+	 
 //Fit all the models
 global outfile = "$observedresults"
 do "$scriptdir\mainfit.do"
@@ -143,7 +144,8 @@ format AIC BIC DIC logBF sigma2hat tau2hat ciwidth  %10.2f
 
 tostring ciwidth, gen(WidthCI) format(%4.2f) force
 
-do "C:\DATA\WIV\Projects\Stata\Blobbogram\blobbogram.ado"
+do "$scriptdir\blobbogram.ado"
+
 //Generate plots
 mat optimalor = (1.234775, .97741935, 1.5654786, .96336166, 1.5480207)
 mat optimalabs = (0.06, 0.04, 0.07)
@@ -166,7 +168,6 @@ mat optimalrr = (1.49, 1.14, 1.95)
 global rdrange "-.1, 0, 0.1"
 global rdline "0"
 mat optimalrd = (-0.028036, -0.05083, -0.00633)
-
 
 duplicates drop stat Weighting CImethod if package == "meta" & slope=="common", force
 
@@ -210,12 +211,9 @@ replace conditional = 1 if package == "metapreg" & link == "logit" & ///
 gen pick = conditional
 replace pick = 1 if strpos(Dist, "BB") != 0 & link == "logit" /*& CImethod == "z"*/
 
-
 //Step 4: Get stats from the best model and BB estimates ==> run StatsBestPick.do
-
 replace conditional = 1 if  package == "metastan" & inlist(Dist, "BN")  
 replace conditional = 1 if package== "bayesmeta" & inlist(Dist,  "NN")  
-drop if package == "metabma" | package == "metasem" | package == "randmeta"
 replace conditional = 1 if inlist(Sigmethod, "mp", "sj") & Weighting == "SSW" & package == "meta" & Env == "R"
 replace conditional = 0 if slope == "common"
 replace conditional = 1 if (Dist == "QN" | Sigmethod == "mp" | Sigmethod == "pl") & package == "metan" 
@@ -223,13 +221,11 @@ replace conditional = 1 if Sigmethod == "sj" & package == "meta" & Env == "Stata
 replace conditional = 1 if  package == "metaplus"
 	 
 replace conditional = 1 if package == "metafor" & Dist == "BN" & Slope == "C"
-*drop if package == "randmeta" | (package == "metaplus" & Dist != "N")
 
 //Step 5: Plot all conditionals --> AllCond.do
 do "$scriptdir\AllCond.do"	
 
 }
-
 *===========================Replicate Best Model===========================
 {
 /*
@@ -238,10 +234,10 @@ do "$scriptdir\AllCond.do"
 	mat truemeans = (-5.820007 , .2108263)  //median
 	mat truevarcov = (.9047816, 0 \ 0,  0) //median
 	
-	import excel using "$rootdir/Data/metadat.xlsx",sheet("Rosiglitazone2010") ///
+	import excel using "$rootdir/Data/metadata.xlsx", sheet("nissen2010") ///
       firstrow clear
 
-	rename Trial studyid
+	rename trial studyid
 	 
 	rename event0 obsevent0
 	rename event1 obsevent1
@@ -272,4 +268,7 @@ import delimited "$simresults", varnames(1) clear
 *drop package- v10
 do "$scriptdir\process.do"
 save "$wdir/simulatedresults.dta", replace
+
+ *=========Run R script
+rsource using "$scriptdir/nissen2010.R"  , noloutput
 

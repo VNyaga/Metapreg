@@ -22,54 +22,51 @@ ssc install rsource
 help rsource
 */
 
-global review "crins2017"
-global rootdir "C:/DATA/WIV/Projects/GitHub/Metapreg"
-global graphs "C:/DATA/WIV/Projects/GitHub/Metapreg/Data/$review/Graphs"
+global review "crins2014"
+global rootdir "C:/DATA/WIV/Projects/GitHub/Metapreg/RSM2025"
+global graphs "$rootdir/$review/Graphs"
 
-*mkdir "C:/DATA/WIV/Projects/GitHub/Metapreg/Data/$review"
-*mkdir "$graphs"
+global wdir "$rootdir/$review"
+global scriptdir "$rootdir/Scripts"
 
-global wdir "C:/DATA/WIV/Projects/GitHub/Metapreg/Data/$review"
 global observedresults "$wdir/$review.txt"
 global simresults "$wdir/simresults.txt"
 
-/*
-//Heads for the results file 
-foreach name in observedresults /*simresults*/ {
+//Make folders
+mkdir "$rootdir/$review"
+mkdir "$graphs"
+
+//Put headers on results files 
+foreach name in observedresults simresults  {
 	local s = "sim; model; stat; esthat; esthatlo; esthatup; tau2hat; tau2hatlo; tau2hatup; sigma2hat; sigma2hatlo; sigma2hatup; IC; truemu0; trueor;  truetausq; truesigmasq; k; nstudies; studysize"
-	file open results using $`name',  text write replace //append or replace
+	file open results using $`name',  text write replace 
 	file write results "`s'" _n
 	file close results
 }
 
-global scriptdir "C:/DATA/WIV/Projects/GitHub/Metapreg/Scripts"
+//Specify where R is installed
 global Rterm_path `"C:\DATA\Software\R-4.4.2\bin\x64\Rterm.exe"'
 global Rterm_options `"--vanilla"'
 
-do "C:\DATA\WIV\Projects\GitHub\Metapreg\Build\metapreg.ado"
-*/	
+//Run metapreg if not installed
+do "$scriptdir/metapreg.ado"
 }
 *===========================ORIGINAL Long DATA===========================
 {
 /*
 frame create longdata
 frame change longdata
-import delimited "C:\DATA\WIV\Projects\Stata\Metapreg\Data\crins2014.csv", varnames(1) clear
 
-gsort author group
+import excel using "$rootdir/Data/metadata.xlsx",sheet("crins2014") ///
+      firstrow clear
 
-rename author study
+gsort study group
+
 rename group treatment
 rename events event
 
-gen T = "T" if treatment ! = "Control"
-replace T = "C" if treatment == "Control"
-	
-gen group = treatment
-gsort study group
-
 metapreg event total treatment,  model(mixed) smooth gof  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults) ///
+	inference(bayesian) bwd($wdir) ///
 	studyid(study) design(comparative, cov(independent)) sumtable(all) sumstat(Proportion)	///
 	xlab(0, 0.5, 1)  ///
 	lcols(event total) texts(2)  astext(75)  outplot(abs)   ///
@@ -77,21 +74,21 @@ metapreg event total treatment,  model(mixed) smooth gof  ///
 
 
 metapreg event total treatment,  model(mixed) smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+	inference(bayesian) bwd($wdir)  ///
 	studyid(study) design(comparative, cov(independent))  sumstat(Risk Difference)	///
 	xlab(-0.15, 0, 0.75)    ///
 	texts(2)  astext(75)  outplot(rd)   ///
 	xline(0) graphregion(color(gray))  fxsize(90)	
 	
 metapreg event total treatment,  model(mixed) smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+	inference(bayesian) bwd($wdir)  ///
 	studyid(study) design(comparative, cov(independent)) sumstat(Risk Ratio)	///
 	xlab(0.01, 1, 2) logscale  ///
 	texts(2)  astext(75)  outplot(rr)  xline(1) ///
 		graphregion(color(gray)) fxsize(80)
 		
 metapreg event total treatment,  model(mixed) smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+	inference(bayesian) bwd($wdir)  ///
 	studyid(study) design(comparative, cov(independent)) sumstat(Odds Ratio)	///
 	xlab(0.01, 1, 2) logscale  ///
 	texts(2)  astext(75)  outplot(or)  xline(1) ///
@@ -113,13 +110,12 @@ graph export "$graphs\data-F-IND.png", as(png) width(2000) height(1000) replace
 	frame create widedata
 	frame change widedata
 
-	import delimited "C:\DATA\WIV\Projects\Stata\Metapreg\Data\crins2014.csv", varnames(1) clear
-
-	gsort author group
-
-	gen studyid = author + " " + string(year)
-	drop year author
-
+	import excel using "$rootdir/Data/metadata.xlsx",sheet("crins2014") ///
+      firstrow clear
+	  
+	gsort study group
+	
+	rename study studyid
 	rename group treatment
 	rename events event
 
@@ -278,8 +274,7 @@ do "$scriptdir\AllCond.do"
 	global outfile = "$simresults"
 	do "$scriptdir/replicatefit.do"
 	forvalues r = 1(1)100 {
-		replicatefit, ///
-			truevarcov(truevarcov) truemeans(truemeans) seed(`r') link(loglog)
+		replicatefit, truevarcov(truevarcov) truemeans(truemeans) seed(`r') 
 	}
 */
 }
@@ -294,3 +289,6 @@ import delimited "$simresults", varnames(1) clear
 *drop package- v10
 do "$scriptdir\process.do"
 save "$wdir/simulatedresults.dta", replace
+
+ *=========Run R script
+rsource using "$scriptdir/crins2014.R"  , noloutput

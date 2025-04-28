@@ -19,83 +19,80 @@ ssc install rsource
 help rsource
 */
 
-global review "bender2018b"
-global rootdir "C:/DATA/WIV/Projects/GitHub/Metapreg"
-global graphs "C:/DATA/WIV/Projects/GitHub/Metapreg/Data/$review/Graphs"
+global review "bender2018"
+global rootdir "C:/DATA/WIV/Projects/GitHub/Metapreg/RSM2025"
+global graphs "$rootdir/$review/Graphs"
 
-*mkdir "$rootdir/Data/$review"
-*mkdir "$graphs"
+global wdir "$rootdir/$review"
+global scriptdir "$rootdir/Scripts"
 
-global wdir "$rootdir/Data/$review"
 global observedresults "$wdir/$review.txt"
 global simresults "$wdir/simresults.txt"
-/*
-//Heads for the results file 
-foreach name in observedresults simresults {
+
+//Make folders
+mkdir "$rootdir/$review"
+mkdir "$graphs"
+
+//Put headers on results files 
+foreach name in observedresults simresults  {
 	local s = "sim; model; stat; esthat; esthatlo; esthatup; tau2hat; tau2hatlo; tau2hatup; sigma2hat; sigma2hatlo; sigma2hatup; IC; truemu0; trueor;  truetausq; truesigmasq; k; nstudies; studysize"
-	file open results using $`name',  text write replace //append or replace
+	file open results using $`name',  text write replace 
 	file write results "`s'" _n
 	file close results
 }
-*/
-global scriptdir "$rootdir/Scripts"
-/*
+
+//Specify where R is installed
 global Rterm_path `"C:\DATA\Software\R-4.4.2\bin\x64\Rterm.exe"'
 global Rterm_options `"--vanilla"'
 
-do "C:\DATA\WIV\Projects\GitHub\Metapreg\Build\metapreg.ado"	
-*/
+//Run metapreg if not installed
+do "$scriptdir/metapreg.ado"
+
 }
-*===========================ORIGINAL Long DATA===========================
+*===========================ORIGINAL Wide DATA===========================
 {
 /*
-frame create longdata
-frame change longdata
+	frame create widedata
+	frame change widedata
 
-import excel using "$rootdir/Data/metadat.xlsx",sheet("Bender2018b") ///
+import excel using "$rootdir/Data/metadata.xlsx",sheet("bender2018") ///
       firstrow clear
 
 //To long format
-reshape long event total, i(Study) j(class)
+reshape long event total, i(study) j(class)
 
 gen treatment = "Control" if class==0
 replace treatment = "Treatment" if class==1	
 
-gen T = "T" if treatment ! = "Control"
-replace T = "C" if treatment == "Control"
+gsort study treatment
 
-rename Study study
-gen group = treatment
-
-gsort study group
 set more off
-set trace off
 
 #set rmsg on 
 
-metapreg event total group,   smooth gof model(mixed) ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+metapreg event total treatment,   smooth gof model(mixed) ///
+	inference(bayesian) bwd($wdir)  ///
 	studyid(study) design(comparative, cov(independent)) sumtable(all) sumstat(Proportion)	///
 	xlab(0, 0.25, 0.5)  ///
 	lcols(event total) texts(2.5)  astext(80)  outplot(abs)   ///
 	 graphregion(color(gray))  fxsize(90)	nooverall subline
 
-metapreg event total group,   smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+metapreg event total treatment,   smooth gof  catpplot nofplot  ///
+	inference(bayesian) bwd($wdir) ///
 	studyid(study) design(comparative, cov(independent)) sumstat(Risk Difference)	///
 	xlab(-0.5, -.25, 0)  ///
 	texts(2.5)  astext(70)  outplot(rd)   ///
 	xline(0) graphregion(color(gray))  fxsize(90)	
 	
-metapreg event total group,   smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+metapreg event total treatment,   smooth gof  catpplot nofplot  ///
+	inference(bayesian) bwd($wdir)  ///
 	studyid(study) design(comparative, cov(independent)) sumstat(Risk Ratio) 	///
 	xlab(1, 10, 50) logscale  ///
 	texts(2.5)  astext(70)  outplot(rr)  xline(1) ///
 		graphregion(color(gray)) fxsize(80)	
 
-metapreg event total group,   smooth gof  catpplot nofplot  ///
-	inference(bayesian) bwd(C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults)  ///
+metapreg event total treatment,   smooth gof  catpplot nofplot  ///
+	inference(bayesian) bwd($wdir)  ///
 	studyid(study) design(comparative, cov(independent)) sumstat(Odds Ratio) 	///
 	xlab(1, 10, 50) logscale  ///
 	texts(2.5)  astext(70)  outplot(or)  xline(1) ///
@@ -116,10 +113,11 @@ graph export "$graphs\data-F.png", as(png) width(2000) height(1000) replace
 /*
 	frame create widedata
 	frame change widedata
-	import excel using "$rootdir/Data/metadat.xlsx",sheet("Bender2018b") ///
-		  firstrow clear
+	
+	import excel using "$rootdir/Data/metadata.xlsx",sheet("bender2018") ///
+      firstrow clear
 
-	rename Study studyid
+	rename study studyid
 		 
 	//Fit all the models
 	global outfile = "$observedresults"
@@ -136,8 +134,6 @@ frame create observedresults
 frame change observedresults
 import delimited "$observedresults", varnames(1) clear
 
-*export delimited using "$observedresults",   delimit(";") replace
-
 do "$scriptdir\process.do"
 
 gen ciwidth = esthatup - esthatlo
@@ -148,7 +144,7 @@ format AIC BIC DIC logBF sigma2hat tau2hat ciwidth  %10.2f
 
 tostring ciwidth, gen(WidthCI) format(%4.2f) force
 
-do "C:\DATA\WIV\Projects\Stata\Blobbogram\blobbogram.ado"
+do "$scriptdir\blobbogram.ado"
 //Generate plots
 mat optimalor = (3.418909, 1.584143, 7.1570483, 1.293192, 6.5276114)   //eti
 mat optimalabs = (0.06, 0.04, 0.07)
@@ -222,7 +218,6 @@ replace pick = 1 if inlist(Dist, "B2") & link == "logit"
 
 replace conditional = 1 if  package == "metastan" & inlist(Dist, "BN")  
 replace conditional = 1 if package== "bayesmeta" & inlist(Dist,  "NN")  
-drop if package == "metabma" | package == "metasem" | package == "randmeta"
 replace conditional = 1 if inlist(Sigmethod, "mp", "sj") & Weighting == "SSW" & package == "meta" & Env == "R"
 replace conditional = 0 if slope == "common"
 replace conditional = 1 if (Dist == "QN" | Sigmethod == "mp" | Sigmethod == "pl") & package == "metan" 
@@ -243,7 +238,7 @@ do "$scriptdir\AllCond.do"
 	mat truemeans = (-2.073778 , 1.233008)  //median
 	mat truevarcov = (.0532203, 0 \ 0,  .0667226) //median
 	
-	import excel using "$rootdir/Data/metadat.xlsx",sheet("Bender2018b") ///
+	import excel using "$rootdir/Data/metadata.xlsx",sheet("bender2018") ///
       firstrow clear
 
 	rename study studyid
@@ -253,10 +248,10 @@ do "$scriptdir\AllCond.do"
 
 	//Replicate and Fit all the models
 	global outfile = "$simresults"
+	
 	do "$scriptdir/replicatefit.do"
 	forvalues r = 1(1)100 {
-		replicatefit, ///
-			truevarcov(truevarcov) truemeans(truemeans) seed(`r') link(loglog) 
+		replicatefit, truevarcov(truevarcov) truemeans(truemeans) seed(`r')  
 	}
 */
 }
@@ -270,3 +265,8 @@ import delimited "$simresults", varnames(1) clear
 //Process the variables
 do "$scriptdir\process.do"
 save "$wdir/simulatedresults.dta", replace
+
+ *=========Run R script
+rsource using "$scriptdir/bender2018.R"  , noloutput
+
+ 

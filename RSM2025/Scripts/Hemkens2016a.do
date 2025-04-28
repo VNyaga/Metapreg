@@ -1,12 +1,12 @@
 /*
-Reference
+References
+Colchicine for prevention of cardiovascular events, 2016, https://doi.org/10.1002/14651858.CD011047.pub2 analysis 1.8
 Comparison of random-effects meta-analysis models for the relative risk in the case of rare events: A simulation study, 2020, 10.1002/bimj.201900379
 
-
 */
-*=======================HOUSE-KEEPING===============================
+
 {
-/*Install packages*/
+//=================================Install packages
 /*
 ssc install metapreg
 help metapreg
@@ -228,14 +228,12 @@ gen pick = conditional
 replace pick = 1 if strpos(Dist, "BB") != 0  & link == "logit"
 drop if strpos(stat, "pop") != 0 & strpos(model, "betabin") != 0
 
-
 //Step 3.1: binomial
 replace pick = 1 if Dist=="B2" & link == "logit" 
 
 //Step 5: Pick similar/alternative conditional models
 replace conditional = 1 if  package == "metastan" & inlist(Dist, "BN")  
 replace conditional = 1 if package== "bayesmeta" & inlist(Dist,  "NN")  
-drop if package == "metabma" | package == "metasem" | package == "randmeta"
 replace conditional = 1 if inlist(Sigmethod, "mp", "sj") & Weighting == "SSW" & package == "meta" & Env == "R"
 replace conditional = 0 if slope == "common"
 replace conditional = 1 if (Dist == "QN" | Sigmethod == "mp" | Sigmethod == "pl") & package == "metan" 
@@ -283,7 +281,7 @@ do "$scriptdir\AllCond.do"
 	global run 1
 	global test "no"
 	
-	forvalues r = 1(1)1 {
+	forvalues r = 1(1)100 {
 		replicatefit, truevarcov(truevarcov) truemeans(truemeans) seed(`r') 		
 	}
 	
@@ -301,6 +299,8 @@ import delimited "$simresults", varnames(1) clear
 do "$scriptdir\process.do"
 save "$wdir/simulatedresults.dta", replace
 
- 
+ *=========Run R script
+rsource using "$scriptdir/hemkens2016a.R"  , noloutput
+
  
 
