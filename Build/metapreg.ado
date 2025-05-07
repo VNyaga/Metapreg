@@ -2,7 +2,7 @@
 CREATED:	8 Sep 2017
 AUTHOR:		Victoria N Nyaga
 PURPOSE: 	Generalized linear fixed, mixed & random effects modelling of binomial data.
-VERSION: 	3.0.2
+VERSION: 	4.0.0
 NOTES
 1. Variable names and group names should not contain underscore(_)
 2. Data should be sorted and no duplicates
@@ -65,7 +65,8 @@ DATE:						DETAILS:
 24.06.2024					Print all table unless otherwise
 02.07.2024					Generate graphs in all scales	
 25.10.2024					Regresss a b c d data when there is one test, i.e simplified mcbnetwork.matched-pair, introduce design(mpair)	
-25.02.2025					Do not print marginal estimates of logits, p, rd and rr if cov(freeint) since they are irrelevant.								
+25.02.2025					Do not print marginal estimates of logits, p, rd and rr if cov(freeint) since they are irrelevant.	
+28.04.2025					Work with encoded variables as well as string as categorical							
 */
 
 /*++++++++++++++++++++++	METAPREG +++++++++++++++++++++++++++++++++++++++++++
@@ -629,10 +630,23 @@ program define metapreg, eclass sortpreserve byable(recall)
 	if "`design'" == "comparative" | "`design'" == "abnetwork"  {
 		gettoken first confounders : regressors
 		if "`first'" != "" {
+			/*
 			cap confirm string variable `first'
 			if _rc != 0 {
 				di as error "The first covariate in `design' analysis should be a string"
 				exit _rc
+			}
+			*/
+			
+			cap confirm string variable `first'
+		
+			if _rc != 0 {
+				cap label list `first' //see if labelled
+				
+				if _rc != 0 {
+					di as error "The first covariate in `design' analysis should be a string"
+					exit, _rc
+				}
 			}
 		}
 		if ("`by'" != "") & strpos("`outplot'", "abs" ) != 0 {
@@ -809,6 +823,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 	
 	//byvar
+	/*
 	if "`by'" != "" {		
 		cap confirm string variable `by'
 		if _rc != 0 {
@@ -820,6 +835,37 @@ program define metapreg, eclass sortpreserve byable(recall)
 			my_ncod `byvar', oldvar(`by')
 			qui drop `by'
 			rename `byvar' `by'
+		}
+	}
+	*/
+	if "`by'" != "" {
+		cap confirm string variable `by'
+		
+		if _rc != 0 {
+			cap label list `by' //see if labelled
+			
+			if _rc != 0 {
+				di as error "The by() variable should be a string or coded integer"
+				exit, _rc
+			}
+		}
+		else {
+			//Check if the byvariable is part of varlist
+			local found 0
+			foreach v of local varlist {
+				if "`v'" == "`by'" {
+					local found = 1
+					continue, break
+				}
+			}
+			
+			if !`found' {
+			/*if strpos(`"`varlist'"', "`by'") == 0*/ 
+				tempvar byvar
+				my_ncod `byvar', oldvar(`by')
+				drop `by'
+				rename `byvar' `by'
+			}
 		}
 	}
 	
@@ -869,7 +915,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 		 
 	if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" | "`design'" == "mpair" { 
-		local varx = "`ipair'"
+		*local varx = "`ipair'"
+		if "`inference'" == "bayesian" {
+			local varx = "`Comparator'"
+		}
+		else {
+			local varx = "`ipair'"	
+		}
 		local typevarx = "i"		
 	}
 	
@@ -916,7 +968,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	if ("`catreg'" != " " | "`typevarx'" =="i" | ("`design'" == "comparative" | "`design'" == "mcbnetwork" | "`design'" == "pcbnetwork"))  {
 
 		if "`design'" == "mcbnetwork" | "`design'" == "pcbnetwork" {
-			local catregs = "`catreg' `Index'"
+			local catregs = "`catreg' `Comparator' `Index'"
 		}
 
 		if "`design'" == "comparative" {
@@ -954,8 +1006,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 		*local groupvar "`by'"
 		local byvar "`by'"
 		*How many times to loop
-		qui label list `by'
-		local nlevels = r(max)
+		*qui label list `by'
+		*local nlevels = r(max)
+		
+		qui levelsof `by', local(codelevels)
+		local nlevels = r(r)
+					
 	}
 	
 	/*if "`design'" == "abnetwork" {	
@@ -1026,8 +1082,9 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 	}
 	
+	/*
 	if ("`model'" == "cbbetabin" ) | ("`design'" == "general") {
-		egen `numsid' = group(`rid')
+		*egen `numsid' = group(`rid') 
 	}
 	else {
 		cap confirm string variable `studyid'
@@ -1037,7 +1094,14 @@ program define metapreg, eclass sortpreserve byable(recall)
 		else {
 			gen `numsid' = `studyid'
 		}
-		*qui egen `numsid' = group(`studyid')
+	}
+	*/
+	
+	cap confirm string variable `studyid'
+	if _rc == 0 {
+		my_ncod `numsid', oldvar(`studyid')
+		drop `studyid'
+		rename `numsid' `studyid'
 	}
 	
 	if strpos("`outplot'", "r") != 0 & "`design'" == "abnetwork" & "`aliasdesign'" == "" {
@@ -1115,9 +1179,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 			local Nuniq = r(max)
 			drop `uniq'
 		}
+		
 		if "`model'" == "cbbetabin" {
 			local Nobs = `Nobs'*0.5
 		}
+		
 		if "`design'" == "comparative" {
 			cap assert mod(`Nobs', 2) == 0 
 			if _rc != 0 {
@@ -1131,7 +1197,17 @@ program define metapreg, eclass sortpreserve byable(recall)
 				di as error "abnetwork design requires atleast 2 observations per study"
 				exit _rc
 			}
-		}		
+		}
+		/*
+		if ("`model'" == "cbbetabin" ) | ("`design'" == "general") {
+			cap assert `Nobs'/`Nuniq' == 1 
+			if _rc != 0 {
+				di as error "Ensure no duplicate identifiers in studyid(`studyid')"
+				exit _rc
+			}
+		}
+		*/
+		
 		*if (`Nobs' < 3 & "`modeli'" != "hexact" & "`design'" != "comparative") | ((`Nobs' < 5 ) & ("`modeli'" == "random") & ("`design'" == "comparative")) {
 		if `Nuniq' < 3 {
 			if "`inference'" == "frequentist" {
@@ -1184,12 +1260,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 					di as error "Option `ocimethod' not allowed in cimethod(`cimethod')"
 					exit
 				}
-				else if "`ocimethod'" == "eti" {
+				else if "`ocimethod'" == "hpd" {
 					local ocimethod 
 				}
 				else {
 					//Default
-					local ocimethod "hpd"
+					local ocimethod "eti"
 				}
 			}
 		}
@@ -1208,7 +1284,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				local bayesest = "`bwd'\metapreg_bayesest"
 			}
 			
-			preg `event' `nonevent' `total' `strataif', rid(`rid') sid(`numsid') studyid(`studyid') use(`use') regexpression(`regexpression') regexpression2(`regexpression2') nu(`nu')  ///
+			preg `event' `nonevent' `total' `strataif', rid(`rid') sid(`studyid') studyid(`studyid') use(`use') regexpression(`regexpression') regexpression2(`regexpression2') nu(`nu')  ///
 				regressors(`regressors')  catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' aliasdesign(`aliasdesign') by(`by') `stratify' baselevel(`basecode') ///
 				comparator(`Comparator') cimethod(`ocimethod') `gof' nsims(`nsims') link(`link') bayesrepsfilename(`metapregbayesreps') ///
@@ -1495,8 +1571,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		if "`design'" == "abnetwork" {
 			di "{phang}`first' ~ N(0, sigma2){p_end}"
-			qui label list `first'
-			local nfirst = r(max)
+			*qui label list `first'
+			*local nfirst = r(max)
+			
+			qui levelsof `first', local(codelevels)
+			local nfirst = r(r)
 		}		
 		if ("`catreg'" != " " | "`typevarx'" =="i" | ("`design'" == "comparative" | "`design'" == "mcbnetwork" | "`design'" == "pcbnetwork"))  {
 			di _n "{phang}Base levels{p_end}"
@@ -1507,7 +1586,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				local lab:label `fv' 0
 			}
 			else {*/
-				local lab:label `fv' 1
+				local lab:label `fv' 1  //look for the minimum
 			*}
 			if "`fv'" != "`studyid'" {
 				di "{pmore} `fv'  -- `lab'{p_end}"
@@ -1686,6 +1765,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	else if "`ocimethod'" == "hpd" {
 		mat `neorawest' = (`rawest'[1..., 1..4] , `rawest'[1..., 7..8])
 		mat `neoabsout' = (`absout'[1..., 1..4] , `absout'[1..., 7..8])
+		
 		if "`ratios'" == "" {
 			mat `neorrout' = (`rrout'[1..., 1..4] , `rrout'[1..., 7..8])
 			mat `neordout' = (`rdout'[1..., 1..4] , `rdout'[1..., 7..8])
@@ -1859,8 +1939,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 			if "`design'" == "abnetwork" {	
 				//How many groups
-				qui label list `first'
-				local ngroups = r(max)
+				*qui label list `first'
+				*local ngroups = r(max)
+				
+				qui levelsof `first', local(codelevels)
+				local ngroups = r(r)
 				
 				if "`aliasdesign'" != "" {
 					cap assert `ngroups' == 2
@@ -2029,7 +2112,14 @@ program define metapreg, eclass sortpreserve byable(recall)
 				sort `rid'
 				cap drop `assignment' `ipair' `nonevent'
 				
-				qui reshape wide `event' `total' _WT `modelstats', i(`rid') j(`idpair')
+				qui reshape wide `event' `total' _WT /// 
+								`modelp' `modelplci' `modelpuci'  //// 
+								`modelrr' `modelrrlci' `modelrruci'  ///
+								`modelrd' `modelrdlci' `modelrduci'  ///
+								`modellrr' `modellrrlci' `modellrruci'  ///
+								`modellor' `modellorlci' `modelloruci'  ///
+								`modelor' `modelorlci' `modeloruci'  ///
+								, i(`rid') j(`idpair')
 
 				//Add the weights
 				qui gen _WT = _WT0 + _WT1
@@ -2102,7 +2192,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				
 				disptab `id'  `use' `neolabel' `es' `lci' `uci' `grptotal' `modelstats', ///
 					`itable' dp(`dp') power(`power') design(`design') aliasdesign(`aliasdesign') `summaryonly' ///
-					`subgroup' sumstat(`neosumstat') level(`level') `wt' `smooth' ///
+					`subgroup' sumstat(`neosumstat') level(`level') `wt' `smooth' inference(`inference') ///
 					ocimethod(`ocimethod') icimethod(`icimethod') model(`model') groupvar(`groupvar') outplot(`metric') popstat(`popstat')
 			}
 			
@@ -3193,16 +3283,23 @@ program define preg, rclass
 		}
 	}
 
-	if (`p' == 0) & ("`getmodel'" == "random") & ("`pcbnetwork'`mcbnetwork'" == "") & "`link'" == "logit" {
+	if (`p' == 0) & (strpos("`getmodel'",  "random") != 0) & ("`pcbnetwork'`mcbnetwork'" == "") & "`link'" == "logit" {
 		/*Compute I2*/				
 		qui gen `invtotal' = 1/`total'
 		qui summ `invtotal' if `touse'
 		
 		local avgN = r(mean)
-		local Esigma = (exp(`TAU21'*0.5 + `coefmat'[1, 1]) + exp(`TAU21'*0.5 - `coefmat'[1, 1]) + 2) * `avgN'		
+		if (strpos("`getmodel'",  "bayes") != 0) {
+			qui bayesstats summary {`event':mu}
+			mat `coefmat' = r(summary)
+			local Esigma = (exp(`TAU21'*0.5 + `coefmat'[1, 4]) + exp(`TAU21'*0.5 - `coefmat'[1, 4]) + 2) * `avgN'
+		}
+		else {
+			local Esigma = (exp(`TAU21'*0.5 + `coefmat'[1, 1]) + exp(`TAU21'*0.5 - `coefmat'[1, 1]) + 2) * `avgN'
+		}		
 		local ISQ1 = `TAU21'/(`Esigma' + `TAU21')*100	
 	}
-	else if ("`abnetwork'`cov'" != "") & ("`getmodel'" == "random") {
+	else if ("`abnetwork'`cov'" != "") & (strpos("`getmodel'",  "random") != 0) {
 		local ISQ1 = `TAU21'/(`TAU21' + `TAU22')*100
 		local ISQ2 = `TAU22'/(`TAU21' + `TAU22')*100		
 	}
@@ -3261,7 +3358,7 @@ program define preg, rclass
 				regexpression(`regexpression') `baselevel' link(`link') inference(`inference') total(`total') cov(`cov')
 		}
 		else {
-			cap  bayesestr, event(`event') catreg(`catreg') ///
+			/*cap*/  bayesestr, event(`event') catreg(`catreg') ///
 				level(`level') comparator(`comparator') `interaction' cimethod(`cimethod') ///
 				varx(`varx') typevarx(`typevarx') by(`by') `mcbnetwork' `pcbnetwork'  `mpair' ///
 				`comparative' `abnetwork' `stratify' model(`getmodel') cov(`cov') ///
@@ -3273,7 +3370,7 @@ program define preg, rclass
 				mat `rrout' = r(rroutmatrix)
 				mat `rdout' = r(rdoutmatrix)
 				mat `orout' = r(oroutmatrix)
-				
+								
 				if "`inference'" == "frequentist" {
 					local inltest = r(inltest)
 					if "`inltest'" == "yes" {
@@ -3294,6 +3391,7 @@ program define preg, rclass
 					mat `poplrrout' = r(lrroutmatrix)
 					mat `poporout' = r(oroutmatrix)
 					mat `poplorout' = r(loroutmatrix)
+					
 				}
 			}
 			else {
@@ -3958,7 +4056,7 @@ program define fitmodel, rclass
 				local varprior "igamma(0.01, 0.01)"
 				*local varprior "igamma(0.1, 0.1)"
 				
-				if "`cov'" != "commonslope" {
+				if "`cov'" != "commonslope" &  "`comparative'" != "" {
 					local expsigma = `"{sigmasq}"'
 					local parmsigma = `"{sigmasq}"'
 					local priorsigma =  "`varprior'"
@@ -3971,8 +4069,7 @@ program define fitmodel, rclass
 			}
 		}
 		else {
-
-			if "`cov'" != "unstructured" {
+			if ("`cov'" != "unstructured") & ("`cov'" != "") {
 				if "`cov'" != "commonslope" {
 					local expsigma = `"{sigmasq}"'
 					local parmsigma = `"{sigmasq}"'
@@ -3989,7 +4086,7 @@ program define fitmodel, rclass
 		fvset base none `sid'
 			
 		gettoken mu variableterms: regexpression
-				
+						
 		if "`cov'" != "" {
 			tokenize `variableterms'
 			macro shift
@@ -4103,10 +4200,47 @@ program define fitmodel, rclass
 				local blockvarcov = `"block({Sigma, matrix}, gibbs)"'
 			}
 		}
+		//general design
 		if "`cov'" == "" & strpos("`model'", "random") != 0 {
-			local neoregexpression "`'"
+			*tokenize `variableterms'
+			*macro shift
+			*local variableterms `*'
+			
+			if "`interaction'" != "" {
+				//Rewrite the regexpression if interaction terms are present; discard the main terms and add hash to the interaction term
+				local neoterms
+				foreach term of local variableterms {
+					if strpos("`term'", "#") != 0 {					
+						local term = subinstr("`term'", "#", "##", 1)					
+						local neoterms "`neoterms' `term'"
+					}
+				}
+				local variableterms "`neoterms'"
+			}
+			
+			local neoregexpression = `"i.`sid' `variableterms'"'
+			
+			//Assign re priors
+			local priorsid = `"prior({`events':i.`sid'}, normal({`events':mu}, `exptau'))"'			
+			local priortau = `"prior(`parmtau', `priortau')"'
+													
+			if	`refsampling' == 1 {
+				local blocksid = `"block({`events':i.`sid'}, split)"'
+			}
+			else if `refsampling' == 2 {
+				local blocksid = `"block({`events':i.`sid'}, reffects)"'
+			}
+			else if `refsampling' == 3 {
+				local blocksid = `"reffects(`sid')"'
+			}
+			if strpos("`varprior'", "gamma") != 0 { 
+				local blocktau = `"block(`parmtau', gibbs)"'
+			}
+			else {
+				local blocktau = `"block(`parmtau')"'
+			}
 		}
-		
+
 		//assign fe priors			
 		if "`variableterms'" != "" {
 			local priorfe = `"prior({`events':`variableterms'}, `feprior')"'
@@ -4643,9 +4777,16 @@ program define prep4show
 			replace `label' = "Group Summary" if `use' == 2 
 			replace _WT = . if `use' == 2 
 						
-			qui label list `groupvar'
-			local nlevels = r(max)
+			*qui label list `groupvar'
+			*local nlevels = r(max)
+			
+			qui levelsof `groupvar', local(codelevels)
+			local nlevels = r(r)
+			
+			*foreach l of local codelevels {
 			forvalues l = 1/`nlevels' {
+				
+				
 				if "`outplot'" == "abs" {
 					if "`model'" == "hexact" {
 						local S_1 = `exactabsout'[`l', 1]
@@ -4691,6 +4832,7 @@ program define prep4show
 							}
 						}
 					}
+					
 					if "`prediction'" != "" {
 						local S_5 = `absoutp'[`l', 1]
 						local S_6 = `absoutp'[`l', 2]
@@ -4698,8 +4840,7 @@ program define prep4show
 					if "`model'" == "random" & "`indvars'" == "" & "`stratify'" !="" {
 						local isq = `hetout'[`l', 5]
 						local phet = `hetout'[`l', 3]
-						replace `label' = "Group Summary" + " (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if (`use' == 2) & (`groupvar' == `l') & (`grptotal' > 2)  & (`isq' != .)	
-						
+						replace `label' = "Group Summary" + " (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if (`use' == 2) & (`groupvar' == `groupcode') & (`grptotal' > 2)  & (`isq' != .)	
 					}	 
 				}
 				else {
@@ -4787,12 +4928,14 @@ program define prep4show
 						}
 					}
 				}
-				local lab:label `groupvar' `l'
-				replace `label' = "`groupvar' = `lab'" if `use' == -2 & `groupvar' == `l' & (("`abnetwork'" == "") |("`outplot'" == "abs" & "`abnetwork'" != ""))	
-				replace `label' = "`lab'" if `use' == 2 & `groupvar' == `l' & "`outplot'" != "abs" & "`abnetwork'" != ""		
-				replace `es'  = `S_1' if `use' == 2 & `groupvar' == `l'	
-				replace `lci' = `S_3' if `use' == 2 & `groupvar' == `l'	
-				replace `uci' = `S_4' if `use' == 2 & `groupvar' == `l'	
+				local groupcode : word `l' of `codelevels'
+				local lab:label `groupvar' `groupcode'
+				
+				replace `label' = "`groupvar' = `lab'" if `use' == -2 & `groupvar' == `groupcode' & (("`abnetwork'" == "") |("`outplot'" == "abs" & "`abnetwork'" != ""))	
+				replace `label' = "`lab'" if `use' == 2 & `groupvar' == `groupcode' & "`outplot'" != "abs" & "`abnetwork'" != ""		
+				replace `es'  = `S_1' if `use' == 2 & `groupvar' == `groupcode'	
+				replace `lci' = `S_3' if `use' == 2 & `groupvar' == `groupcode'	
+				replace `uci' = `S_4' if `use' == 2 & `groupvar' == `groupcode'	
 				//Predictions
 				/*
 				if "`outplot'" == "abs" & "`prediction'" != "" {
@@ -4801,9 +4944,9 @@ program define prep4show
 				}
 				*/
 				//Weights
-				sum _WT if `use' == 1 & `groupvar' == `l'
+				sum _WT if `use' == 1 & `groupvar' == `groupcode'
 				local groupwt = r(sum)
-				replace _WT = `groupwt' if `use' == 2 & `groupvar' == `l'	
+				replace _WT = `groupwt' if `use' == 2 & `groupvar' == `groupcode'	
 			}	
 		}
 		else {
@@ -5020,7 +5163,7 @@ program define disptab
 	#delimit ;
 	syntax varlist, [nosubgroup nooverall level(integer 95) sumstat(string asis) model(string)
 	dp(integer 2) power(integer 0) nowt smooth icimethod(string) ocimethod(string) groupvar(varname) 
-	design(string) aliasdesign(string) outplot(string) summaryonly popstat(string)]
+	design(string) aliasdesign(string) outplot(string) summaryonly popstat(string) inference(string)]
 	;
 	#delimit cr
 	
@@ -5117,7 +5260,12 @@ program define disptab
 					local citext "- `icimethod' CI -"
 				}
 				else  {
-					local citext "- `icimethod' (Wald) CI - "
+					if "`inference'" == "bayesian" {
+						local citext "- `icimethod' (Centile) CI - "
+					}
+					else {
+						local citext "- `icimethod' (Wald) CI - "
+					}
 				}
 			}
 			else {
@@ -5372,8 +5520,13 @@ end
 				//nulllify
 				local interaction
 			}
-			else {
-				local regexpression = "mu i.`ipair' i.`index'"	
+			else {				
+				if "`mcbnetwork'" != "" {
+					local regexpression = "mu i.`comparator' i.`index'"	
+				}
+				else {
+					local regexpression = "mu i.`ipair' i.`index'"	
+				}
 			}
 		}
 		else { 
@@ -5390,25 +5543,53 @@ end
 		
 		local basecode 1
 		tokenize `regressors'
-		forvalues i = 1(1)`p' {			
-			capture confirm numeric var ``i''
+		forvalues i = 1(1)`p' {	
+		
+			cap label list ``i'' //see if labelled
+			
 			if _rc != 0 {
-				if "`alphasort'" != "" {
-					sort ``i''
+				cap confirm string variable ``i''  //check if string
+				if _rc == 0 {
+					if "`alphasort'" != "" {
+						sort ``i''
+					}
+					my_ncod `holder', oldvar(``i'')
+					drop ``i''
+					rename `holder' ``i''
+					local prefix_`i' "i"
 				}
-				my_ncod `holder', oldvar(``i'')
-				drop ``i''
-				rename `holder' ``i''
-				local prefix_`i' "i"
+				else {
+					capture confirm numeric var ``i''
+					if _rc == 0 {
+						local prefix_`i' "c"
+					}
+				}
 			}
 			else {
-				local prefix_`i' "c"
+				local prefix_`i' "i"
 			}
+			
 			if "`baselevel'" != "" & `i'==1 {
 				//Find the base level
-				qui label list ``i''
-				local nlevels = r(max)
+				*qui label list ``i''
+				*local nlevels = r(max)
+				
+				qui levelsof ``i'', local(codelevels)
+				local nlevels = r(r)
+				
 				local found = 0
+				
+				foreach l of local groupcodes {
+					local lab:label ``i'' `l'
+					if "`lab'" == "`baselevel'" {
+						local found = 1
+						local basecode `l'
+					}
+					if `found' {
+						continue, break
+					}
+				}
+				/*
 				local level 1
 				while !`found' & `level' < `=`nlevels'+1' {
 					local lab:label ``i'' `level'
@@ -5418,6 +5599,7 @@ end
 					}
 					local ++level
 				}
+				*/
 				
 				/*if "`abnetwork'" != "" {
 					local prefix_`i' "ibn"
@@ -5427,12 +5609,12 @@ end
 				}
 			}
 			/*Add the proper expression for regression*/
-			local regexpression2 = "`regexpression2' `prefix_`i''.``i''#c.mu"
-			local regexpression = "`regexpression' `prefix_`i''.``i''"
+			local regexpression2 = "`regexpression2' `prefix_`i''.``i''#c.mu"     //for cbbetabin
+			local regexpression = "`regexpression' `prefix_`i''.``i''"   //for other models
 				
 			if `i' > 1 & "`interaction'" != "" {
-				local regexpression = "`regexpression' `prefix_`i''.``i''#`prefix_1'.`1'"
-				local regexpression2 = "`regexpression2' `prefix_`i''.``i''#`prefix_1'.`1'#c.mu"				
+				local regexpression = "`regexpression' `prefix_`i''.``i''#`prefix_1'.`1'"   //for cbbetabin
+				local regexpression2 = "`regexpression2' `prefix_`i''.``i''#`prefix_1'.`1'#c.mu"	 //for other models			
 			}
 						
 			if "``i''" == "`studyid'" {
@@ -5534,7 +5716,7 @@ end
 	program define bayessummary, rclass
 		syntax, estimates(string) studyid(varname) [event(varname) total(varname) DP(integer 2) model(string) varx(varname) typevarx(string) regexpression(string) ///
 			comparator(varname) cimethod(string) mpair mcbnetwork pcbnetwork abnetwork general comparative stratify interaction ///
-			catreg(varlist) contreg(varlist) power(integer 0) level(integer 95) by(varname) link(string) cov(string)]
+			catreg(varlist) contreg(varlist) power(integer 0) level(integer 95) by(varname) link(string) cov(string) baselevel(integer 1)]
 		
 		tempname absout loddsout exactabsout exactabsouti absexact etimat hpdmat
 		tempvar subset insample hold holdleft holdright
@@ -5548,7 +5730,7 @@ end
 				tokenize `3', parse(".")
 			 }
 			local index "`3'"
-			local catreg = "`3' `catreg'"
+			local catreg = "`comparator' `3' `catreg'"
 			local varx //nullify
 			if "`by'" != "`comparator'" {
 				*local catreg = "`comparator' `catreg'"
@@ -5602,10 +5784,15 @@ end
 		local ncatreg 0
 		if  "`cov'" == "freeint" | "`mu'" == "muoff" {
 			foreach c of local catvars {
-				qui label list `c'
-				local nlevels = r(max)
-					
-				forvalues l = 1/`nlevels' {
+				
+				*qui label list `c'
+				*local nlevels = r(max)
+				
+				qui levelsof `c', local(codelevels)
+				local nlevels = r(r)
+				
+				foreach l of local 	codelevels {
+				*forvalues l = 1/`nlevels' {
 					local lab:label `c' `l'
 					local lab = ustrregexra("`lab'", " ", "_")
 					local nlen : strlen local lab
@@ -5623,14 +5810,17 @@ end
 		else {
 			if "`catvars'" != "" {
 				foreach c of local catvars {
-					qui label list `c'
-					local nlevels = r(max)
+					*qui label list `c'
+					*local nlevels = r(max)
 					
-					forvalues l = 1/`nlevels' {
+					qui levelsof `c', local(codelevels)
+					local nlevels = r(r)
+					
+					foreach l of local 	codelevels {
 						if "`interaction'" != "" {								
 							local xterm = " + {`event':`l'.`c'#2.`varx'}"
 													
-							if `l' == 1 {
+							if `l' == `baselevel' {
 								local parmp = "`parmp' (`c'_`l'_`varx'_1:`invfn'({`event':mu})) (`c'_`l'_`varx'_2:`invfn'({`event':mu} + {`event':2.`varx'}))  "
 								local parmlodds = "`parmlodds' (`c'_`l'_`varx'_1:({`event':mu})) (`c'_`l'_`varx'_2:({`event':mu} + {`event':2.`varx'}))"
 							} 
@@ -5640,7 +5830,7 @@ end
 							}
 						}
 						else {
-							if `l' == 1 {
+							if `l' == `baselevel' {
 								local parmp = "`parmp' (`c'_`l':`invfn'({`event':mu}))"
 								local parmlodds = "`parmlodds' (`c'_`l':({`event':mu}))"
 							} 
@@ -5694,8 +5884,10 @@ end
 					if "`7'" != "" {
 						local leftvar = "`1'"
 						local leftlab :label `1' `3' 
+						local leftlab = ustrregexra("`leftlab'", " ", "_")
 						local rightvar = "`5'"
 						local rightlab : label `5' `7'
+						local rightlab = ustrregexra("`rightlab'", " ", "_")
 						
 						local nlen1l:strlen local leftlab
 						local nlenrl:strlen local rightlab
@@ -5857,12 +6049,12 @@ end
 		
 		tokenize `regexpression'
 		if "`mcbnetwork'`pcbnetwork'" != "" {
-			 if "`interaction'" != "" {
+			if "`interaction'" != "" {
 				tokenize `2', parse(".")
-			 }
+			}
 			 else {
 				tokenize `3', parse(".")
-			 }
+			}
 			local index "`3'"
 			local catreg = "`3' `catreg'"
 			local varx //nullify
@@ -6195,7 +6387,6 @@ end
 			foreach vari of local eqnames {		
 				local ++mindex
 				local group : word `mindex' of `rnames'
-				
 				
 				//Skip if continous variable
 				if (strpos("`vari'", "_") == 1) & ("`group'" != "Overall"){
@@ -7096,9 +7287,14 @@ program define postsim, rclass
 				if "`interaction'" != "" {
 					local catvars "`catreg' `varx'"
 					foreach c of local catvars {
-						qui label list `c'
-						local nlevels = r(max)
-						forvalues l = 1/`nlevels' {
+						*qui label list `c'
+						*local nlevels = r(max)
+						
+						qui levelsof `c', local(codelevels)
+						local nlevels = r(r)
+						
+						foreach l of local codelevels {
+						*forvalues l = 1/`nlevels' {
 							local lab:label `c' `l'
 							local lab = ustrregexra("`lab'", " ", "_")
 							local eqnames = "`c' `eqnames'"
@@ -7109,12 +7305,16 @@ program define postsim, rclass
 				
 				//Add by
 				if ("`by'" != "" & "`stratify'"  == "")  {
-					qui label list `by'
-					local nlevels = r(max)
-					forvalues l = 1/`nlevels' {
+					*qui label list `by'
+					*local nlevels = r(max)
+					
+					qui levelsof `by', local(codelevels)
+					local nlevels = r(r)
+						
+					foreach l of local codelevels {
 						local lab:label `by' `l'
 						local lab = ustrregexra("`lab'", " ", "_")
-						local eqnames = "`c' `eqnames'"
+						local eqnames = "`by' `eqnames'"
 						local rnames = "`lab' `rnames'"						
 					}
 				}
@@ -7260,8 +7460,12 @@ program define postsim, rclass
 					
 					cap drop `hold'	
 					decode `vari', gen(`hold')
-					label list `vari'
-					local ngroups = r(max)
+					
+					*label list `vari'
+					*local ngroups = r(max)
+					levelsof `vari', local(groupcodes)
+					local ngroups = r(r)
+			
 					local baselab:label `vari' `baselevel'
 					
 					//count in basegroup
@@ -7341,7 +7545,9 @@ program define postsim, rclass
 					mat rownames `poplorouti`baselevel'' = `vari':`baselab'
 					
 					//Other groups
-					forvalues g=1(1)`ngroups' {
+					foreach g of local groupcodes {
+					*forvalues g=1(1)`ngroups' {
+						*local g: word `l' of `groupcodes'
 						if `g' != `baselevel' {
 							tempvar meanphat`g' meanrrhat`g' meanrdhat`g' meanlrrhat`g' meanorhat`g' meanlorhat`g' gid`g' sumphat`g' subsetid`g'
 							tempname poprrouti`g' poprdouti`g' poplrrouti`g' poporouti`g' poplorouti`g'
@@ -8350,7 +8556,7 @@ cap program drop bayesestrcore
 program define bayesestrcore, rclass
 
 syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
-			level(integer 95)  baselevel(integer 1) link(string) model(string) MUOFF interaction] 
+			level(integer 95)  baselevel(integer 1) link(string) model(string) MUOFF interaction ] 
 		
 	tempname RRoutmatrix ORoutmatrix RDoutmatrix RRoutmatrixi ORoutmatrixi RDoutmatrixi etimat hpdmat
 	
@@ -8368,13 +8574,18 @@ syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
 		local EstRRexpression //RR
 		local EstORexpression //OR
 		
-		qui label list `c'
-		local nlevels = r(max)
+		*qui label list `c'
+		*local nlevels = r(max)
+		
+		qui levelsof `c', local(codelevels)
+		local nlevels = r(r)
+		
 		local test_`c'
 		
 		if "`muoff'" != "" {
 			if "`varx'" != "" {
-				forvalues l = 1/`nlevels' {
+				foreach l of local codelevels {
+				*forvalues l = 1/`nlevels' {
 					
 					if "`interaction'" != "" & `l' > 1 {
 						local xterm = "+ {`event':`l'.`c'#2.`varx'}"
@@ -8389,12 +8600,15 @@ syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
 				}
 			}
 			else {
-				forvalues l = 2/`nlevels' {					
-					if "`link'" == "logit" {
-						local EstORexpression = "`EstORexpression' (`c'_`l':exp({`event':`l'.`c'} `xterm'))"  //OR
-					}
-					else if "`link'" == "log" {
-						local EstRRexpression = "`EstRRexpression' (`c'_`l':exp({`event':`l'.`c'} `xterm'))"  //RR
+				*forvalues l = 2/`nlevels' {
+				foreach l of local codelevels {
+					if (`l' != `baselevel') {
+						if "`link'" == "logit" {
+							local EstORexpression = "`EstORexpression' (`c'_`l':exp({`event':`l'.`c'} `xterm'))"  //OR
+						}
+						else if "`link'" == "log" {
+							local EstRRexpression = "`EstRRexpression' (`c'_`l':exp({`event':`l'.`c'} `xterm'))"  //RR
+						}
 					}
 				}
 			}
@@ -8411,7 +8625,13 @@ syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
 				forvalues l = 1/`nlevels' {
 				
 					if `l' == 1 {
+						*local p_`c'_`1'_`varx'_1 "`invfn'({`event':mu})"   //p for each level of c and first level of varx
+						*local p_`c'_`1'_`varx'_2 "`invfn'({`event':mu} + {`event':2.`varx'})"   //p for each level of c and second level of varx
+						
+						
+						
 						local EstRDexpression = "`EstRDexpression' (`c'_`l':-`invfn'({`event':mu} + {`event':2.`varx'}) + `invfn'({`event':mu}))"
+						
 						if "`link'" == "logit" {
 							local EstORexpression = "`EstORexpression' (`c'_`l':exp({`event':2.`varx'}))"
 							local EstRRexpression = "`EstRRexpression' (`c'_`l':`invfn'({`event':mu} + {`event':2.`varx'}) / `invfn'({`event':mu}))"
@@ -8422,6 +8642,10 @@ syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
 						}
 					}
 					else {
+					
+						*local p_`c'_`1'_`varx'_1 "`invfn'({`event':mu} + {`event':`l'.`c'})"   //p for each level of c and first level of varx
+						*local p_`c'_`1'_`varx'_2 "`invfn'({`event':mu} + {`event':`l'.`c'} + {`event':2.`varx'})"   //p for each level of c and second level of varx
+						
 						if "`interaction'" != "" {
 							local xterm = "+ {`event':`l'.`c'#2.`varx'}"
 						}
@@ -8437,6 +8661,8 @@ syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
 							local EstORexpression = "`EstORexpression' (`c'_`l':exp(logit(`invfn'({`event':mu} + {`event':2.`varx'} + {`event':`l'.`c'} `xterm' )) -logit(`invfn'({`event':mu} + {`event':`l'.`c'}))))" 
 						}
 					}
+					
+					*local EstRDexpression = "`EstRDexpression' (`c'_`l':`p_`c'_`1'_`varx'_2' - `p_`c'_`1'_`varx'_1')"
 				}
 			}
 			else {	
@@ -8627,7 +8853,7 @@ end
 		
 		local confounders "`catreg'"
 		
-		tempname  RRoutmatrix RDoutmatrix ORoutmatrix row ///
+		tempname RRoutmatrix RDoutmatrix ORoutmatrix row ///
 				outmatrixr overallRR overallRD overallOR  bymatRR bymatRD bymatOR ///
 				compmatRR compmatRD compmatOR  ///
 				catregmatRD catregmatRR catregmatOR  ///
@@ -8640,8 +8866,8 @@ end
 		local ncomp 0
 		local ncatreg 0
 		
-		if "`by'" != "" & "`typevarx'" == "i" & "`stratify'" == "" {		
-			bayesestrcore, event(`event') varx(`varx')  confounders(`by')  cimethod(`cimethod') link(`link') `mu'
+		if ("`by'" != "") & ("`typevarx'" == "i") & ("`stratify'" == "") & ("`mcbnetwork'" == "")  {		
+			bayesestrcore, event(`event') varx(`varx')  confounders(`by')  cimethod(`cimethod') link(`link') `mu' baselevel(`baselevel')
 			
 			matrix `bymatRD' = r(rdoutmatrix)
 			matrix `bymatRR' = r(rroutmatrix)
@@ -8656,11 +8882,15 @@ end
 		}
 		
 		if ("`by'" != "`comparator'") & ("`comparator'" != ""){
-			qui label list `comparator'
-			local nc = r(max)
+			*qui label list `comparator'
+			*local nc = r(max)
+			
+			qui levelsof `comparator'
+			local nc = r(r)
+			
 			if (`nc' > 1) {	
 		
-				bayesestrcore, event(`event')  varx(`varx') confounders(`comparator')  cimethod(`cimethod') link(`link') `mu'
+				bayesestrcore, event(`event')  varx(`varx') confounders(`comparator')  cimethod(`cimethod') link(`link') `mu' baselevel(`baselevel')
 				
 				matrix `compmatRR' = r(rroutmatrix)
 				matrix `compmatRD' = r(rdoutmatrix)
@@ -8684,7 +8914,7 @@ end
 			
 		if "`catreg'" != "" {			
 			if "`mcbnetwork'`pcbnetwork'`comparative'" != "" { 
-				bayesestrcore, event(`event') varx(`varx') confounders(`catreg') baselevel(`baselevel') cimethod(`cimethod') link(`link') `interaction' `mu'
+				bayesestrcore, event(`event') varx(`varx') confounders(`catreg') baselevel(`baselevel') cimethod(`cimethod') link(`link') `interaction' `mu' 
 			}
 			else {
 				bayesestrcore, event(`event') confounders(`catreg') baselevel(`baselevel')  cimethod(`cimethod') link(`link') `mu'
@@ -8804,12 +9034,17 @@ syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(
 		local EstORlnexpression //log OR
 		local EstRDexpression // RD
 		foreach c of local confounders {	
-			qui label list `c'
-			local nlevels = r(max)
+			*qui label list `c'
+			*local nlevels = r(max)
+			
+			qui levelsof `c', local(codelevels)
+			local nlevels = r(r)
+					
 			local test_`c'
 			
 			if "`varx'" != "" {
-				forvalues l = 1/`nlevels' {
+				foreach l of local codelevels {
+				*forvalues l = 1/`nlevels' {
 					if `l' == 1 {
 						local test_`c' = "_b[`c'_`l']"
 					}
@@ -8825,7 +9060,8 @@ syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(
 				local test_`c' = "_b[`c'_`baselevel']"
 				local init 1
 				
-				forvalues l = 1/`nlevels' {
+				foreach l of local codelevels {
+				*forvalues l = 1/`nlevels' {
 					if `l' != `baselevel' {
 						local test_`c' = "_b[`c'_`l'] = `test_`c''"
 						*local EstRDexpression = "`EstRDexpression' (`c'_`l': (invlogit(_b[`l'.`c'])) - (invlogit(_b[`baselevel'.`c'])))"
@@ -8852,8 +9088,12 @@ syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(
 		local i = 1
 
 		foreach c of local confounders {
-			qui label list `c'
-			local nlevels = r(max)
+			*qui label list `c'
+			*local nlevels = r(max)
+			
+			qui levelsof `c'
+			local nlevels = r(r)
+			
 			if (`nlevels' > 2 & "`varx'" == "") | (`nlevels' > 1 & "`varx'" != "" ){
 				qui testnl (`test_`c'')
 				local testnl_`c'_chi2 = r(chi2)				
@@ -8886,8 +9126,12 @@ syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(
 		local i = 1
 
 		foreach c of local confounders {
-			label list `c'
-			local nlevels = r(max)
+			*qui label list `c'
+			*local nlevels = r(max)
+			
+			qui levelsof `c'
+			local nlevels = r(r)
+			
 			if (`nlevels' > 2 & "`varx'" == "") | (`nlevels' > 1 & "`varx'" != "" ){
 				qui testnl (`test_`c'')
 				local testnl_`c'_chi2 = r(chi2)				
@@ -8918,8 +9162,12 @@ syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(
 					
 		local i = 1
 		foreach c of local confounders {
-			label list `c'
-			local nlevels = r(max)
+			*qui label list `c'
+			*local nlevels = r(max)
+			
+			qui levelsof `c'
+			local nlevels = r(r)
+			
 			if (`nlevels' > 2 & "`varx'" == "") | (`nlevels' > 1 & "`varx'" != "" ){
 				testnl (`test_`c'')
 				local testnl_`c'_chi2 = r(chi2)				
@@ -9143,8 +9391,12 @@ end
 		}
 		
 		if ("`by'" != "`comparator'") & ("`comparator'" != ""){
-			label list `comparator'
-			local nc = r(max)
+			*label list `comparator'
+			*local nc = r(max)
+				
+			qui levelsof `comparator'
+			local nc = r(r)
+			
 			if (`nc' > 1) {	
 		 
 				freqestrcore, marginlist(`varx') varx(`varx') by(`comparator') confounders(`comparator') estimates(`estimates') cimethod(`cimethod') link(`link') model(`model') total(`total')
@@ -10122,9 +10374,9 @@ program define metabayesoptscheck, rclass
 	#delimit ;
 	syntax [,
 		nchains(integer 3)  /*3*/
-		thinning(integer 5) /*5*/
-		burnin(integer 5000) /*5000*/
-		mcmcsize(integer 2500) /*2500*/
+		thinning(integer 1) /*5*/
+		burnin(integer 500) /*5000*/
+		mcmcsize(integer 200) /*2500*/
 		rseed(integer 1)
 		refsampling(integer 1)
 		varprior(passthru)
@@ -11214,9 +11466,14 @@ end
 	}
 	if "`subline'" != "" & "`groupvar'" != "" {
 		local sublineCommand ""		
-		qui label list `groupvar'
-		local nlevels = r(max)
-		forvalues l = 1/`nlevels' {
+		*qui label list `groupvar'
+		*local nlevels = r(max)
+		
+		qui levelsof `groupvar', local(codelevels)
+		local nlevels = r(r)
+		
+		foreach l of local codelevels {			
+		*forvalues l = 1/`nlevels' {
 			qui summ `es' if `use' == 2  & `groupvar' == `l' 
 			local tempSub`l' = r(mean)
 			qui summ `id' if `use' == 1 & `groupvar' == `l'
