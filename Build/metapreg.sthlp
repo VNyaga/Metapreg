@@ -562,9 +562,6 @@ with specified x-axis label, e.t.c.
 {stata "use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta":. use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta}
 {p_end}
 
-{pmore2}
-{cmd :. decode tgroup, g(STRtgroup)}
-{p_end}
 
 {pmore2}
 {cmd :. #delimit ;}
@@ -577,7 +574,7 @@ with specified x-axis label, e.t.c.
 {cmd : studyid(study) }
 {p_end}
 {pmore3}
-{cmd :by(STRtgroup) }
+{cmd :by(tgroup) }
 {p_end}
 {pmore3}
 {cmd :cimethod(exact) }
@@ -603,11 +600,11 @@ with specified x-axis label, e.t.c.
 {it:({stata "metapreg_examples metapreg_example_one_one":click to run})}
 
 {synoptline}
-{cmd: 1.2 Seperate intercept-only model by triage group}
+{cmd: 1.2 Different intercept-only models by triage group}
 
 {pmore}
-With the {cmd: by(STRtgroup)} option in {help metapreg##example_one:Example1.1} the estimates in each group are similar. 
-To obtain seperate tables and graphs, use instead the {help by} prefix instead i.e {cmd: bysort tgroup:} 
+With the {cmd: by(tgroup)} option in {help metapreg##example_one:Example1.1} the conditional estimates in each group are identical. 
+To fit different models and obtain seperate tables and graphs for each group, use instead the {help by} prefix instead i.e {cmd: bysort tgroup:} 
 or {cmd: by tgroup:} if {cmd:tgroup} is already sorted. The option {cmd:rc0} ensures that the program runs in all groups even when there could
 be errors encountered in one of the sub-group analysis. Without the option, the program stops running when the 
 first error occurs in one of the groups.
@@ -973,7 +970,7 @@ The analysis is more appropriately perfomed using {cmd:metapreg} by including {c
 {p_end}
 
 {pmore}
-The interaction term allows to test whether the risk-ratios for arm differ between the group with and without missing data.
+The {cmd:interaction} term allows to test whether the risk-ratios for arm differ between the group with and without missing data.
 {p_end}
 
 {pmore2}
@@ -1029,9 +1026,11 @@ The interaction term allows to test whether the risk-ratios for arm differ betwe
 
 {synoptline}
 {marker example_five_one}{...}
-{cmd : 5.1 Meta-regression - matched Studies - sparse data }
+{cmd : 5.1 Meta-regression - matched Studies - Comparison of two tests in reproducibility studies}
 {pmore}
-We demonstrate the use of {cmd:mcbnetwork} option when matched data is available. The data should be a from a 2x2 table as displayed below;
+We demonstrate the use of {cmd:mpair} option using data from reproducibility studies containing paired hrHPV test 
+results in self-samples and clinician-collected samples.
+The data in each study should be a from a 2x2 table as displayed below;
 
 {p 24} {c |} Clinician sample {p_end}
 {pmore2} 
@@ -1053,7 +1052,7 @@ Negative{c |} {space 3} c {space 7}	d {space 5} {c |}  c + d
 Total {c |} a + c {space 5} b + d  {space 4}{c |} a + b + c+ d
 {p_end}
 
-
+The option facilitates the estimation of the test positivity ratio for each type, but presented all results presented in a single plot.
 {pmore2}
 {stata `"use "http://fmwww.bc.edu/repec/bocode/m/matched.dta""':. use "http://fmwww.bc.edu/repec/bocode/m/matched.dta"}
 {p_end}
