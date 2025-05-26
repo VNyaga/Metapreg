@@ -66,7 +66,10 @@ DATE:						DETAILS:
 02.07.2024					Generate graphs in all scales	
 25.10.2024					Regresss a b c d data when there is one test, i.e simplified mcbnetwork.matched-pair, introduce design(mpair)	
 25.02.2025					Do not print marginal estimates of logits, p, rd and rr if cov(freeint) since they are irrelevant.	
-28.04.2025					Work with encoded variables as well as string as categorical							
+28.04.2025					Work with encoded variables as well as string as categorical
+09.05.2025					popstat(median|mean) ------> stat(median|mean)	
+15.05.2025					ocimethod ------>scimethod summary CI method
+20.05.2025					Remove prediction					
 */
 
 /*++++++++++++++++++++++	METAPREG +++++++++++++++++++++++++++++++++++++++++++
@@ -84,17 +87,30 @@ program define metapreg, eclass sortpreserve byable(recall)
 	#delimit ;
 	syntax varlist(min=2) [if] [in], 
 		STudyid(varname) [
+		
+		/*Model options*/
+		Model(string) //model(random|mixed|fixed|hexact|cbbetabin|crbetabin, options)
+		INFerence(string) //inference(FREQuentist|BAYesian)
+		BWD(string asis) /*working directory to save bayesian estimates*/
+		link(string) /*logit|cloglog|loglog|log*/
+		DESign(string asis) //design(general|mpair|mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string) | cov(commonslope|commonint|freeint|inde|unstr))
+		ALIASdesign(string) //aliasdesign(comparative)
+		MC /*Model comparison - Saves time*/
+		PROGress /*See the model fitting*/
+		by(varname)
+		STRatify  /*Stratified analysis, requires byvar()*/	
 		ALphasort
-		CImethod(string) //i=[wald, exact, score], o=[wald, exact, score, t]
+		INTeraction
+		SMooth nsims(integer 800) //max dim in stata ic
+		
+		/*Display options*/
+		CImethod(string asis) //i=[wald, exact, score], s=[wald, exact, score, t]
 		GOF //Goodness of fit
 		DOWNload(string asis) 
 		DP(integer 2)
 		POwer(integer 0)		
 		Level(integer 95) 
-		INTeraction
 		LABEL(string) 
-		Model(string) //model(random|mixed|fixed|hexact|cbbetabin|crbetabin, options)
-		INFerence(string) //inference(FREQuentist|BAYesian)
 		noGRaph //Synonym with nofplot
 		noFPlot
 		CATPplot
@@ -104,22 +120,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 		noWT
 		outplot(string) //abs|rr|or|lor|lrr|rd
 		SUMTable(string) //none|logit|abs|rr|or|all
-		DESign(string asis) //design(general|mpair|mcbnetwork|paired-pcbnetwork|comparative|network-abnetwork, baselevel(string) | cov(commonslope|commonint|freeint|inde|unstr))
-		ALIASdesign(string) //aliasdesign(comparative)
-		MC /*Model comparison - Saves time*/
-		PROGress /*See the model fitting*/
-		by(varname)
-		STRatify  /*Stratified analysis, requires byvar()*/
-		link(string) /*logit|cloglog|loglog|log*/
-		SMooth nsims(integer 800) //max dim in stata ic
 		SUMMARYonly
 		SUMStat(string)
-		POPStat(string) //median|mean ; median is default
+		STAt(string) //median|mean ; median is default
 		FOptions(string asis) /*Options specific to the forest plot*/
 		COptions(string asis) /*Options specific to the catterpilar plot*/
-		BWD(string asis) /*working directory to save bayesian estimates*/
 
-		/*passthrough*/
+		/*passthrough options that go to the forest plot*/
 		noOVLine 
 		noSTats 
 		noBox
@@ -130,21 +137,20 @@ program define metapreg, eclass sortpreserve byable(recall)
 		OLineopts(passthru) 
 		POINTopts(passthru) 
 		BOXopts(passthru) 
-		PREDciOpt(passthru)
+		/*PREDciOpt(passthru)*/
 		RCols(varlist) 
-		PREDIction  //prediction
+		/*PREDIction*/  //prediction
 		SORtby(varlist) //varlist
 		LCols(varlist) 		
 		SUBLine
 		TEXts(real 1.0) 
 		XLAbel(string asis)
-		PXLAbel(string asis)
-		RXLAbel(string asis)
+		PXlabel(string asis)  //proportions labels
+		RXlabel(string asis)  //Ratios labels
 		XLIne(passthru)	/*silent option*/	
 		XTick(passthru)  
 		graphsave(passthru)
-		logscale
-		
+		logscale		
 		*] ;
 	#delimit cr
 	
@@ -297,7 +303,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		else {
 			//Default
-			if "`design'" == "comparative" & strpos("`model'", "random") {
+			if ("`design'" == "comparative" | "`design'" == "mpair") & strpos("`model'", "random") {
 				local cov "independent"
 			}
 		}
@@ -386,21 +392,21 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 	
 		//Which population statistic to use on the forest plot/itable
-	if "`popstat'" != "" {
-		if strpos("`popstat'", "med") != 0 {
-			local popstat "Median"
+	if "`stat'" != "" {
+		if strpos("`stat'", "med") != 0 {
+			local stat "Median"
 		}
-		else if strpos("`popstat'", "mea") != 0 {
-			local popstat "Mean"
+		else if strpos("`stat'", "mea") != 0 {
+			local stat "Mean"
 		}
 		else {
-			di as error "Invalid option popstat(`popstat')"
+			di as error "Invalid option stat(`stat')"
 			di as error "Specify either Median or Mean"
 			exit 
 		}
 	}
 	else {
-		local popstat "Median"  //Default
+		local stat "Median"  //Default
 	}
 		
 	//Check if crbetabin is installed
@@ -413,22 +419,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 	}
 	
-	//Weights only for the logit link
-	/*if "`link'" != "logit" {
-		local wt nowt
-	}*/
-
 	//Avoid Incosistencies & Redundancies
 	if "`stratify'" != "" & "`summaryonly'" != "" {
 		local wt nowt
 	}
-	
-	/*
-	if "`outplot'" == "abs" & "`design'" == "comparative" & "`model'" == "fixed" {
-		local design "general" 	
-	}
-	*/
-	
+		
 	qui count
 	if `=r(N)' < 2 {
 		di as err "Insufficient data to perform meta-analysis"
@@ -696,11 +691,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 	}
 	
-	//Empty
+	//Empty 
 	local modeles
 	local modellci
 	local modeluci
 	
+	
+	//generate variables for model-based estimates
 	local metrics "p rr rd lrr or lor"
 	
 	foreach metric of local metrics {
@@ -916,11 +913,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 		 
 	if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork" | "`design'" == "mpair" { 
 		*local varx = "`ipair'"
-		if "`inference'" == "bayesian" {
+		if "`inference'" == "bayesian" & "`design'" == "mcbnetwork"  {
 			local varx = "`Comparator'"
 		}
 		else {
 			local varx = "`ipair'"	
+			*local varx = "`Comparator'"
 		}
 		local typevarx = "i"		
 	}
@@ -1078,24 +1076,9 @@ program define metapreg, eclass sortpreserve byable(recall)
 			local hetdim 5
 		}
 		else {
-			local hetdim 4
+			local hetdim 7
 		}
 	}
-	
-	/*
-	if ("`model'" == "cbbetabin" ) | ("`design'" == "general") {
-		*egen `numsid' = group(`rid') 
-	}
-	else {
-		cap confirm string variable `studyid'
-		if _rc == 0 {
-			my_ncod `numsid', oldvar(`studyid')
-		}
-		else {
-			gen `numsid' = `studyid'
-		}
-	}
-	*/
 	
 	cap confirm string variable `studyid'
 	if _rc == 0 {
@@ -1222,50 +1205,63 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 		}
 		
-		//ocimethod
+		//scimethod
+		/*
 		if "`cimethod'" != "" & (strpos("`cimethod'", ",") != 1) { 
 			tokenize "`cimethod'", parse(",")
 		
 			if "`3'" != "" {
-				local ocimethod = strltrim("`3'")
+				local scimethod = strltrim("`3'")
 			}
 		}
 		if "`cimethod'" != "" & (strpos("`cimethod'", ",") == 1) { 
 			tokenize "`cimethod'", parse(",")		
 			if "`2'" != "" {
-				local ocimethod = strltrim("`2'")
+				local scimethod = strltrim("`2'")
 			}
 		}
+		*/
+		if "`cimethod'" != "" {
+			tokenize "`cimethod'", parse(",")
+			if "`1'" == "," {
+				local scimethod = strltrim("`2'")
+			}
+			
+			if "`3'" != "" {
+				local scimethod = strltrim("`3'")
+			}
+		}
+		
 		if "`model'" == "hexact" {
-			local ocimethod "exact"
+			local scimethod "exact"
 		}
 		else {
 			//Summary
 			if "`inference'" == "frequentist" {
-				if "`ocimethod'" != "" & ((strpos("`ocimethod'", "t") != 1) &  (strpos("`ocimethod'", "w") != 1) & (strpos("`ocimethod'", "z") != 1) ){
-					di as error "Option `ocimethod' not allowed in cimethod(`cimethod')"
+				if "`scimethod'" != "" & ((strpos("`scimethod'", "t") != 1) &  (strpos("`scimethod'", "w") != 1) & (strpos("`scimethod'", "z") != 1) ){
+					di as error "Option `scimethod' not allowed in cimethod(`cimethod')"
 					exit	
 				}
-				else if "`ocimethod'" == "z" | "`ocimethod'" == "wald" {
-					local ocimethod "wald"
+				else if "`scimethod'" == "z" | "`scimethod'" == "wald" {
+					local scimethod "wald"
 				}
 				else {
 					//Default
-					local ocimethod "t"
+					local scimethod "t"
 				}
 			}
 			else {
 				//Bayesian credible intervals; default is equal-tailed interval
-				if "`ocimethod'" != "" & ("`ocimethod'" != "hpd" | "`ocimethod'" != "eti") {
-					di as error "Option `ocimethod' not allowed in cimethod(`cimethod')"
+				if ("`scimethod'" != "") & ("`scimethod'" != "hpd") & ("`scimethod'" != "eti") {
+					di as error "Option `scimethod' not allowed in cimethod(`cimethod')"
 					exit
 				}
-				else if "`ocimethod'" == "hpd" {
-					local ocimethod 
+				else if "`scimethod'" == "hpd" {
+					local scimethod 
 				}
 				else {
 					//Default
-					local ocimethod "eti"
+					local scimethod "eti"
 				}
 			}
 		}
@@ -1287,10 +1283,10 @@ program define metapreg, eclass sortpreserve byable(recall)
 			preg `event' `nonevent' `total' `strataif', rid(`rid') sid(`studyid') studyid(`studyid') use(`use') regexpression(`regexpression') regexpression2(`regexpression2') nu(`nu')  ///
 				regressors(`regressors')  catreg(`catreg') contreg(`contreg') level(`level') varx(`varx') typevarx(`typevarx')  /// 
 				`progress' model(`modeli') modelopts(`modeloptsi') `mc' `interaction' `design' aliasdesign(`aliasdesign') by(`by') `stratify' baselevel(`basecode') ///
-				comparator(`Comparator') cimethod(`ocimethod') `gof' nsims(`nsims') link(`link') bayesrepsfilename(`metapregbayesreps') ///
+				comparator(`Comparator') scimethod(`scimethod') `gof' nsims(`nsims') link(`link') bayesrepsfilename(`metapregbayesreps') ///
 				modeles(`modeles')  modellci(`modellci') modeluci(`modeluci') ///
 				outplot(`outplot') `smoothi' cov(`cov') `computewti' ///
-				inference(`inference') refsampling(`refsampling') popstat(`popstat') bayesreps(`bayesreps') bayesest(`bayesest')
+				inference(`inference') refsampling(`refsampling') stat(`stat') bayesreps(`bayesreps') bayesest(`bayesest')
 				
 			mat `rawesti' = r(rawest)
 			if "`getmodeli'" != "crbetabin" {
@@ -1350,11 +1346,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		*if 1 study or exact inference
 		else {
-			mat `rawesti' = J(1, 6, .)
+			mat `rawesti' = J(1, 9, .)
 			mat `popabsouti' = J(1, 6, .)
 			mat `exactabsouti' = J(1, 11, .)
-			mat `absouti' = J(1, 6, .)
-			mat `absoutpi' = J(1, 2, .)
+			mat `absouti' = J(1, 9, .)
+			*mat `absoutpi' = J(1, 2, .)
 			mat `hetouti' = J(1, `hetdim', .)
 			mat `covmati' = J(1, 3, .)			
 			mat `rrouti' = J(1, 6, 1)
@@ -1374,7 +1370,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat rownames `popabsouti' = Overall
 			mat rownames `exactabsouti' = Overall
 			mat rownames `absouti' = Overall
-			mat rownames `absoutpi' = Overall
+			*mat rownames `absoutpi' = Overall
 			mat rownames `hetouti' = Overall
 			mat rownames `covmati' = Overall
 			mat rownames `rrouti' = Overall
@@ -1397,7 +1393,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat roweq `absouti' = `byrowname'
 			mat roweq `popabsouti' = `byrowname'
 			mat roweq `exactabsouti' = `byrowname'
-			mat roweq `absoutpi' = `byrowname'
+			*mat roweq `absoutpi' = `byrowname'
 			mat roweq `rawesti' = `byrowname'
 			mat roweq `covmati' = `byrowname'
 			
@@ -1418,7 +1414,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				}
 			}
 		}
-		
+		*noi mat list `hetouti'
 		*Stack the matrices
 		if `i' == 1 {
 			mat `absout' =	`absouti'
@@ -1473,7 +1469,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				}
 			}
 			mat `rawest' = `rawest' \ `rawesti'
-			mat `absoutp' = `absoutp' \ `absoutpi'
+			*mat `absoutp' = `absoutp' \ `absoutpi'
 			mat `hetout' = `hetout' \ `hetouti'
 			mat `covmat' = `covmat' \ `covmati'
 		}
@@ -1559,7 +1555,9 @@ program define metapreg, eclass sortpreserve byable(recall)
 			di "{phang}beta = exp(b0) {p_end}"
 		}
 		else /*if "`getmodeli'" == "fixed" | "`getmodeli'" == "betabin"*/ {
-			di "{phang} `link'(p) = `nu'{p_end}"		
+			if "`getmodeli'" != "hexact" {
+				di "{phang} `link'(p) = `nu'{p_end}"
+			}			
 		}
 		if "`design'" == "pcbnetwork" | "`design'" == "mcbnetwork"  {
 			di "{phang} Ipair = 0 if 1st pair{p_end}"
@@ -1643,8 +1641,16 @@ program define metapreg, eclass sortpreserve byable(recall)
 				#delimit cr 
 			}
 			
+			//Get the command, necessary for frequentist models 
+			if "`inference'" != "bayesian" {
+				qui capture estimates restore metapreg_modest
+				if _rc == 0 {
+					local command0 = e(cmd) 
+				}
+			}
+			
 			if "`stratify'" != "" {
-				qui estimates restore metapreg_modest
+				*qui estimates restore metapreg_modest
 				di  _n	
 
 				if (`i' < `=`nlevels' + 1') {					
@@ -1677,7 +1683,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			else {
 				if "$by_index_" !="" {
 					di  _n	
-					qui estimates restore metapreg_modest
+					*qui estimates restore metapreg_modest
 					local ilab = "$by_index_"
 					qui estimates store metapreg_`ilab'
 					display `"{stata "estimates replay metapreg_`ilab'":Click to show the raw estimates}"'
@@ -1692,12 +1698,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 				if "`inference'" == "bayesian" {
 					local bayesnullest = "`bwd'\metapreg_bayesnullest"
 				}
-				capture noisily mcpreg `event' `nonevent' `total' `strataif', sid(`numsid')  regexpression(`regexpression') nu(`nu')  ///
+				
+				capture noisily mcpreg `event' `nonevent' `total' `strataif', rid(`rid') sid(`studyid') studyid(`studyid') use(`use') regexpression(`regexpression') nu(`nu')  ///
 					regressors(`regressors') level(`level') varx(`varx') typevarx(`typevarx')  `progress' /// 
-					model(`modeli') modelopts(`modeloptsi')  `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
+					model(`modeli') modelopts(`modeloptsi') command0(`command0')  `interaction' `design' by(`by') `stratify' baselevel(`basecode') ///
 					comparator(`Comparator')  link(`link')   ///
 					 cov(`cov') inference(`inference') refsampling(`refsampling') bayesest(`bayesnullest')
-					 
+										 
 				if _rc == 0 {		
 					mat `mctest' = r(mctest) 
 				}
@@ -1714,18 +1721,38 @@ program define metapreg, eclass sortpreserve byable(recall)
 	if "`stratify'" != "" & `i' > 1 {
 		if "`abnetwork'`cov'" != "" {
 			if "`cov'" == "unstructured" {
-				mat colnames `hetout' = DF Chisq p tau2 sigma2 rho I2tau I2sigma 
+				if "`inference'" == "bayesian" {
+					mat colnames `hetout' = Delta_ML log(BF) Post_prob tau2 sigma2 rho I2tau I2sigma 
+				}
+				else {
+					mat colnames `hetout' = DF Chisq p tau2 sigma2 rho I2tau I2sigma 
+				}
 			}
 			else {
-				mat colnames `hetout' = DF Chisq p tau2 sigma2 I2tau I2sigma 
+				if "`inference'" == "bayesian" {
+					mat colnames `hetout' = Delta_ML log(BF) Post_prob tau2 sigma2 I2tau I2sigma 
+				}
+				else {
+					mat colnames `hetout' = DF Chisq p tau2 sigma2 I2tau I2sigma 
+				}
 			}
 		}
 		else {
 			if (`p' == 0) & ("`model'" == "random") & "`pcbnetwork'`mcbnetwork'" == "" {
-				mat colnames `hetout' = DF Chisq p tau2 I2tau 
+				if "`inference'" == "bayesian" {
+					mat colnames `hetout' = Delta_ML log(BF) Post_prob tau2 I2tau
+				}
+				else {
+					mat colnames `hetout' = DF Chisq p tau2 I2tau 
+				}
 			}
 			else {
-				mat colnames `hetout' = DF Chisq p tau2 
+				if "`inference'" == "bayesian" {
+					mat colnames `hetout' = Delta_ML log(BF) Post_prob tau2
+				}
+				else {
+					mat colnames `hetout' = DF Chisq p tau2 
+				}
 			}
 		}
 	}
@@ -1735,7 +1762,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	}
 	
 	//Subset matrices 
-	if "`ocimethod'" == "t" {
+	if "`scimethod'" == "t" {
 		mat `neorawest' = (`rawest'[1..., 1..3] , `rawest'[1..., 7..9])
 		mat `neoabsout' = (`absout'[1..., 1..3] , `absout'[1..., 7..9])
 		if "`ratios'" == "" {
@@ -1744,7 +1771,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `neoorout' = (`orout'[1..., 1..3] , `orout'[1..., 7..9])
 		}
 	}
-	else if "`ocimethod'" == "wald" {
+	else if "`scimethod'" == "wald" {
 		mat `neorawest' = `rawest'[1..., 1..6] 
 		mat `neoabsout' = `absout'[1..., 1..6]
 		if "`ratios'" == "" {
@@ -1753,7 +1780,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `neoorout' 	= `orout'[1..., 1..6]
 		}
 	}
-	else if "`ocimethod'" == "eti" {
+	else if "`scimethod'" == "eti" {
 		mat `neorawest' = `rawest'[1..., 1..6] 
 		mat `neoabsout' = `absout'[1..., 1..6]
 		if "`ratios'" == "" {
@@ -1762,7 +1789,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			mat `neoorout' 	= `orout'[1..., 1..6]
 		}
 	}
-	else if "`ocimethod'" == "hpd" {
+	else if "`scimethod'" == "hpd" {
 		mat `neorawest' = (`rawest'[1..., 1..4] , `rawest'[1..., 7..8])
 		mat `neoabsout' = (`absout'[1..., 1..4] , `absout'[1..., 7..8])
 		
@@ -1782,7 +1809,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	if "`model'" == "hexact"  {
 			//exactabs
 			if  (("`sumtable'" == "all")  | (strpos("`sumtable'", "abs") != 0)) | ("`sumtable'" == "")  {
-				printmat, matrixout(`exactabsout') type(exactabs) p(`p') dp(`dp') power(`power') `continuous'  model(`model')
+				printmat, matrixout(`exactabsout') type(exactabs) p(`p') dp(`dp') power(`power') `continuous'  model(`model') power(`power') inference(`inference')
 			}
 			
 			//or
@@ -1808,7 +1835,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		}
 		//abs
 		if  ((("`sumtable'" == "all")  |(strpos("`sumtable'", "abs") != 0)) | ("`sumtable'" == "")) & ("`cov'" != "freeint" )  {
-			printmat, matrixout(`neoabsout') type(abs) p(`p') dp(`dp') power(`power') `continuous'  model(`model') inference(`inference') 
+			printmat, matrixout(`neoabsout') type(abs) p(`p') dp(`dp') power(`power') `continuous'  model(`model') inference(`inference')  power(`power')
 		}
 		//Pop p 
 		if  (("`sumtable'" == "all")  | (strpos("`sumtable'", "abs") != 0) | ("`sumtable'" == "") ) & strpos("`model'", "betabin") == 0  {
@@ -1847,7 +1874,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				//rr
 				cap confirm matrix `neorrout'
 				if _rc == 0 {
-					printmat, matrixout(`neorrout') type(rr) p(`p') dp(`dp') power(`power')  model(`model')  inference(`inference') 
+					printmat, matrixout(`neorrout') type(rr) p(`p') dp(`dp') power(`power')  model(`model')  inference(`inference') power(`power')
 				}
 				
 				//rr equal
@@ -1873,7 +1900,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			//rr
 			cap confirm matrix `neoorout'
 			if _rc == 0 {
-				printmat, matrixout(`neoorout') type(or) p(`p') dp(`dp') power(`power')  model(`model') inference(`inference') 
+				printmat, matrixout(`neoorout') type(or) p(`p') dp(`dp') power(`power')  model(`model') inference(`inference') power(`power')
 			}
 			
 			//or equal
@@ -1902,7 +1929,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		
 			local ++metricindex
 			local icimethod
-			local ocimethod
+			local scimethod
 			local neorcols
 			local neolcols
 			local neoglcols
@@ -2004,7 +2031,27 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 			
 			//icimethod
+			if "`cimethod'" != "" {
+				tokenize "`cimethod'", parse(",")
+				//inidividual CI method
+				if "`1'" != "," {
+					local icimethod = strltrim("`1'")
+				}
+				
+				//Summary CI method
+				if "`1'" == "," {
+					local scimethod = strltrim("`2'")
+				}
+				
+				//Indiviadual and summary CI method
+				if "`3'" != "" {
+					local scimethod = strltrim("`3'")
+					local icimethod = strltrim("`1'")
+				}
+			}
+			
 			if "`metric'" != "abs"  {
+				/*
 				if "`cimethod'" != "" & (strpos("`cimethod'", ",") != 1) { 
 					tokenize "`cimethod'", parse(",")
 					*local icimethod "`1'"
@@ -2013,10 +2060,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 				if "`cimethod'" != "" & (strpos("`cimethod'", ",") == 1) { 
 					tokenize "`cimethod'", parse(",")		
 					if "`2'" != "" {
-						local ocimethod = strltrim("`2'")
+						local scimethod = strltrim("`2'")
 					}
 				}
-				
+				*/
+										
 				//iOR/iLOR
 				if ("`icimethod'" != "") & strpos("`metric'",  "or") != 0 {
 					if (strpos("`icimethod'", "ex") != 1) & (strpos("`icimethod'", "wo") != 1) & (strpos("`icimethod'", "co") != 1)  {
@@ -2062,10 +2110,12 @@ program define metapreg, eclass sortpreserve byable(recall)
 			}
 			
 			if "`metric'" == "abs"  {
+				/*
 				if "`cimethod'" != "" { 
 					tokenize "`cimethod'", parse(",")
 					local icimethod "`1'"
 				}
+				*/
 				if "`icimethod'" != "" {
 					if (strpos("`icimethod'", "ex") != 1) & (strpos("`icimethod'", "wi") != 1) &  (strpos("`icimethod'", "wa") != 1) & (strpos("`icimethod'", "e") != 1) & (strpos("`icimethod'", "ag") != 1) & (strpos("`icimethod'", "je") != 1)   {
 						di as error "Option `icimethod' not allowed in cimethod(`cimethod')"
@@ -2159,7 +2209,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			//Generate the CI		
 			metapregci `depvars', studyid(`studyid') first(`first') es(`es') se(`se') uci(`uci') lci(`lci') `design' aliasdesign(`aliasdesign') ///
 				id(`id') rid(`rid') regressors(`regressors') outplot(`metric') level(`level') ///
-				cimethod(`icimethod') lcols(`lcols') rcols(`rcols')  sortby(`sortby') by(`by')  ///
+				icimethod(`icimethod') lcols(`lcols') rcols(`rcols')  sortby(`sortby') by(`by')  ///
 				modeles(`mes') modellci(`mlci') modeluci(`muci') `smooth' 
 			
 			local neodepvars = r(depvars)
@@ -2185,7 +2235,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				orout(`orout') poporout(`poporout') poplorout(`poplorout') exactorout(`exactorout') ///
 				absout(`absout') popabsout(`popabsout') exactabsout(`exactabsout') absoutp(`absoutp') hetout(`hetout')	///
 				`subgroup' `summaryonly' dp(`dp') pcont(`pcont') model(`model') `prediction' inference(`inference')	///
-				`overall' download(`download') indvars(`indvars') depvars(`neodepvars') `stratify' level(`level') `enhance' popstat(`popstat')
+				`overall' download(`download') indvars(`indvars') depvars(`neodepvars') `stratify' level(`level') `enhance' stat(`stat')
 				
 			if "`itable'" == "" {
 				sort `id'
@@ -2193,7 +2243,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				disptab `id'  `use' `neolabel' `es' `lci' `uci' `grptotal' `modelstats', ///
 					`itable' dp(`dp') power(`power') design(`design') aliasdesign(`aliasdesign') `summaryonly' ///
 					`subgroup' sumstat(`neosumstat') level(`level') `wt' `smooth' inference(`inference') ///
-					ocimethod(`ocimethod') icimethod(`icimethod') model(`model') groupvar(`groupvar') outplot(`metric') popstat(`popstat')
+					scimethod(`scimethod') icimethod(`icimethod') model(`model') groupvar(`groupvar') outplot(`metric') stat(`stat')
 			}
 			
 			if "`graph'" == "" {
@@ -2472,7 +2522,11 @@ program define metapreg, eclass sortpreserve byable(recall)
 		ereturn matrix poplorout = `poplorout'
 	}
 		
-	restore	
+	restore
+	if "`inference'" == "bayesian" {
+		cap erase `bayesreps'.dta
+		cap erase `bayesreps'.ster 		
+	}
 end
 
 /*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: ESTCOVAR +++++++++++++++++++++++++
@@ -2605,7 +2659,7 @@ program define metapregci, rclass
 	#delimit ;
 	syntax varlist(min=2 max=4), studyid(varname) [first(varname) es(name) se(name) uci(name) lci(name)
 		id(name) rid(varname) regressors(varlist) outplot(string) level(integer 95) by(varname)
-		cimethod(string) lcols(varlist) rcols(varlist) mpair mcbnetwork pcbnetwork sortby(varlist) 
+		icimethod(string) lcols(varlist) rcols(varlist) mpair mcbnetwork pcbnetwork sortby(varlist) 
 		comparative abnetwork general aliasdesign(string) modeles(varname) modellci(varname) modeluci(varname) smooth
 		vlist(string asis) cc0(string asis) cc1(string asis)
 		];
@@ -2658,10 +2712,10 @@ program define metapregci, rclass
 			}
 			if "`pcbnetwork'" !="" {
 				if strpos("`outplot'", "rr") != 0 {
-					rrci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod') `transform'
+					rrci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') icimethod(`icimethod') `transform'
 				}
 				if strpos("`outplot'", "or") != 0 {
-					orccci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') level(`level')  cimethod(`cimethod') `transform'
+					orccci `event1' `total1' `event2' `total2', r(`es') upperci(`uci') lowerci(`lci') level(`level')  icimethod(`icimethod') `transform'
 				}
 			}
 			if "`comparative'" != "" | "`aliasdesign'" == "comparative"  {
@@ -2692,13 +2746,13 @@ program define metapregci, rclass
 				
 				if "`comparative'" != "" | "`aliasdesign'" == "comparative" {
 					if strpos("`outplot'", "rr") != 0 {
-						rrci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod') `transform'
+						rrci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') icimethod(`icimethod') `transform'
 					}
 					if strpos("`outplot'", "rd") != 0 {
-						rdci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') cimethod(`cimethod') 
+						rdci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') alpha(`=1 - `level'*0.01') icimethod(`icimethod') 
 					}
 					if strpos("`outplot'", "or") != 0 {
-						orccci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') level(`level')  cimethod(`cimethod') `transform'
+						orccci `event'1 `total'1 `event'0 `total'0, r(`es') upperci(`uci') lowerci(`lci') level(`level')  icimethod(`icimethod') `transform'
 					}
 				}
 			}
@@ -2856,7 +2910,7 @@ program define metapregci, rclass
 			}
 		}
 		else {
-			metapreg_propci `total' `event', p(`es') se(`se') lowerci(`lci') upperci(`uci') cimethod(`cimethod') level(`level')
+			metapreg_propci `total' `event', p(`es') se(`se') lowerci(`lci') upperci(`uci') icimethod(`icimethod') level(`level')
 			gen `id' = _n
 		}
 	}
@@ -2887,7 +2941,7 @@ program define preg, rclass
 		regexpression(string) regexpression2(string) nu(string) baselevel(passthru) rid(varname)
 		regressors(varlist) varx(varname) typevarx(string) comparator(varname) 
 		catreg(varlist) contreg(varlist)
-		cimethod(string) cov(string)
+		scimethod(string) cov(string)
 		level(integer 95)
 		DP(integer 2)
 		progress
@@ -2899,7 +2953,7 @@ program define preg, rclass
 		by(varname) stratify
 		GOF nsims(string) link(string) bayesrepsfilename(string asis)
 		modeles(varlist) modelse(varname) modellci(varlist) modeluci(varlist) 
-		smooth computewt inference(string) refsampling(string) popstat(string)
+		smooth computewt inference(string) refsampling(string) stat(string)
 		bayesest(string asis) bayesreps(string asis)
 			*];
 
@@ -2984,7 +3038,8 @@ program define preg, rclass
 
 	if "`inference'" == "bayesian" {
 		gen `insample' = e(sample) 
-		gsort -`insample' `rid'
+		
+		gsort -`insample' `rid' `varx'
 		//Generate the predictions
 		qui bayespredict {_mu} if e(sample), saving("`bayesreps'", replace) rseed(1) 
 	}
@@ -2999,7 +3054,7 @@ program define preg, rclass
 	}
 	
 	if "`computewt'" !="" {
-	qui {
+		qui {
 			if "`model'" == "random" {
 				//if random, needs atleast 7 studies to run predict command
 				count
@@ -3018,7 +3073,6 @@ program define preg, rclass
 			}
 			else if strpos("`model'", "bayes") == 1 {
 				bayespredict `predevent', mean rseed(1) 
-	
 			}
 			else if "`predcmd'" == "poisso_p" {
 				predict `predevent', n
@@ -3041,14 +3095,14 @@ program define preg, rclass
 
 		
 			//compute the relative weight
-			sum `iw' if (_ESAMPLE == 1 & mu == 1)
+			sum `iw' if (_ESAMPLE == 1 /*& mu == 1*/)
 			local W = r(sum)
 			
 			//compute the weights
-			replace _WT = (`iw'/`W')*100 if (_ESAMPLE == 1 & mu == 1) & (_WT == .) & (`iw' != .)
+			replace _WT = (`iw'/`W')*100 if (_ESAMPLE == 1 /*& mu == 1*/) & (_WT == .) & (`iw' != .)
 		}
 	}
-	
+		
 	//FE 
 	local BHET = .
 	local P_BHET = .
@@ -3299,34 +3353,30 @@ program define preg, rclass
 		}		
 		local ISQ1 = `TAU21'/(`Esigma' + `TAU21')*100	
 	}
-	else if ("`abnetwork'`cov'" != "") & (strpos("`getmodel'",  "random") != 0) {
+	/* else */ if ("`abnetwork'`cov'" != "") & ("`cov'" != "commonslope") & (strpos("`getmodel'",  "random") != 0) {
 		local ISQ1 = `TAU21'/(`TAU21' + `TAU22')*100
 		local ISQ2 = `TAU22'/(`TAU21' + `TAU22')*100		
 	}
 
 	if "`inference'" == "frequentist" {
-		//Raw estimates in logit/cloglog scale
+		//Raw estimates in logit/cloglog/loglog scale
 		cap freqsummary, event(`event') total(`total') studyid(`studyid') estimates(metapreg_modest) ///
-			`interaction' catreg(`catreg') contreg(`contreg') level(`level') model(`getmodel') cimethod(`cimethod')  ///
+			`interaction' catreg(`catreg') contreg(`contreg') level(`level') model(`getmodel') scimethod(`scimethod')  ///
 			varx(`varx') typevarx(`typevarx') by(`by') regexpression(`regexpression') ///
 			`mcbnetwork' `comparative' `pcbnetwork' `abnetwork' `stratify' `mpair'  ///
 			comparator(`comparator') link(`link')  total(`total') 
 			
-		*mat `rawestp' = r(outmatrixp)
 		mat `rawest' = r(outmatrix)
 		mat `exactabsout' = r(exactabsout)
-	
-		*estp, rawestmat(`rawestp') link(`link') cimethod(`cimethod') 
-		*mat `absoutp' = r(outmatrix)
-		
+			
 		//Conditional ABS
-		estp, rawestmat(`rawest') link(`link') cimethod(`cimethod') model(`getmodel')
+		estp, rawestmat(`rawest') link(`link') scimethod(`scimethod') model(`getmodel')
 		mat `absout' = r(outmatrix)
 	}
 	else {
 		//Conditional odds/abs
 		cap bayessummary, event(`event') total(`total') studyid(`studyid') estimates(metapreg_modest) ///
-			`interaction' catreg(`catreg') contreg(`contreg') level(`level') model(`getmodel') cimethod(`cimethod')  ///
+			`interaction' catreg(`catreg') contreg(`contreg') level(`level') model(`getmodel') scimethod(`scimethod')  ///
 			varx(`varx') typevarx(`typevarx') by(`by') regexpression(`regexpression') ///
 			`mcbnetwork' `comparative' `pcbnetwork' `abnetwork' `stratify' `mpair'  ///
 			comparator(`comparator') link(`link') cov(`cov')
@@ -3339,12 +3389,13 @@ program define preg, rclass
 	//Population abs
 	if "`getmodel'" != "hexact" & "`getmodel'" != "crbetabin"  {
 		//simulations ABS
-		cap postsim, event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(p) estimates(metapreg_modest) rawest(`rawest') ///
+		cap postsim , event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(p) estimates(metapreg_modest) rawest(`rawest') ///
 				level(`level')  model(`getmodel')  by(`by') `comparative' `interaction' `abnetwork' `mpair' catreg(`catreg') by(`by') ///
-				modeles(`modeles') modellci(`modellci') modeluci(`modeluci') ///
+				modeles(`modeles') modellci(`modellci') modeluci(`modeluci') `stratify' ///
 				`mcbnetwork' varx(`varx') cov(`cov') nsims(`nsims') link(`link') p(`p')  bayesreps(`bayesreps') 
 				
 		mat `popabsout' = r(outmatrix)
+		
 	}
 
 	//R
@@ -3352,14 +3403,14 @@ program define preg, rclass
 	if "`catreg'" != "" | "`typevarx'" == "i" {
 		if "`inference'" == "frequentist" {
 			cap freqestr, event(`event') total(`total') studyid(`studyid') estimates(metapreg_modest)  catreg(`catreg') ///
-				level(`level') comparator(`comparator') `interaction' cimethod(`cimethod') ///
+				level(`level') comparator(`comparator') `interaction' scimethod(`scimethod') ///
 				varx(`varx') typevarx(`typevarx') by(`by') `mcbnetwork' `pcbnetwork' `mpair' ///
 				`comparative' `abnetwork' aliasdesign(`aliasdesign') `stratify' model(`getmodel')  ///
 				regexpression(`regexpression') `baselevel' link(`link') inference(`inference') total(`total') cov(`cov')
 		}
 		else {
-			/*cap*/  bayesestr, event(`event') catreg(`catreg') ///
-				level(`level') comparator(`comparator') `interaction' cimethod(`cimethod') ///
+			cap  bayesestr , event(`event') catreg(`catreg') ///
+				level(`level') comparator(`comparator') `interaction' scimethod(`scimethod') ///
 				varx(`varx') typevarx(`typevarx') by(`by') `mcbnetwork' `pcbnetwork'  `mpair' ///
 				`comparative' `abnetwork' `stratify' model(`getmodel') cov(`cov') ///
 				regexpression(`regexpression') `baselevel' link(`link') sid(`studyid')
@@ -3381,9 +3432,9 @@ program define preg, rclass
 				}
 				if "`getmodel'" != "crbetabin" {
 					//simulations
-					cap postsim,  event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(r) estimates(metapreg_modest) rrout(`rrout') orout(`orout') ///
+					cap postsim ,  event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(r) estimates(metapreg_modest) rrout(`rrout') orout(`orout') ///
 							 level(`level')  model(`getmodel')  by(`by') `comparative' `interaction' `abnetwork' `mpair' ///
-							 modeles(`modeles') modellci(`modellci') modeluci(`modeluci') ///
+							 modeles(`modeles') modellci(`modellci') modeluci(`modeluci') `stratify' ///
 							 `baselevel' `mcbnetwork' aliasdesign(`aliasdesign') varx(`varx')  cov(`cov') nsims(`nsims') link(`link') p(`p') bayesreps(`bayesreps')
 					
 					mat `poprrout' = r(rroutmatrix)
@@ -3408,8 +3459,8 @@ program define preg, rclass
 	if "`smooth'" != "" {
 		postsim, event(`event') total(`total') orderid(`rid') studyid(`studyid') todo(smooth) estimates(metapreg_modest)  ///
 			level(`level')  model(`getmodel')  by(`by') `comparative' `abnetwork'  `mcbnetwork' `mpair' aliasdesign(`aliasdesign') ///
-			modeles(`modeles') modellci(`modellci') modeluci(`modeluci') outplot(`outplot')	///
-			`interaction'  varx(`varx')  cov(`cov') nsims(`nsims') link(`link')  bayesreps(`bayesreps') popstat(`popstat')
+			modeles(`modeles') modellci(`modellci') modeluci(`modeluci') outplot(`outplot')	`stratify' ///
+			`interaction'  varx(`varx')  cov(`cov') nsims(`nsims') link(`link')  bayesreps(`bayesreps') stat(`stat')
 	}
 	//===================================================================================
 	//Return the matrices
@@ -3553,11 +3604,11 @@ program define mcpreg, rclass
 	syntax varlist(min=3) [if] [in], sid(varname)  [
 		regexpression(string) nu(string) baselevel(passthru) 
 		regressors(varlist) varx(varname)  typevarx(string) comparator(varname) catreg(varlist) contreg(varlist)
-		cimethod(string) cov(string)
+		scimethod(string) cov(string)
 		level(integer 95)
 		DP(integer 2)
 		progress
-		model(string) modelopts(string) 
+		model(string) modelopts(string) command0(string)
 		noMC noCONstant
 		interaction	
 		comparative mcbnetwork pcbnetwork abnetwork mpair
@@ -3569,7 +3620,6 @@ program define mcpreg, rclass
 	marksample touse, strok 
 	
 	tempvar event nonevent total
-	
 	
 	tempname coefmat coefvar testlr V logodds absout absoutp rrout orout nltestRR nltestOR  ///
 			 hetout mctest absexact newobs matgof popabsout poprrout poporout poplorout rosevar rawvar rawest bayesstats bayestest
@@ -3689,7 +3739,7 @@ program define mcpreg, rclass
 			local newcov "`cov'"
 		}
 		
-		`echo' fitmodel `outcome' `total' if `touse',  `modelopts' model(`model') ///
+		`echo' fitmodel `outcome' `total' if `touse', `modelopts' model(`model')  ///
 			regexpression(`nureduced') sid(`sid') studyid(`studyid') level(`level')  nested(`first') `abnetwork'  `comparative' `mpair' ///
 			cov(`newcov') link(`link') p(`p') inference(`inference') ///
 			refsampling(`refsampling') bayesest(`bayesnullest') `progress'
@@ -3702,6 +3752,8 @@ program define mcpreg, rclass
 		estimates store metapreg_Null
 		
 		if "`inference'" == "frequentist" {
+			//Do not compare if different commands
+			
 			//LR test the model
 			capture lrtest metapreg_modest metapreg_Null
 			if _rc == 0 {
@@ -3933,7 +3985,7 @@ program define fitmodel, rclass
 	local total = "`2'"
 	
 	if "`cov'" != "" {	
-		if ("`comparative'" != "" ) & ("`cov'" != "commonslope")  {
+		if ("`comparative'`mpair'" != "" ) & ("`cov'" != "commonslope")  {
 			local slope "2.`nested'"
 		}
 
@@ -4331,11 +4383,11 @@ program define fitmodel, rclass
 	//Fit the FE model
 	if ("`model'" == "fixed") |("`model'" == "hexact"){
 		
-		//if saturated, then remove mu and base for study
-		if strpos("`regexpression'" , "`studyid'") != 0 {			
+		//if saturated, then remove mu and base for study : Why?
+		/*if (strpos("`regexpression'" , "`studyid'") != 0) &  ("`studyid'" != "") {			
 			fvset base none `studyid'	
 			gettoken mu regexpression: regexpression
-		}
+		}*/
 		
 		if "`link'" == "logit" { 
 			capture `echo' binreg `events' `regexpression' if `touse', noconstant n(`total') ml `modelopts' l(`level')
@@ -4413,6 +4465,20 @@ program define fitmodel, rclass
 		
 		local success = _rc
 		local converged = e(converged)
+		
+		//Try dnumerical and intmethod(gh) second time
+		if  ("`fitcommand'" == "melogit") & (`success' != 0) & strpos(`"`modelopts'"', "dnumerical") == 0 & strpos(`"`modelopts'"', "intme") == 0 {
+			
+			local ++try
+			#delim ;
+			capture `echo' `fitcommand' (`events' `regexpression' if `touse', noconstant)|| 
+			  (`sid': `slope' `intercept', `cov' noconstant) `nested' ,
+			  binomial(`total') `ipoints' dnumerical intmethod(gh) `modelopts' l(`level') `iterate';
+			#delimit cr 
+			
+			local success = _rc
+			local converged = e(converged)
+		}
 		
 		//Got to meqrlogit if melogit fails
 		if  ("`fitcommand'" == "melogit") & (`success' != 0)  {
@@ -4563,7 +4629,7 @@ end
 	cap program drop metapreg_propci
 	program define metapreg_propci
 
-		syntax varlist [if] [in], p(name) se(name)lowerci(name) upperci(name) [cimethod(string) level(real 95)]
+		syntax varlist [if] [in], p(name) se(name)lowerci(name) upperci(name) [icimethod(string) level(real 95)]
 		
 		qui {	
 			tokenize `varlist'
@@ -4577,7 +4643,7 @@ end
 				local N = `1'[`i']
 				local n = `2'[`i']
 
-				cii proportions `N' `n', `cimethod' level(`level')
+				cii proportions `N' `n', `icimethod' level(`level')
 				
 				replace `p' = r(proportion) in `i'
 				replace `lowerci' = r(lb) in `i'
@@ -4708,7 +4774,7 @@ program define prep4show
 		popabsout(name)  exactabsout(name) absout(name) absoutp(name) sortby(varlist)  by(varname) hetout(name) model(string) 
 		groupvar(varname) se(varname) summaryonly nooverall nosubgroup outplot(string) grptotal(name) download(string asis) 
 		indvars(varlist) depvars(varlist) dp(integer 2) stratify pcont(integer 0) level(integer 95) prediction inference(string)
-		comparative abnetwork general pcbnetwork mpair mcbnetwork aliasdesign(string) enhance popstat(string)
+		comparative abnetwork general pcbnetwork mpair mcbnetwork aliasdesign(string) enhance stat(string)
 		]
 	;
 	#delimit cr
@@ -4737,7 +4803,7 @@ program define prep4show
 		local summaryonly "summaryonly"
 	}
 	
-	if "`popstat'" == "Median" {
+	if "`stat'" == "Median" {
 		local statscol = 3
 	}
 	else {
@@ -4785,7 +4851,8 @@ program define prep4show
 			
 			*foreach l of local codelevels {
 			forvalues l = 1/`nlevels' {
-				
+				local groupcode : word `l' of `codelevels'
+				local lab:label `groupvar' `groupcode'
 				
 				if "`outplot'" == "abs" {
 					if "`model'" == "hexact" {
@@ -4816,6 +4883,10 @@ program define prep4show
 						local E_1 = `exactabsout'[`l', 1]
 						local E_3 = `exactabsout'[`l', 5]
 						local E_4 = `exactabsout'[`l', 6]
+						local nstudies = `exactabsout'[`l', 9]   //number of studies
+						local np0 = `exactabsout'[`l', 10]    //number of zero p's
+						local np1 = `exactabsout'[`l', 11]   //number of 1 p's
+						
 						if "`enhance'" != "" {
 							if "`model'" != "crbetabin" {
 								//if simulated RE more than 5 times larger, replace with conditional stats 
@@ -4826,7 +4897,7 @@ program define prep4show
 							}
 							
 							//if simulated FE variance 5 times larger replace with exact
-							if (`=(`S_4' - `S_3')/(`E_4' - `E_3')' > 5) & (`E_4' != .) & (`E_3' != .)  {
+							if /*(`=(`S_4' - `S_3')/(`E_4' - `E_3')' > 5) &*/ (`nstudies' == `np0') | (`nstudies' == `np1')  {
 								local S_3 = `E_3'
 								local S_4 = `E_4'
 							}
@@ -4928,8 +4999,6 @@ program define prep4show
 						}
 					}
 				}
-				local groupcode : word `l' of `codelevels'
-				local lab:label `groupvar' `groupcode'
 				
 				replace `label' = "`groupvar' = `lab'" if `use' == -2 & `groupvar' == `groupcode' & (("`abnetwork'" == "") |("`outplot'" == "abs" & "`abnetwork'" != ""))	
 				replace `label' = "`lab'" if `use' == 2 & `groupvar' == `groupcode' & "`outplot'" != "abs" & "`abnetwork'" != ""		
@@ -5063,14 +5132,14 @@ program define prep4show
 				}
 			}
 			replace `label' = "Population Summary" if `use' == 5
-			*replace `label' = "Population `popstat'" if `use' == 5
+			*replace `label' = "Population `stat'" if `use' == 5
 			
 			if "`model'" == "random" & "`indvars'" == ""  & "`outplot'" == "abs" {
 				local nrows = rowsof(`hetout')
 				local isq = `hetout'[`nrows', 5]
 				local phet = `hetout'[`nrows', 3]
 				*replace `label' = "Overall (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 3
-				*replace `label' = "Population `popstat' (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
+				*replace `label' = "Population `stat' (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
 				replace `label' = "Population Summary (Isq = " + string(`isq', "%10.`=`dp''f") + "%, p = " + string(`phet', "%10.`=`dp''f") + ")" if `use' == 5 & (`isq' != .)	
 			}
 					
@@ -5162,8 +5231,8 @@ cap program drop disptab
 program define disptab
 	#delimit ;
 	syntax varlist, [nosubgroup nooverall level(integer 95) sumstat(string asis) model(string)
-	dp(integer 2) power(integer 0) nowt smooth icimethod(string) ocimethod(string) groupvar(varname) 
-	design(string) aliasdesign(string) outplot(string) summaryonly popstat(string) inference(string)]
+	dp(integer 2) power(integer 0) nowt smooth icimethod(string) scimethod(string) groupvar(varname) 
+	design(string) aliasdesign(string) outplot(string) summaryonly stat(string) inference(string)]
 	;
 	#delimit cr
 	
@@ -5522,7 +5591,8 @@ end
 			}
 			else {				
 				if "`mcbnetwork'" != "" {
-					local regexpression = "mu i.`comparator' i.`index'"	
+					*local regexpression = "mu i.`comparator' i.`index'"
+					local regexpression = "mu i.`ipair' i.`index'"						
 				}
 				else {
 					local regexpression = "mu i.`ipair' i.`index'"	
@@ -5579,7 +5649,7 @@ end
 				
 				local found = 0
 				
-				foreach l of local groupcodes {
+				foreach l of local codelevels {
 					local lab:label ``i'' `l'
 					if "`lab'" == "`baselevel'" {
 						local found = 1
@@ -5650,7 +5720,7 @@ end
 cap program drop estp
 	program define estp, rclass
 	
-	syntax, rawestmat(name)  [link(string) cimethod(string) model(string)]
+	syntax, rawestmat(name)  [link(string) scimethod(string) model(string)]
 	
 	if "`link'" == "cloglog" {
 		local invfn "invcloglog"
@@ -5667,6 +5737,14 @@ cap program drop estp
 	else {
 		local invfn "invlogit"
 	}
+	
+	if "`scimethod'"== "t" {
+		local statistic "t"
+	}
+	else {
+		local statistic "z"
+	}
+	
 	tempname matrixout
 	mat `matrixout' = `rawestmat'
 	
@@ -5690,13 +5768,7 @@ cap program drop estp
 				mat `matrixout'[`r', 9] = `invfn'(`matrixout'[`r', 9])`closebracket' //upper
 			}
 		}
-		
-		*if "`cimethod'"== "t" {
-			mat colnames `matrixout' = Mean SE(`link') t(`link') P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
-		/*}
-		else{
-			mat colnames `matrixout' = Mean SE(`link') z(`link') P>|z| Lower Upper
-		}*/	
+		mat colnames `matrixout' = Mean SE(`link') `statistic'(`link') P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
 	}
 	else {
 		forvalues r = 1(1)`nrows' {
@@ -5715,7 +5787,7 @@ end
 	cap program drop bayessummary
 	program define bayessummary, rclass
 		syntax, estimates(string) studyid(varname) [event(varname) total(varname) DP(integer 2) model(string) varx(varname) typevarx(string) regexpression(string) ///
-			comparator(varname) cimethod(string) mpair mcbnetwork pcbnetwork abnetwork general comparative stratify interaction ///
+			comparator(varname) scimethod(string) mpair mcbnetwork pcbnetwork abnetwork general comparative stratify interaction ///
 			catreg(varlist) contreg(varlist) power(integer 0) level(integer 95) by(varname) link(string) cov(string) baselevel(integer 1)]
 		
 		tempname absout loddsout exactabsout exactabsouti absexact etimat hpdmat
@@ -6040,7 +6112,7 @@ end
 	program define freqsummary, rclass
 
 		syntax, estimates(string) studyid(varname) [event(varname) total(varname) abs DP(integer 2) model(string) varx(varname) typevarx(string) regexpression(string) ///
-			comparator(varname) cimethod(string) mpair mcbnetwork pcbnetwork abnetwork general comparative  stratify interaction ///
+			comparator(varname) scimethod(string) mpair mcbnetwork pcbnetwork abnetwork general comparative  stratify interaction ///
 			catreg(varlist) contreg(varlist) power(integer 0) level(integer 95) by(varname) link(string) total(varname)]
 		
 		tempname coefmat outmatrix outmatrixp matrixout bycatregmatrixout catregmatrixout contregmatrixout row ///
@@ -6100,6 +6172,12 @@ end
 			local expression "expression(predict(xb))"
 		}
 		
+		if "`scimethod'"== "t" {
+			local statistic "t"
+		}
+		else {
+			local statistic "z"
+		}
 		/*
 		if "`link'" == "cloglog" {
 			local invfn "invcloglog"
@@ -6143,7 +6221,8 @@ end
 		}
 		else {
 			local df = e(N) -  e(k)
-		}		
+		}
+
 		mat `coefmat' = e(b)
 		local predcmd = e(predict)
 		
@@ -6241,7 +6320,7 @@ end
 		mat `matrixout' = (`matrixout', `tstats')
 		
 		//t distribution
-		*if "`cimethod'" == "t" {
+		*if "`scimethod'" == "t" {
 			forvalues r = 1(1)`=`byncatreg' + `ncatreg' + `ncontreg''  {
 					local tstat = `matrixout'[`r', 3]
 					mat `matrixout'[`r', 7] = ttail(`df', abs(`tstat'))*2
@@ -6365,15 +6444,7 @@ end
 		
 		local rownames = "`contrownames' `catrownames' `Overall'"
 		mat rownames `matrixout' = `rownames'
-		*mat colnames `outmatrixp' = Lower Upper
-		*mat rownames `outmatrixp' = `catrownames' `Overall'
-					
-		/*if "`cimethod'" == "t" { 
-			mat colnames `matrixout' = Mean SE t P>|t| Lower Upper
-		}
-		else {*/
-			mat colnames `matrixout' = Mean SE z P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
-		*}
+		mat colnames `matrixout' = Mean SE `statistic' P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
 
 		//Get exact stats
 		qui {
@@ -6488,12 +6559,12 @@ program define postsim, rclass
 	[bayesreps(string asis) event(varname) total(varname) rawest(name) rrout(name) orout(name) link(string) 
 	modeles(varlist) modellci(varlist) modeluci(varlist) outplot(string) baselevel(integer 1) cov(string)
 	model(string) comparative aliasdesign(string) by(varname) level(real 95) interaction abnetwork mcbnetwork mpair varx(varname) 
-	popstat(string) nsims(string) p(integer 0) catreg(varlist) by(varname)]
+	stat(string) nsims(string) p(integer 0) catreg(varlist) by(varname) stratify]
 	;
 	#delimit cr 
 	
 	marksample touse, strok
-	
+		
 	tempname betacoef rawcoef varrawcoef ///
 				fullrawcoef fullvarrawcoef X beta sims ///
 				popabsout popabsouti poprrout poprdout poprrouti poprdouti  poplrrout poplrrouti ///
@@ -6530,7 +6601,7 @@ program define postsim, rclass
 	local  modeloruci "`5'"
 	local  modelloruci	"`6'"
 	
-	qui {
+	/*qui {
 		replace `modelp' = .
 		replace `modelrr' = .
 		replace `modelrd' = .
@@ -6551,7 +6622,7 @@ program define postsim, rclass
 		replace `modellrruci' = .
 		replace `modeloruci' = .
 		replace `modelloruci' = . 
-	}
+	}*/
 	
 	if "`link'" == "cloglog" {
 		local invfn "invcloglog"
@@ -6580,11 +6651,12 @@ program define postsim, rclass
 	
 	//Restore 
 	qui {
-		gen `insample' = e(sample) * mu
+		estimates restore `estimates'
+		gen `insample' = e(sample) /** mu*/
 		
 		if strpos("`model'", "bayes") == 0 {
 			//Restore estimates
-			estimates restore `estimates'
+			*estimates restore `estimates'
 			local predcmd = e(predict)
 			
 			//Coefficients estimates and varcov
@@ -6634,7 +6706,6 @@ program define postsim, rclass
 			}
 			//Get the FE parameters and their covariances
 			mat `betacoef' = `fullrawcoef'[1, 1..`nfeff']
-			
 			//Predict		
 			//Fill data if less than 7
 			count
@@ -6643,8 +6714,6 @@ program define postsim, rclass
 				local multipler = int(ceil(7/`nobs'))
 				qui expand `multipler', gen(`newobs')
 			}
-			
-			//R
 			if "`model'" == "cbbetabin" {
 				predictnl `feff' = xb() - _b[_cons], se(`sfeff')
 			}
@@ -6652,36 +6721,35 @@ program define postsim, rclass
 				if "`link'" == "log" {
 					local offset "nooffset"
 				}
-				
 				if "`predcmd'" == "mepoisson_p" {
 					predictnl `feff' = log(exp(predict(xb))/`total'), se(`sfeff')  //logscale
 				}
 				else {
 					//depends on the link used
-					predict `feff', xb `offset' //FE
-					predict `sfeff', stdp `offset' //se of FE	
+					predict `feff' if `insample'==1, xb `offset' //FE
+					predict `sfeff' if `insample'==1, stdp `offset' //se of FE	
 				}
 			}
 			
 			if "`model'" == "random" {
 				if "`abnetwork'`cov'" == "" {
-					predict `reff', reffects reses(`sreff')
+					predict `reff' if `insample'==1, reffects reses(`sreff')
 					gen `modelse' = sqrt(`sreff'^2 + `sfeff'^2) if `insample'==1
 				}
 				else if ("`cov'" == "commonslope") {
-					predict `reff2', reffects reses(`sreff2')
+					predict `reff2' if `insample'==1, reffects reses(`sreff2')
 					gen `reff' = `reff2'
 					gen `sreff' = `sreff2'	
 					gen `modelse' = sqrt(`sreff'^2 + `sfeff'^2) if `insample'==1
 				}
 				else if ("`cov'" == "commonint") | ("`cov'" == "freeint") {
-					predict `reff1', reffects reses(`sreff1')
+					predict `reff1' if `insample'==1, reffects reses(`sreff1')
 					gen `reff' = `reff1'*2.`varx'
 					gen `sreff' = 2.`varx'*`sreff1'	
 					gen `modelse' = sqrt(`sreff'^2 + `sfeff'^2) if `insample'==1
 				}
 				else if "`abnetwork'" !="" | ("`cov'" == "unstructured") | ("`cov'" == "independent") {
-					predict `reff1' `reff2', reffects reses(`sreff1' `sreff2')  //slope=1  int=2 
+					predict `reff1' `reff2' if `insample'==1, reffects reses(`sreff1' `sreff2')  //slope=1  int=2 
 					
 					if "`abnetwork'"  == "" {
 						
@@ -6707,10 +6775,10 @@ program define postsim, rclass
 				gen `eta' = `feff' + `reff' //linear predictor
 			}
 			else {
-				gen `eta' = `feff' 
+				gen `eta' = `feff' if `insample'==1
 				gen `modelse' = `sfeff' if `insample'==1
 			}
-			
+					
 			//Revert to original data if filler data was generated
 			if (("`model'" == "random") & (`nobs' < 7))  {
 				keep if !`newobs'
@@ -6986,7 +7054,7 @@ program define postsim, rclass
 			//make matrices from the dataset
 			//roweq(`idpair')
 			mkmat `vnamelist' if `insample'==1, matrix(`X')  rownames(`rid')
-			
+						
 			tempvar present
 			gen `present' = 1	
 			
@@ -7115,7 +7183,7 @@ program define postsim, rclass
 				tempvar phat`j' 
 					
 				if "`comparative'`mcbnetwork'`abnetwork'`mpair'" == "" {
-					tempvar phat`j' 
+					*tempvar phat`j' 
 				
 					if "`model'" == "random" {
 						tempvar restudy`j'
@@ -7136,7 +7204,7 @@ program define postsim, rclass
 						gen `phat`j'' = `invfn'(`festudy`j'')`closebracket'
 					}
 				}
-				if "`comparative'" != "" | "`mcbnetwork'" != "" | "`abnetwork'" != "" | "`mpair'" != "" {
+				if "`comparative'`mcbnetwork'`abnetwork'`mpair'" != "" {
 					sum `gid' if `rid' == `j'
 					local index = r(min)
 					
@@ -7203,7 +7271,7 @@ program define postsim, rclass
 		}	
 		else {
 			//identifiers
-			sort `insample' `orderid'
+			gsort -`insample' `orderid' `varx'
 			egen `rid' = seq() if `insample'==1  //rowid
 			
 			if "`comparative'`mcbnetwork'`abnetwork'`mpair'" != ""  {
@@ -7222,12 +7290,13 @@ program define postsim, rclass
 			//merge with simulations
 			sort `rid'
 			merge 1:1 _n  using `bayesreps',  nogenerate 
-									
+						
 			//# of obs
 			count if `insample' == 1
 			local nobs = r(N)
 			
 			//Generate the p's and r's
+		
 			forvalues j=1(1)`nobs' { 
 				tempvar phat`j'  
 			
@@ -7237,7 +7306,7 @@ program define postsim, rclass
 											
 				gen `phat`j'' = _mu1_`j'/`total_`j'' //most important value
 	
-				if "`comparative'" != "" | "`mcbnetwork'" != "" | "`abnetwork'" != "" | "`mpair'" != ""{
+				if "`comparative'`mcbnetwork'`abnetwork'`mpair'" != "" {
 					sum `gid' if `rid' == `j'
 					local index = r(min)
 					
@@ -7248,10 +7317,31 @@ program define postsim, rclass
 					tempvar phat_`pair'`index'
 					
 					if "`comparative'`mcbnetwork'`aliasdesign'`mpair'" != ""  {
-					*if "`abnetwork'" == "" | "`aliasdesign'" == "comparative" {
-						//Create the pairs
+
 						gen `phat_`pair'`index'' = `phat`j''
 						
+						/*if `pair' == 2 {
+							tempvar rrhat`index' rdhat`index' lrrhat`index' orhat`index' lorhat`index'
+							
+							gen `rrhat`index'' = `phat_2`index'' / `phat_1`index''
+							gen `rdhat`index'' = -`sign'`phat_2`index'' + `sign'`phat_1`index''
+							gen `lrrhat`index'' = ln(`rrhat`index'')
+							gen `orhat`index'' = (`phat_2`index''/(1 - `phat_2`index'')) / (`phat_1`index'' /(1 - `phat_1`index''))
+							gen `lorhat`index'' = ln(`orhat`index'')
+						}*/
+					}
+				}	
+			}
+			
+			forvalues j=1(1)`nobs' { 
+				if "`comparative'`mcbnetwork'`abnetwork'`mpair'" != "" {
+					sum `gid' if `rid' == `j'
+					local index = r(min)
+					
+					sum `idpair' if `rid' == `j'
+					local pair = r(min)
+										
+					if "`comparative'`mcbnetwork'`aliasdesign'`mpair'" != ""  {						
 						if `pair' == 2 {
 							tempvar rrhat`index' rdhat`index' lrrhat`index' orhat`index' lorhat`index'
 							
@@ -7264,6 +7354,7 @@ program define postsim, rclass
 					}
 				}	
 			}
+			
 		}
 		
 		//Summarize	
@@ -7459,11 +7550,11 @@ program define postsim, rclass
 				foreach vari of local catvars {
 					
 					cap drop `hold'	
-					decode `vari', gen(`hold')
+					decode `vari' if `insample' == 1, gen(`hold')
 					
 					*label list `vari'
 					*local ngroups = r(max)
-					levelsof `vari', local(groupcodes)
+					levelsof `vari' if `insample' == 1, local(groupcodes)
 					local ngroups = r(r)
 			
 					local baselab:label `vari' `baselevel'
@@ -7726,7 +7817,7 @@ program define postsim, rclass
 				}
 			}
 			
-			if "`comparative'" != "" | "`mcbnetwork'" != "" | "`aliasdesign'" != "" | "`mpair'" != "" {
+			if "`comparative'`mcbnetwork'`aliasdesign'`mpair'" != "" {
 				//Comparative R
 				local mindex 0
 				local newnrows 0
@@ -7800,6 +7891,7 @@ program define postsim, rclass
 										
 					//Obtain mean of modelled estimates
 					if strpos("`model'", "bayes") == 0 {
+
 						sum `modelrr' if `subset' == 1
 						local meanmodelrr = r(mean)
 						
@@ -7963,7 +8055,7 @@ program define postsim, rclass
 						local upperp = r(c_3) //Upper centile	
 						
 						if "`metric'" == "abs" {							
-							if "`popstat'" == "Median" {
+							if "`stat'" == "Median" {
 								replace `modelp' = `median' if `insample' == 1 & `rid' == `j'
 							}
 							else {
@@ -7974,7 +8066,7 @@ program define postsim, rclass
 						}
 						else {
 							
-							if "`popstat'" == "Median" {
+							if "`stat'" == "Median" {
 								replace `model`metric'' = `median' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
 							}
 							else {
@@ -8007,7 +8099,7 @@ program define postsim, rclass
 								local lowerp = r(c_2) //Lower centile
 								local upperp = r(c_3) //Upper centile
 								
-								if "`popstat'" == "Median" {
+								if "`stat'" == "Median" {
 									replace `modelp' = `median' if `insample' == 1 & `rid' == `j'
 								}
 								//This introduces sampling error
@@ -8038,7 +8130,7 @@ program define postsim, rclass
 							local median = r(c_1) //Median
 							local lowerp = r(c_2) //Lower centile
 							local upperp = r(c_3) //Upper centile
-							if "`popstat'" == "Median" {
+							if "`stat'" == "Median" {
 								replace `model`metric'' = `median' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1							
 							}
 							replace `model`metric'lci' = `lowerp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
@@ -8048,162 +8140,7 @@ program define postsim, rclass
 						drop `subsetid'
 					}
 				}
-			}
-			
-			/*if strpos("`model'", "bayes") == 1 {
-				//Smooth estimates		
-				if "`outplot'" == "abs" {
-					//# of obs
-					count if `insample' == 1
-					local nobs = r(N)
-				}
-				else {
-					count if `insample' == 1 & `idpair' == 2
-					local nobs = r(N)
-					
-					egen `subsetid' = seq()	if `insample' == 1 & `idpair' == 2
-				}
-								
-				forvalues j=1(1)`nobs' {			
-					if "`outplot'" == "abs" {
-					
-						sum `phat`j''
-						local muphat = r(mean)
-						
-						centile `phat`j'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-					}
-					else {
-						sum `gid' if `subsetid' == `j'
-						local index = r(min)
-							
-						if "`outplot'" == "rr" {
-							sum `rrhat`index''
-							local murhat = r(mean)
-							
-							centile `rrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-							
-						}
-						else if "`outplot'" == "rd" {
-							sum `rdhat`index''
-							local murhat = r(mean)
-							
-							centile `rdhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-							
-						}
-						else if "`outplot'" == "lrr"  {
-							sum `lrrhat`index''
-							local murhat = r(mean) 
-							
-							centile `lrrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')	
-						}
-						else if "`outplot'" == "or"  {
-							sum `orhat`index''
-							local murhat = r(mean) 
-							
-							centile `orhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')	
-						}
-						else if "`outplot'" == "lor"  {
-							sum `lorhat`index''
-							local murhat = r(mean) 
-							
-							centile `lorhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')	
-						}
-					}
-					
-					local median = r(c_1) //Median
-					local lowerp = r(c_2) //Lower centile
-					local upperp = r(c_3) //Upper centile
-					
-					if "`outplot'" == "abs" {							
-						if "`popstat'" == "Median" {
-							replace `modeles' = `median' if `insample' == 1 & `rid' == `j'
-						}
-						else {
-							replace `modeles' = `muphat' if `insample' == 1 & `rid' == `j'
-						}
-						replace `modellci' = `lowerp' if `insample' == 1 & `rid' == `j'
-						replace `modeluci' = `upperp' if `insample' == 1 & `rid' == `j'
-					}
-					else {
-						
-						if "`popstat'" == "Median" {
-							replace `modeles' = `median' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
-						}
-						else {
-							replace `modeles' = `murhat' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
-						}
-						
-						replace `modellci' = `lowerp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
-						replace `modeluci' = `upperp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
-					}
-				}
-			}
-			else {			
-				replace `modeles' = `modelp' if  `insample' == 1
-					
-				//Smooth p's
-				if "`outplot'" == "abs" {
-					//postci
-					local critvalue -invnorm((100-`level')/200)
-					
-					replace `modellci' = `invfn'(`eta' - `sign' `critvalue'*`modelse')`closebracket' if  `insample' == 1 //lower
-					replace `modeluci' = `invfn'(`eta' +  `sign' `critvalue'*`modelse')`closebracket' if  `insample' == 1 //upper
-				
-				}
-				else  {
-					//Smooth r's
-					if "`outplot'" == "rr" { 
-						replace `modeles' = `modelrr' if  `insample' == 1
-					}
-					else if "`outplot'" == "rd" { 
-						replace `modeles' = `modelrd' if  `insample' == 1
-					}
-					else if "`outplot'" == "lrr" {
-						replace `modeles' = `modellrr' if  `insample' == 1
-					}
-					else if "`outplot'" == "or" {
-						replace `modeles' = `modelor' if  `insample' == 1
-					}
-					else if "`outplot'" == "lor" {
-						replace `modeles' = `modellor' if  `insample' == 1
-					}
-					
-					*sum `gid' if `insample' == 1 
-					count if `insample' == 1 & `idpair' == 2
-					local nstudies = r(N)
-					
-					egen `subsetid' = seq()	if `insample' == 1 & `idpair' == 2
-				
-					forvalues j=1(1)`nstudies' {
-						
-						sum `gid' if `subsetid' == `j'
-						local index = r(min)
-						
-						//Obtain the quantiles
-						if "`outplot'" == "rr" {
-							centile `rrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-						}
-						else if "`outplot'" == "rd" {
-							centile `rdhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-						}
-						else if "`outplot'" == "lrr"  {
-							centile `lrrhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-						}
-						else if "`outplot'" == "or"  {
-							centile `orhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-						}
-						else if "`outplot'" == "lor"  {
-							centile `lorhat`index'', centile(50 `=(100-`level')/2' `=100 - (100-`level')/2')
-						}
-						local median = r(c_1) //Median
-						local lowerp = r(c_2) //Lower centile
-						local upperp = r(c_3) //Upper centile
-						
-						replace `modellci' = `lowerp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
-						replace `modeluci' = `upperp' if (`gid' == `index') & (`idpair' == 2) &  `insample' == 1
-					}		 
-				}
-			}	*/		
+			}	
 		}
 		drop if `present' != 1
 		
@@ -8235,14 +8172,14 @@ program define postsim, rclass
 end
 
 /*+++++++++++++++++++++++++	SUPPORTING FUNCTIONS: PRINTMAT +++++++++++++++++++++++++
-							Print the outplot matrix beautifully
+							Print the outplot matrix micely
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 cap program drop printmat
 program define printmat
 	#delimit ;
 	syntax, matrixout(name) type(string) [sumstat(string) dp(integer 2) power(integer 0) stratify 
 		mpair mcbnetwork pcbnetwork abnetwork general comparative continuous p(integer 0) model(string) 
-		nsims(string) link(string) inference(string)]
+		nsims(string) link(string) inference(string) power(integer 0)]
 	;
 	#delimit cr
 		local nrows = rowsof(`matrixout')
@@ -8395,18 +8332,20 @@ program define printmat
 				}
 				di as res "{pmore2} `typeinf' Summary: `expression' {p_end}"
 			}
-			
+			if `power' > 0 {
+				local multiplier "*10^`power'"
+			}
 			if strpos("`type'", "abs") != 0 { 
-				di as res "{pmore2} `typeinf' summary: Proportion {p_end}"
+				di as res "{pmore2} `typeinf' summary: Proportion`multiplier' {p_end}"
 			}
 			if ("`type'" == "rr") {
-				di as res "{pmore2} `typeinf' summary: Proportion Ratio {p_end}"
+				di as res "{pmore2} `typeinf' summary: Proportion Ratio`multiplier'  {p_end}"
 			}
 			if ("`type'" == "rd") {
-				di as res "{pmore2} `typeinf' summary: Proportion Difference {p_end}"
+				di as res "{pmore2} `typeinf' summary: Proportion Difference`multiplier'  {p_end}"
 			}
 			if ("`type'" == "or") {
-				di as res "{pmore2} `typeinf' summary: Odds Ratio {p_end}"
+				di as res "{pmore2} `typeinf' summary: Odds Ratio`multiplier'  {p_end}"
 			}
 			di as res    "****************************************************************************************" 
 			tempname mat2print
@@ -8484,7 +8423,7 @@ program define printmat
 				di as txt "NOTE: H0: phi = 0 vs. H1: phi > 0"
 			}
 			else {
-				di as txt "NOTE: H0: tau = 0 vs. H1: tau > 0"
+				di as txt "NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) > 0"
 			}
 			
 		}
@@ -8534,13 +8473,13 @@ program define printmat
 			di as txt "NOTE: For continuous variable margins are computed at their respective mean"
 		}
 		if 	"`inference'" == "frequentist" {	
-			if ("`type'" == "abs") {
+			if ("`type'" == "abs") | ("`type'" == "exactabs") {
 				di as txt "NOTE: H0: Est = 0.5 vs. H1: Est != 0.5"
 			}
 			if ("`type'" == "rr") {
 				di as txt "NOTE: H0: Est = 1 vs. H1: Est != 1"
 			}
-			if ("`type'" == "logit") {
+			if ("`type'" == "raw") {
 				di as txt "NOTE: H0: Est = 0 vs. H1: Est != 0"
 			}
 		}
@@ -8555,7 +8494,7 @@ end
 cap program drop bayesestrcore
 program define bayesestrcore, rclass
 
-syntax, event(varname) [confounders(varlist) varx(varname) cimethod(string) ///
+syntax, event(varname) [confounders(varlist) varx(varname) scimethod(string) ///
 			level(integer 95)  baselevel(integer 1) link(string) model(string) MUOFF interaction ] 
 		
 	tempname RRoutmatrix ORoutmatrix RDoutmatrix RRoutmatrixi ORoutmatrixi RDoutmatrixi etimat hpdmat
@@ -8824,7 +8763,7 @@ end
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 	cap program drop bayesestr
 	program define bayesestr, rclass
-		syntax, event(varname)[ regexpression(string) catreg(varlist) typevarx(string) varx(varname) comparator(varname) cimethod(string) ///
+		syntax, event(varname)[ regexpression(string) catreg(varlist) typevarx(string) varx(varname) comparator(varname) scimethod(string) ///
 			level(integer 95) mpair mcbnetwork pcbnetwork abnetwork general comparative stratify power(integer 0) by(varname) sid(varname)   ///
 			baselevel(integer 1)  interaction link(string) model(string) cov(string)]
 				
@@ -8867,7 +8806,7 @@ end
 		local ncatreg 0
 		
 		if ("`by'" != "") & ("`typevarx'" == "i") & ("`stratify'" == "") & ("`mcbnetwork'" == "")  {		
-			bayesestrcore, event(`event') varx(`varx')  confounders(`by')  cimethod(`cimethod') link(`link') `mu' baselevel(`baselevel')
+			bayesestrcore, event(`event') varx(`varx')  confounders(`by')  scimethod(`scimethod') link(`link') `mu' baselevel(`baselevel')
 			
 			matrix `bymatRD' = r(rdoutmatrix)
 			matrix `bymatRR' = r(rroutmatrix)
@@ -8890,7 +8829,7 @@ end
 			
 			if (`nc' > 1) {	
 		
-				bayesestrcore, event(`event')  varx(`varx') confounders(`comparator')  cimethod(`cimethod') link(`link') `mu' baselevel(`baselevel')
+				bayesestrcore, event(`event')  varx(`varx') confounders(`comparator')  scimethod(`scimethod') link(`link') `mu' baselevel(`baselevel')
 				
 				matrix `compmatRR' = r(rroutmatrix)
 				matrix `compmatRD' = r(rdoutmatrix)
@@ -8914,10 +8853,10 @@ end
 			
 		if "`catreg'" != "" {			
 			if "`mcbnetwork'`pcbnetwork'`comparative'" != "" { 
-				bayesestrcore, event(`event') varx(`varx') confounders(`catreg') baselevel(`baselevel') cimethod(`cimethod') link(`link') `interaction' `mu' 
+				bayesestrcore, event(`event') varx(`varx') confounders(`catreg') baselevel(`baselevel') scimethod(`scimethod') link(`link') `interaction' `mu' 
 			}
 			else {
-				bayesestrcore, event(`event') confounders(`catreg') baselevel(`baselevel')  cimethod(`cimethod') link(`link') `mu'
+				bayesestrcore, event(`event') confounders(`catreg') baselevel(`baselevel')  scimethod(`scimethod') link(`link') `mu'
 			}
 			
 			matrix `catregmatRR' = r(rroutmatrix)
@@ -8943,7 +8882,7 @@ end
 		//Overall when no confounders
 		if ("`comparative'`mcbnetwork'`pcbnetwork'`mpair'" != "")  & "`catreg'" == "" {
 						
-			bayesestrcore, event(`event') confounders(`varx') baselevel(`baselevel') cimethod(`cimethod') link(`link') `mu'
+			bayesestrcore, event(`event') confounders(`varx') baselevel(`baselevel') scimethod(`scimethod') link(`link') `mu'
 			
 			mat `overallRR' = r(rroutmatrix)
 			mat `overallRD' = r(rdoutmatrix)
@@ -8984,7 +8923,7 @@ end
 cap program drop freqestrcore
 program define freqestrcore, rclass
 
-syntax, estimates(string) [marginlist(string) cimethod(string) varx(varname) by(varname) confounders(varlist) level(integer 95) ///
+syntax, estimates(string) [marginlist(string) scimethod(string) varx(varname) by(varname) confounders(varlist) level(integer 95) ///
 	baselevel(integer 1) link(string) model(string) total(varname)]
 		
 	tempname lRRcoef lRRV RRoutmatrix RDcoef RDV  RDoutmatrix nltestRR nltestRD lORcoef lORV ORoutmatrix nltestOR 
@@ -9276,7 +9215,7 @@ end
 	cap program drop freqestr
 	program define freqestr, rclass
 
-		syntax, estimates(string) studyid(varname) [event(varname) total(varname) catreg(varlist) typevarx(string) varx(varname) comparator(varname) cimethod(string) ///
+		syntax, estimates(string) studyid(varname) [event(varname) total(varname) catreg(varlist) typevarx(string) varx(varname) comparator(varname) scimethod(string) ///
 			level(integer 95) DP(integer 2) mpair mcbnetwork pcbnetwork abnetwork general comparative aliasdesign(string) stratify power(integer 0) by(varname) ///
 			regexpression(string) baselevel(integer 1)  interaction link(string) model(string) inference(string) total(varname) cov(string)]
 		
@@ -9334,6 +9273,13 @@ end
 			}
 			local stratify //nullify
 		}
+		//CI option
+		if "`scimethod'"== "t" {
+			local statistic "t"
+		}
+		else {
+			local statistic "z"
+		}
 		
 		if "`aliasdesign'" == "comparative" {
 			gettoken varx catreg:catreg
@@ -9365,8 +9311,8 @@ end
 		local ncomp 0
 		local ncatreg 0
 		
-		if "`by'" != "" & "`typevarx'" == "i" & "`stratify'" == "" {		
-			freqestrcore, marginlist(`varx') varx(`varx') by(`by') confounders(`by')  estimates(`estimates') cimethod(`cimethod') link(`link') model(`model') total(`total')
+		if "`by'" != "" & "`typevarx'" == "i" & "`stratify'" == "" /*& ("`comparator'" == "")*/{		
+			freqestrcore, marginlist(`varx') varx(`varx') by(`by') confounders(`by')  estimates(`estimates') scimethod(`scimethod') link(`link') model(`model') total(`total')
 			
 			matrix `bymatRD' = r(rdoutmatrix)
 			matrix `bymatRR' = r(rroutmatrix)
@@ -9389,7 +9335,8 @@ end
 			mat `ORoutmatrix' = `bymatOR'
 			local nrowsout = rowsof(`RRoutmatrix')
 		}
-		
+		/*
+		//  :when does this apply?
 		if ("`by'" != "`comparator'") & ("`comparator'" != ""){
 			*label list `comparator'
 			*local nc = r(max)
@@ -9399,7 +9346,7 @@ end
 			
 			if (`nc' > 1) {	
 		 
-				freqestrcore, marginlist(`varx') varx(`varx') by(`comparator') confounders(`comparator') estimates(`estimates') cimethod(`cimethod') link(`link') model(`model') total(`total')
+				freqestrcore, marginlist(`varx') varx(`varx') by(`comparator') confounders(`comparator') estimates(`estimates') scimethod(`scimethod') link(`link') model(`model') total(`total')
 				
 				matrix `compmatRD' = r(rdoutmatrix)
 				matrix `compmatRR' = r(rroutmatrix)
@@ -9437,15 +9384,16 @@ end
 				}
 				local nrowsout = rowsof(`RRoutmatrix')
 			}
-		}		
+		}*/	
+			
 			
 		if "`marginlist'" != "" & "`aliasdesign'" == "" {
 			
 			if "`comparative'`mcbnetwork'`pcbnetwork'`mpair'" != "" { 
-				freqestrcore, marginlist(`marginlist') varx(`varx') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link') model(`model') total(`total')
+				freqestrcore, marginlist(`marginlist') varx(`varx') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') scimethod(`scimethod') link(`link') model(`model') total(`total')
 			}
 			else {
-				freqestrcore, marginlist(`marginlist') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') cimethod(`cimethod') link(`link') model(`model') total(`total')
+				freqestrcore, marginlist(`marginlist') confounders(`confounders') baselevel(`baselevel') estimates(`estimates') scimethod(`scimethod') link(`link') model(`model') total(`total')
 			}
 			
 			matrix `catregmatRD' = r(rdoutmatrix)
@@ -9591,10 +9539,10 @@ end
 			local nrowsout = rowsof(`RRoutmatrix')
 		}
 		
-		mat colnames `RDoutmatrix' = Mean SE z P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper	
+		mat colnames `RDoutmatrix' = Mean SE `statistic' P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper	
 		
-		mat colnames `RRoutmatrix' = Mean SE(lrr) z(lrr) P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
-		mat colnames `ORoutmatrix' = Mean SE(lor) z(lor) P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
+		mat colnames `RRoutmatrix' = Mean SE(lrr) `statistic'(lrr) P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
+		mat colnames `ORoutmatrix' = Mean SE(lor) `statistic'(lor) P>|z| z_Lower z_Upper P>|t| t_Lower t_Upper
 		
 		if "`model'" == "hexact" {
 			tempvar subset insample hold holdleft holdright
@@ -9799,7 +9747,7 @@ end
 	cap program drop rdci
 	program define rdci
 	
-		syntax varlist, R(name) lowerci(name) upperci(name) cimethod(string) [alpha(real 0.05)]
+		syntax varlist, R(name) lowerci(name) upperci(name) icimethod(string) [alpha(real 0.05)]
 		
 		qui {	
 			tokenize `varlist'
@@ -9843,7 +9791,7 @@ end
 	cap program drop rrci
 	program define rrci
 	
-		syntax varlist, R(name) lowerci(name) upperci(name) cimethod(string) [alpha(real 0.05) transform]
+		syntax varlist, R(name) lowerci(name) upperci(name) icimethod(string) [alpha(real 0.05) transform]
 		
 		qui {	
 			tokenize `varlist'
@@ -9866,7 +9814,7 @@ end
 				local N2 = `4'[`i']
 				
 				//Get the intervals
-				if "`cimethod'" == "koopman" {
+				if "`icimethod'" == "koopman" {
 					koopmancii `n1' `N1' `n2' `N2', alpha(`alpha')
 					
 					mat ci = r(ci)
@@ -9880,7 +9828,7 @@ end
 						local rr = (`n1'/`N1')/(`n2'/`N2')	
 					}
 				}
-				if ("`cimethod'" == "adlog") {
+				if ("`icimethod'" == "adlog") {
 					if ((`n1' == `N1') & (`n2' == `N2')) {
 						local rr = (`n1'/`N1')/(`n2'/`N2')
 						local n1 = `N1' - 0.5
@@ -9904,7 +9852,7 @@ end
 						local uprr = `nrr' * exp((`zstar' * sqrt(`varhat'))
 					}
 				}
-				if ("`cimethod'" == "bailey") {
+				if ("`icimethod'" == "bailey") {
 				
 					local rr = (`n1'/`N1')/(`n2'/`N2')
 					
@@ -10006,7 +9954,7 @@ end
 						local uprr = `nrr' * ((1 + `zstar' * sqrt((`qhat1'/`n1') + (`qhat2'/`n2') - (`zstar'^2 * `qhat1' * `qhat2')/(9 * `n1' * `n2'))/3)/((1 - (`zstar'^2 * `qhat2')/(9 * `n2'))))^3
 					}
 				}
-				if ("`cimethod'" == "katz") {
+				if ("`icimethod'" == "katz") {
 					if ((`n1' == 0 & `n2' == 0) | (`n1' == 0 & `n2' != 0) | (`n1' != 0 & `n2' == 0) | (`n1' == `N1' & `n2' == `N2')) {
 						if (`n1' == 0 & `n2' == 0) {
 						  local lorr = 0
@@ -10054,7 +10002,7 @@ end
 						local uprr = `rr' * exp(`zstar' * sqrt(`varhat'))
 					}
 				}
-				if ("`method'" == "asinh") {
+				if ("`icimethod'" == "asinh") {
 					if ((`n1' == 0 & `n2' == 0) | (`n1' == 0 & `n2' != 0) | (`n1' != 0 & `n2' == 0) | (`n1' == `N1' & `n2' == `N2')) {
 						if (`n1' == 0 & `n2' == 0) {
 						  local lorr = 0
@@ -10095,7 +10043,7 @@ end
 						local uprr = exp(log(`rr') + `varhat')
 					}
 				}
-				if ("`method'" == "noether") {
+				if ("`icimethod'" == "noether") {
 					if ((`n1' == 0 & `n2' == 0) | (`n1' == 0 & `n2' != 0) | (`n1' != 0 & `n2' == 0) | (`n1' == `N1' & `n2' == `N2')) {
 						if (`n1' == 0 & `n2' == 0) {
 						  local lorr = 0
@@ -10258,7 +10206,7 @@ end
 	cap program drop orccci
 	program define orccci
 
-		syntax varlist, r(name) lowerci(name) upperci(name) [level(real 95) mpair mcbnetwork cimethod(string) transform]
+		syntax varlist, r(name) lowerci(name) upperci(name) [level(real 95) mpair mcbnetwork icimethod(string) transform]
 		
 		if "`transform'" != "" {
 			local transform "ln"
@@ -10288,7 +10236,7 @@ end
 					local n2 = `3'[`i']
 					local N2 = `4'[`i']
 
-					cci `n1' `=`N1'-`n1'' `n2' `=`N2'-`n2'', l(`level') `cimethod'
+					cci `n1' `=`N1'-`n1'' `n2' `=`N2'-`n2'', l(`level') `icimethod'
 				}
 				local OR =  r(or)
 				local lor = r(lb_or)
@@ -10307,7 +10255,7 @@ end
 	cap program drop absexactci
 	program define absexactci, rclass
 
-		syntax anything(name=data id="data"), [level(real 95)]
+		syntax anything(name=data id="data"), [level(real 95) icimethod(string)]
 		
 		tempname absexact
 		mat `absexact' = J(1, 6, .)
@@ -10332,7 +10280,7 @@ end
 			exit _rc
 		}
 		
-		cii proportions `1' `2', `cimethod' level(`level')
+		cii proportions `1' `2', `icimethod' level(`level')
 		
 		mat `absexact'[1, 1] = r(proportion) 
 		mat `absexact'[1, 2] = r(se)
@@ -10374,9 +10322,9 @@ program define metabayesoptscheck, rclass
 	#delimit ;
 	syntax [,
 		nchains(integer 3)  /*3*/
-		thinning(integer 1) /*5*/
-		burnin(integer 500) /*5000*/
-		mcmcsize(integer 200) /*2500*/
+		thinning(integer 5) /*5*/
+		burnin(integer 5000) /*5000*/
+		mcmcsize(integer 2500) /*2500*/
 		rseed(integer 1)
 		refsampling(integer 1)
 		varprior(passthru)
