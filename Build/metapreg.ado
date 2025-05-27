@@ -2269,7 +2269,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 				else if strpos("`metric'", "r") != 0 & "`rxlabel'" != ""  {
 					local neoxlabel "xlabel(`rxlabel')"
 				}
-				local goptions `"`neolcols' `neorcols' `overall' `ovline' `stats' `box' `double' `neoastext' `ciopts' `diamopts' `olineopts' `pointopts' `boxopts' `predciopts' `prediction' `subline' `neotexts' `neoxlabel' `xline' `xtick'  `neologscale' `options'"'
+				local goptions `" `fplot' `neolcols' `neorcols' `overall' `ovline' `stats' `box' `double' `neoastext' `ciopts' `diamopts' `olineopts' `pointopts' `boxopts' `predciopts' `prediction' `subline' `neotexts' `neoxlabel' `xline' `xtick'  `neologscale' `options'"'
 				
 				metapplotcheck,`summaryonly' `goptions'  //plots advance housekeeping
 				local goptions = r(plotopts)
@@ -3291,7 +3291,7 @@ program define preg, rclass
 			local ISQ1 = `covmat'[3, 4]*100
 			local ISQ2 = `covmat'[4, 4]*100 
 		}
-		else if "`cov'" == "commonint" | "`cov'" == "freeint" {	
+		else if (("`cov'" == "commonint") | ("`cov'" == "freeint")) {	
 			qui bayesstats summary `parmsigma2'
 			mat `covmat' = r(summary)
 			local dim :colsof(`covmat')
@@ -3304,7 +3304,7 @@ program define preg, rclass
 			else {
 				local TAU21 = .
 			}
-			local TAU22 = `covmat'[1, 4] //Median Between study variance	2
+			local TAU22 = `covmat'[2, 4] //Median Between study variance	2
 		}
 		else if "`cov'" == "commonslope" {
 			qui bayesstats summary `parmtau2'
@@ -10354,6 +10354,8 @@ end
 		SUMMARYonly
 		
 		/*passed via foptions/coptions*/
+		noFPlot
+		CATPplot
 		noOVerall 
 		noOVLine 
 		noSTats 

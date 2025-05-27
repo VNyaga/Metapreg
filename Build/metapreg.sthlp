@@ -577,6 +577,208 @@ design({cmd:mpair}), design({cmd:pcbnetwork}), or design({cmd:mcbnetwork}).{p_en
 
 {marker examples}{...}
 {title:Examples}
+
+{marker example_one}{...}
+{cmd : 1.1 Overcoming non-convergence issues}
+
+{cmd : 1.2 Enhancing estimation of the between-study variance in small meta-analysis }
+{pmore}
+Bender et al.21 conducted a meta-analysis of three studies evaluating the risk of fever following sipuleucel-T therapy 
+in asymptomatic or minimally symptomatic metastatic castrate-resistant prostate cancer. Despite each study reporting a significant treatment effect, 
+the recommended Hartung-Knapp method yielded an uninformative CI of 0.70 to 11.92 for a pooled RR of 2.88
+
+{pmore}
+Fit a mixed-effects logistic regression model i.e. {cmd:model(mixed)} assuming event probabilities (logit scale) in the control groups and 
+treatment effects (log ORs) are independently normally distributed i.e.  {cmd :design(comparative, cov(independent))}
+
+{pmore2}
+{stata "use https://github.com/VNyaga/Metapreg/blob/master/Build/bender2018fig2.dta?raw=1":. use https://github.com/VNyaga/Metapreg/blob/master/Build/bender2018fig2.dta?raw=1}
+{p_end}
+
+{pmore2}
+{cmd :. #delimit ;}
+{p_end}
+
+{pmore2}
+{cmd :. metapreg event total treatment,} 
+{p_end}
+{pmore3}
+{cmd :studyid(study) {ul:design(comparative, cov(independent))}} 
+{p_end}
+{pmore3}
+{cmd :smooth gof  catpplot nofplot cimethod(,wald)} 
+{p_end}
+{pmore3}
+{cmd :sumstat(Risk Ratio) outplot(rr)} 
+{p_end}
+{pmore3}
+{cmd :xlab(1, 5, 30) logscale} 
+{p_end}
+{pmore3}
+{cmd :texts(2) astext(70) xline(1)} 
+{p_end}
+
+{pmore2}
+{cmd:. #delimit cr}
+{p_end}
+
+{pmore}
+{it:({stata "metapreg_examples metapreg_example_02":click to run})}
+
+{pmore}
+The frequentist estimates for the between-study variance components are both very close to zero 
+reducing the model to fixed-effects logistic regression. The population-averaged summary RR is 2.63 [1.83, 3.71]. 
+
+{pmore}
+To switch to Bayesian estimation, add the options {cmd:inference(bayesian)} and {cmd:bwd(path)} 
+where {it:path} is a directory path specifying the location where the simulation results containing 
+MCMC samples should be saved. The default prior for the variance component is {cmd:inverse-gamma} with 
+scale set to {cmd:0.01}.
+
+{pmore2}
+{cmd :. global wdir "C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults"}	
+{p_end}
+
+{pmore2}
+{cmd :. #delimit ;}
+{p_end}
+
+{pmore2}
+{cmd :. metapreg event total treatment,} 
+{p_end}
+{pmore3}
+{cmd :studyid(study) design(comparative, cov(independent))} 
+{p_end}
+{pmore3}
+{cmd:{ul :inference(bayesian) bwd($wdir)}}
+{p_end}
+{pmore3}
+{cmd :smooth gof  catpplot nofplot} 
+{p_end}
+{pmore3}
+{cmd :sumstat(Risk Ratio) outplot(rr)} 
+{p_end}
+{pmore3}
+{cmd :xlab(1, 5, 30) logscale} 
+{p_end}
+{pmore3}
+{cmd :texts(2) astext(70) xline(1)} 
+{p_end}
+
+{pmore2}
+{cmd:. #delimit cr}
+{p_end}
+
+{pmore}
+The Bayesian estimate of the between-study variance components 
+are 0.05 (variance of control group event probabilities in the logit scale) and 0.06 (treatment-effects in log OR scale). 
+The population-averaged summary RR is 2.75 [1.90, 4.35]. 
+
+
+
+{cmd : 1.2 Enhancing estimation of the between-study variance in sparse data}
+{pmore}
+Hemkens et al.18 investigated the cardiovascular harms of long-term colchicine use on cardiovascular mortality. 
+The meta-analysis included seven studies, two with double-zero events and three with single-zero events. 
+Using the Peto method, the pooled RR was 0.34 [0.09, 1.21]. 
+
+{pmore}
+Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups are homogeneous and 
+treatment effects (log ORs) are normally distributed i.e.  {cmd :design(comparative, cov(commonint))}
+
+{pmore2}
+{stata "use https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis18.dta?raw=1":. use https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis18.dta?raw=1}
+{p_end}
+
+{pmore2}
+{cmd :. gsort study -treatment}	
+{p_end}
+
+{pmore2}
+{cmd :. #delimit ;}
+{p_end}
+
+{pmore2}
+{cmd :. metapreg event total treatment,} 
+{p_end}
+{pmore3}
+{cmd :studyid(study)} 
+{p_end}
+{pmore3}
+{cmd :{ul:design(comparative, cov(commonint))}}
+{p_end}
+{pmore3}
+{cmd :smooth gof catpplot nofplot}  
+{p_end}
+{pmore3}
+{cmd :outplot(rr)  sumstat(Risk Ratio)}
+{p_end}
+{pmore3}
+{cmd :xlab(0.01, 1, 100) logscale}
+{p_end}
+{pmore3}
+{cmd :xline(1) texts(1.75) astext(60);}
+{p_end}
+
+{pmore2}
+{cmd:. #delimit cr}
+{p_end}
+
+{pmore}
+{it:({stata "metapreg_examples metapreg_example_01":click to run})}
+
+{pmore}
+The frequentist estimate of the treatment effect between-study variance is very close zero ({cmd:4.69e-33}) 
+reducing the model to fixed-effects logistic regression. The population-averaged summary RR was 0.20 [0.06, 0.63]. 
+
+{pmore}
+To switch to Bayesian estimation, add the options {cmd:inference(bayesian)} and {cmd:bwd(path)} 
+where {it:path} is a directory path specifying the location where the simulation results containing 
+MCMC samples should be saved. The default prior for the variance component is {cmd:inverse-gamma} with 
+scale set to {cmd:0.01}.
+
+
+{pmore2}
+{cmd :. global wdir "C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults"}	
+{p_end}
+
+{pmore2}
+{cmd :. #delimit ;}
+{p_end}
+
+{pmore2}
+{cmd :. metapreg event total treatment,} 
+{p_end}
+{pmore3}
+{cmd :studyid(study)} 
+{p_end}
+{pmore3}
+{cmd :design(comparative, cov(commonint))}
+{p_end}
+{pmore3}
+{cmd:{ul :inference(bayesian) bwd($wdir)}}
+{p_end}
+{pmore3}
+{cmd :smooth gof catpplot nofplot}  
+{p_end}
+{pmore3}
+{cmd :outplot(rr)  sumstat(Risk Ratio)}
+{p_end}
+{pmore3}
+{cmd :xlab(0.01, 1, 100) logscale}
+{p_end}
+{pmore3}
+{cmd :xline(1) texts(1.75) astext(60);}
+{p_end}
+
+{pmore2}
+{cmd:. #delimit cr}
+{p_end}
+
+{pmore}
+The Bayesian estimate of the treatment effect between-study variance is {cmd:0.15}. 
+The population-averaged summary RR was 0.22 [0.05, 0.71]. 
+
 {marker example_one}{...}
 {cmd : 1.1 Intercept-only model and summary by triage group}
 
