@@ -2451,37 +2451,31 @@ program define metapreg, eclass sortpreserve byable(recall)
 	
 	
 	//Save the matrices if only relevent. For cov==freeint, the conditional matrices are irrelevant
-	*if "`cov'" != "freeint" {
-		cap confirm matrix `nltestRR'
-		if _rc == 0 {
-			ereturn matrix rrtest = `nltestRR'
-			ereturn matrix rdtest = `nltestRD'
-			ereturn matrix ortest = `nltestOR'
-		}
-		
-		cap confirm matrix `rawest'
-		if _rc == 0 {
-			ereturn matrix rawest = `rawest'
-			ereturn matrix popabsout = `popabsout'
-		}
-		
-		cap confirm matrix `absout'
-		if _rc == 0 {
-			ereturn matrix absout = `absout'
-		}
-		
-		cap confirm matrix `absoutp'
-		if _rc == 0 {
-			ereturn matrix absoutp = `absoutp'
-		}
-		
-		cap confirm matrix `rrout'
-		if _rc == 0 {
-			ereturn matrix rdout = `rdout'
-			ereturn matrix rrout = `rrout'
-			ereturn matrix orout = `orout'
-		}
-	*}
+	
+	cap confirm matrix `nltestRR'
+	if _rc == 0 {
+		ereturn matrix rrtest = `nltestRR'
+		ereturn matrix rdtest = `nltestRD'
+		ereturn matrix ortest = `nltestOR'
+	}
+	
+	cap confirm matrix `rawest'
+	if _rc == 0 {
+		ereturn matrix rawest = `rawest'
+		ereturn matrix popabsout = `popabsout'
+	}
+	
+	cap confirm matrix `absout'
+	if _rc == 0 {
+		ereturn matrix absout = `absout'
+	}
+			
+	cap confirm matrix `rrout'
+	if _rc == 0 {
+		ereturn matrix rdout = `rdout'
+		ereturn matrix rrout = `rrout'
+		ereturn matrix orout = `orout'
+	}
 	
 	cap confirm matrix `matgof'
 	if _rc == 0 {
@@ -2525,7 +2519,17 @@ program define metapreg, eclass sortpreserve byable(recall)
 	restore
 	if "`inference'" == "bayesian" {
 		cap erase `bayesreps'.dta
-		cap erase `bayesreps'.ster 		
+		cap erase `bayesreps'.ster 
+		di _n
+		di _n
+		di _n
+		di _n
+		di as re "{pmore}| The bayesian estimation commands saved a dataset `bayesest'.dta {p_end}" 
+		di 		 "{pmore}| `bayesest'.dta {p_end}" 
+		di as re "{pmore}| containing the MCMC samples of the parameters to the disk.{p_end}" 		
+		di as re "{pmore}| It is your responsibility to erase the dataset {p_end}" 
+		di as re "{pmore}| after it is no longer needed.{p_end}"
+		di 		`"{pmore}{stata "erase `bayesest'.dta":Click to erase the dataset}"'
 	}
 end
 
