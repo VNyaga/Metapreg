@@ -34,4 +34,4 @@ metapreg num denom,  ///
 The options **by(tgroup)** requests to report summary estimates grouped by triage group, **catpplot** for a caterpilar plot i.e the forest plot sorted by the magnitude of the empirical proportions, and **smooth** lays the study-specific model-based estimates over the emprical estimates in the plot.
 
 The graph is 
-![](11.png)
+![Figure1.1](11.png)
