@@ -1,0 +1,477 @@
+<h1><a href="#meta-analysis-meta-regression-and-network-meta-analysis-of-proportions-from-binomial-data-using-generalized-linear-models-in-the-frequentist-and-bayesian-approach" id="meta-analysis-meta-regression-and-network-meta-analysis-of-proportions-from-binomial-data-using-generalized-linear-models-in-the-frequentist-and-bayesian-approach">Meta-analysis, meta-regression and network meta-analysis of proportions from binomial data using generalized linear models in the frequentist and Bayesian approach.</a></h1>
+<p>metapreg is a routine for meta-analysis of proportions from binomial data in the frequentist and bayesian framework.<br />
+The binomial distribution is used to model the within-study variability (Hamza et al. 2008).  The weighting is implicit and proportional to the study size and within-study variance.</p>
+<p>The program fits a fixed, random-effects, or a mixed-effects model assuming binomial, common-rho beta-binomial or binomial-normal distribution with a logit, loglog or the cloglog link to the data.</p>
+<p>The command requires Stata 14.1 or later versions. Stata 16.1 or later versions is required to perform the bayesian analysis.</p>
+<ol>
+<li>Intercept-only model 1.1 Summary by triage group The dataset used in examples 1.1-1.2 was used previously to produce Figure 1 in Marc Arbyn et al.(2009). First, load the dataset:</li>
+</ol>
+<pre><code>.                 use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
+
+</code></pre>
+<p>Then use fit a single model to all data. The option <strong>by(tgroup)</strong> requests to report summary estimates grouped by triage group.</p>
+<pre><code>. 
+. metapreg num denom,  ///
+&gt;         studyid(study) ///
+&gt;         by(tgroup) sumtable(abs) noitable /// 
+&gt;         cimethod(exact) ///
+&gt;         label(namevar=author, yearvar=year) catpplot nofplot ///
+&gt;         xlab(.25, 0.5, .75, 1) ///
+&gt;         subti(Atypical cervical cytology, size(4)) ///
+&gt;         texts(1.5) smooth gof
+
+**************************************************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 32
+    Number of studies = 32
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |   345.34    348.27  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1      591.57        0.00        0.07       67.34  
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------------------
+             Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+-----------------------+-------------------------------------------------------------------
+tgroup                 |                                                                   
+                 ASCUS |       0.40       0.01    -29.02       0.00       0.39       0.41  
+                ASC-US |       0.40       0.01    -29.02       0.00       0.39       0.41  
+BORDERLINE DYSKARYOSIS |       0.40       0.01    -29.02       0.00       0.39       0.41  
+                       |                                                                   
+               Overall |       0.40       0.01    -29.02       0.00       0.39       0.41  
+-------------------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------------------
+             Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------------------+--------------------------------------------------------------------
+tgroup                 |                                                                    
+                 ASCUS |     0.42      0.01      0.42      0.39      0.45              800  
+                ASC-US |     0.41      0.02      0.41      0.36      0.46              800  
+BORDERLINE DYSKARYOSIS |     0.42      0.03      0.42      0.37      0.48              800  
+                       |                                                                    
+               Overall |     0.42      0.01      0.42      0.40      0.44              800  
+--------------------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+
+&lt;img src=&quot;11.png&quot; &gt;
+
+
+</code></pre>
+<p>The</p>
+<pre><code>    1.2 Different models by triage group
+	  ---
+
+    With the by(tgroup) option in Example1.1 the conditional estimates in each group are identical.  To fit different models and obtain seperate tables and graphs for each group, use instead the by
+    prefix instead i.e bysort tgroup:  or by tgroup: if tgroup is already sorted. The option rc0 ensures that the program runs in all groups even when there could be errors encountered in one of the
+    sub-group analysis. Without the option, the program stops running when the first error occurs in one of the groups.
+
+    Fit a logistic regression for each category in triage group with specified x-axis label, Wilson confidence intervals for the studies, e.t.c.
+
+        . use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
+
+        . #delimit ;
+
+        . bys tgroup, rc0: metapreg num denom,
+            studyid(study)
+            cimethod(wilson)
+            label(namevar=author, yearvar=year) catpplot
+            xlab(.25, 0.5, .75, 1)
+            subti(Atypical cervical cytology, size(4))
+            texts(1.5) smooth;
+
+        . #delimit cr
+
+        
+
+
+   1.3 Proportions near 0
+	  ---
+
+    Logistic regression correctly handles the extreme cases appropriately without need for transformation or continuity correction.
+
+    The dataset used in this example produced the top-left graph in figure two in Ioanna Tsoumpou et al. (2009).
+
+        . use http://fmwww.bc.edu/repec/bocode/t/tsoumpou2009cancertreatrevfig2WNL.dta
+
+        .  metapreg p16p p16tot, ///
+            studyid(study) ///
+            label(namevar=author, yearvar=year) catpplot ///
+            sortby(year author) ///
+            xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
+            xline(0, lcolor(black)) ///
+            ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
+            subti(&quot;Cytology = WNL&quot;, size(4) color(blue)) ///
+            pointopt(msymbol(X) msize(2)) ///
+            texts(1.5) smooth gof
+    
+
+
+    1.4 Proportions near 0 - loglog link
+	---
+
+    The loglog regression is an extension of the logistic regression model and is particularly useful when the probability of an event is very small.
+
+        . use http://fmwww.bc.edu/repec/bocode/t/tsoumpou2009cancertreatrevfig2WNL.dta
+
+        .  metapreg p16p p16tot, link(loglog) ///
+            studyid(study) ///
+            label(namevar=author, yearvar=year) catpplot ///
+            sortby(year author) ///
+            xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
+            xline(0, lcolor(black)) ///
+            ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
+            subti(&quot;Cytology = WNL&quot;, size(4) color(blue)) ///
+            pointopt(msymbol(X) msize(2)) ///
+            texts(1.5) smooth gof
+</code></pre>
+<hr />
+<ol>
+<li>Meta-regression ============================================ 2.1 Independent studies =====
+<pre><code>The use of by(tgroup) in Example1.1 only allows informal testing of heterogeneity between the sub-groups.  The formal testing is perfomed by fitting a logistic regression with triage used as a
+categorical variable and entered in string format.
+
+    . use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
+
+    . metapreg num denom tgroup, ///
+        studyid(study) ///
+        sumtable(all) ///
+        cimethod(exact) ///
+        label(namevar=author, yearvar=year) ///
+        xlab(.25, 0.5, .75) ///
+        subti(Atypical cervical cytology, size(4)) ///
+        texts(1.5) summaryonly
+</code></pre>
+</li>
+</ol>
+<hr />
+<pre><code>    2.2 Comparative studies
+</code></pre>
+<p>===== Incorporating weakly informative prior distributions based on plausible assumptions; &mdash;</p>
+<pre><code>        2.2.1 To overcome non-convergence issues - proportions near 0
+		---
+
+        Hemkens et al. (2016) investigated the risk of fatal stroke after long-term colchicine use.  Three out of four studies contained double-zero events.
+
+        Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups and treatment effects (log ORs) are independently normally distributed i.e.
+        design(comparative, cov(independent))
+
+        . use https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis110.dta?raw=1
+
+        . gsort study -treatment
+
+        . #delimit ;
+
+        . metapreg event total treatment,
+            studyid(study)
+            design(comparative, cov(independent))
+            smooth gof catpplot nofplot
+            outplot(rr) xline(1) sumstat(Risk Ratio)
+            xlab(0, 1, 30) logscale
+            texts(2.35) astext(80);
+
+        . #delimit cr
+
+    
+
+        The model does not converge, the point estimates and standard errors are excessively large or undefined. This occurs because the event probabilities are/close to zero and therefore, the
+        likelihood function is almost flat, indicating limited information from the data about the parameters of interest. Consequently, the maximum likelihood algorithms struggled to converge, as
+        gradient values near a flat surface were close to zero.
+
+        To switch to Bayesian estimation, add the options inference(bayesian) and bwd(path) where path is a directory path specifying the location where the simulation results containing MCMC samples
+        should be saved.
+
+        . global wdir &quot;C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults&quot;
+
+        . #delimit ;
+
+        . metapreg event total treatment,
+            studyid(study)
+            design(comparative, cov(independent))
+            inference(bayesian) bwd($wdir)
+            smooth gof catpplot nofplot
+            outplot(rr) xline(1) sumstat(Risk Ratio)
+            xlab(0, 1, 30) logscale
+            texts(2.35) astext(80);
+
+
+        . #delimit cr
+
+        The Bayesian estimate of the between-study variance components are 0.81 (variance of control group event probabilities in the logit scale) and 1.17 (treatment-effects in log OR scale).  The
+        population-averaged summary RR is 2.52 [0.09, 482.71].
+</code></pre>
+<p>2.2.2 To enhance estimation of the between-study variance - three studies &mdash;</p>
+<pre><code>        Bender et al. (2018) conducted a meta-analysis of three studies evaluating the risk of fever following sipuleucel-T therapy in asymptomatic or minimally symptomatic metastatic castrate-resistant
+        prostate cancer.
+
+        Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups and treatment effects (log ORs) are independently normally distributed i.e.
+        design(comparative, cov(independent))
+
+        . use https://github.com/VNyaga/Metapreg/blob/master/Build/bender2018fig2.dta?raw=1
+
+        . #delimit ;
+
+        . metapreg event total treatment,
+            studyid(study) design(comparative, cov(independent))
+            smooth gof catpplot nofplot cimethod(,wald)
+            outplot(rr) xline(1) sumstat(Risk Ratio)
+            xlab(1, 5, 30) logscale
+            texts(2) astext(70);
+
+        . #delimit cr
+
+    
+
+        The frequentist estimates for the between-study variance components are both very close to zero reducing the model to fixed-effects logistic regression. The population-averaged summary RR is
+        2.63 [1.83, 3.71].
+
+        Switch to Bayesian estimation by add the options inference(bayesian) and bwd(path) where path is a directory path specifying the location where the simulation results containing MCMC samples
+        should be saved.
+
+        . global wdir &quot;C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults&quot;
+
+        . #delimit ;
+
+        . metapreg event total treatment,
+            studyid(study) design(comparative, cov(independent))
+            inference(bayesian) bwd($wdir)
+            smooth gof catpplot nofplot
+            outplot(rr) xline(1) sumstat(Risk Ratio)
+            xlab(1, 5, 30) logscale
+            texts(2) astext(70);
+
+        . #delimit cr
+
+        The Bayesian estimate of the between-study variance components are 0.05 (variance of control group event probabilities in the logit scale) and 0.06 (treatment-effects in log OR scale).  The
+        population-averaged summary RR is 2.75 [1.90, 4.35].
+
+     2.2.3 To enhance estimation of the between-study variance - meta-regression of sparse studies
+</code></pre>
+<hr />
+<pre><code>        Hemkens et al. (2016) investigated the risk of cardiovascular mortality after long-term colchicine use.  The meta-analysis included seven studies, two with double-zero events and three with
+        single-zero events.
+
+        Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups are homogeneous and treatment effects (log ORs) are normally distributed i.e.
+        design(comparative, cov(commonint))
+
+        . use https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis18.dta?raw=1
+
+        . gsort study -treatment
+
+        . #delimit ;
+
+        . metapreg event total treatment,
+            studyid(study)
+            design(comparative, cov(commonint))
+            smooth gof catpplot nofplot
+            outplot(rr) xline(1) sumstat(Risk Ratio)
+            xlab(0.01, 1, 100) logscale
+            texts(1.75) astext(60);
+
+        . #delimit cr
+
+    
+
+        The frequentist estimate of the treatment effect between-study variance is very close zero (4.69e-33) reducing the model to fixed-effects logistic regression. The population-averaged summary RR
+        is 0.20 [0.06, 0.63].
+
+        To switch to Bayesian estimation, add the options inference(bayesian) and bwd(path) where path is a directory path specifying the location where the simulation results containing MCMC samples
+        should be saved.
+
+        . global wdir &quot;C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults&quot;
+
+        . #delimit ;
+
+        . metapreg event total treatment,
+            studyid(study)
+            design(comparative, cov(commonint))
+            inference(bayesian) bwd($wdir)
+            smooth gof catpplot nofplot
+            outplot(rr) sumstat(Risk Ratio)
+            xlab(0.01, 1, 100) logscale
+            xline(1) texts(1.75) astext(60);
+
+        . #delimit cr
+
+        The Bayesian estimate of the treatment effect between-study variance is 0.15.  The population-averaged summary RR was 0.22 [0.05, 0.71].
+
+
+        2.2.4 BCG Vaccination - categorical covariate
+</code></pre>
+<hr />
+<pre><code>        The data used in examples 3.1-3.3 are as presented in table IV of Berkey et al. (1995) By supplying the risk-ratios and their variability, Sharp (1998) Sharp demonstrates meta-analysis of
+        odds-ratios with the meta command.  He fitted a random and a fixed effects model to the data.
+
+        The logistic regression model appropriately accounts for both within- and between-study heterogeneity, with vaccination arm as a covariate.  The options comparative indicates that the data is
+        comparative. The first covariate bcg, identifies the first and the second observations of the pair.  The risk-ratios are requested with the option outplot(rr).
+
+        . use &quot;http://fmwww.bc.edu/repec/bocode/b/bcg.dta&quot;
+
+        .metapreg cases_tb population bcg, ///
+            studyid(study) ///
+            design(comparative) ///
+            outplot(rr) ///
+            sumstat(Risk ratio) ///
+            xlab(0, 1, 2) ///
+            xtick(0, 1, 2) ///
+            logscale smooth gof ///
+            rcols(cases_tb population) ///
+            astext(80) ///
+            texts(1.5)
+
+        
+
+
+        2.2.5 BCG Vaccination - Continous covariate
+</code></pre>
+<hr />
+<pre><code>        We investigate whether altitude has an effect on the vaccination by including alt as a continous covariate.
+
+        . use &quot;http://fmwww.bc.edu/repec/bocode/b/bcg.dta&quot;
+
+        .metapreg cases_tb population lat, ///
+            studyid(study) ///
+            sortby(lat) by(bcg) ///
+            sumstat(Proportion) ///
+            xlab(0, 0.05, 0.15) ///
+            xtick(0, 0.05, 0.15) ///
+            rcols(cases_tb population) ///
+            astext(80) ///
+            texts(1.5) smooth gof
+</code></pre>
+<hr />
+<pre><code>        2.2.6 BCG Vaccination - Interaction between covariates
+</code></pre>
+<hr />
+<pre><code>        With metareg, Sharp (1998) investigaged the effect of latitude on BCG vaccination.  The analysis suggested that BCG vaccination was more effective at higher absolute latitude.
+
+        We now fit a logistic regression model with bcg, a categorical variable for the arm and lat, a continous variable with absolute latitude.
+
+        Activated by the option interaction, an interaction term allows to assess whether the log OR for arm vary by absolute latitude.
+
+        The interaction term from metapreg and the coefficient for lat using metareg as was done by Sharp (1998) are equivalent.
+
+        . use &quot;http://fmwww.bc.edu/repec/bocode/b/bcg.dta&quot;
+
+        . metapreg cases_tb population bcg lat, ///
+            studyid(study) ///
+            sortby(lat) ///
+            design(comparative, cov(commonslope)) ///
+            outplot(rr) ///
+            interaction ///
+            xlab(0, 1, 2) ///
+            xtick(0, 1, 2) ///
+            rcols(cases_tb population) ///
+            astext(80) ///
+            texts(1.5) logscale smooth gof
+</code></pre>
+<hr />
+<pre><code>        2.2.7 Sparse data - loglog link - interaction between covariates
+
+        Using metan, Chaimani et al. (2014) informaly assessed the difference in treatment effect of haloperidol compared to placebo in treating schizophrenia.
+
+        The analysis is more appropriately perfomed using metapreg by including arm and missingdata as covariates.
+
+        The interaction term allows to test whether the risk-ratios for arm differ between the group with and without missing data.
+
+        . use &quot;http://fmwww.bc.edu/repec/bocode/s/schizo.dta&quot;
+
+        . sort firstauthor arm
+
+        . metapreg response total arm missingdata, ///
+            studyid(firstauthor) link(loglog) ///
+            sortby(year) ///
+            design(comparative, cov(commonslope)) ///
+            interaction ///
+            xlab(0, 5, 15) ///
+            xtick(0, 5, 15) ///
+            sumstat(Rel Ratio) ///
+            lcols(response total year) ///
+            astext(70) ///
+            texts(1.5) logscale smooth gof
+</code></pre>
+<hr />
+<pre><code>        2.3 matched Studies
+</code></pre>
+<hr />
+<pre><code>        2.3.1 Comparison of two tests in reproducibility studies
+
+        We demonstrate the use of mpair option using data from reproducibility studies containing paired hrHPV test results in self-samples and clinician-collected samples.  The data in each study
+        should be a from a 2x2 table as displayed below;
+
+                    | Clinician sample
+        Self sample | Positive     Negative | Total
+        - - - - - - - - - - - - - - - - - -- - - - -
+            Positive|     pp         pn       | pp + pn
+            Negative|     np         nn       | np + nn
+        - - - - - - - - - - - - - - - - - -- - - - -
+              Total | pp + np       pn + nn     | pp + pn + np + nn
+
+        The options stratify by(type) facilitate the estimation of the test positivity ratio for each type, but presented all results presented in a single plot.
+
+        . use &quot;https://github.com/VNyaga/Metapreg/blob/master/Build/repro.dta?raw=1&quot;
+
+        . metapreg pp pn np nn, ///
+            design(mpair, cov(commonslope)) ///
+            studyid(paper) ///
+            stratify by(type) ///
+            xlab(0.5, 1, 2) ///
+            sumstat(Positivity Ratio) ///
+            lcols(test) ///
+            boxopts(msize(0.1) mcolor(black)) pointopt(msymbol(none))///
+            astext(50) logscale xline(1) smooth
+</code></pre>
+<hr />
+<pre><code>        2.3.2 Contrast-based network meta-analysis
+
+        We demonstrate the use of mcbnetwork option when matched data is available. The data should be a from a 2x2 table as displayed below;
+
+              | comparator
+        index | Positive     Negative | Total
+        - - - - - - - - - - - - - - - - - -
+      Positive|     a         b       | a + b
+      Negative|     c         d       | c + d
+        - - - - - - - - - - - - - - - - - -
+        Total | a + c       b + d     | a + b + c + d
+
+        . use &quot;http://fmwww.bc.edu/repec/bocode/m/matched.dta&quot;
+
+        . metapreg a b c d index comparator, ///
+            studyid(study) ///
+            model(fixed) ///
+            design(mcbnetwork) ///
+            by(comparator) ///
+            xlab(0.9, 1, 1.1) xtick(0.9, 1, 1.1) ///
+            sumstat(Ratio) ///
+            lcols(comparator index) ///
+            astext(80) texts(1.2) logscale smooth
+</code></pre>
