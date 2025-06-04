@@ -1109,8 +1109,9 @@ program define metapreg, eclass sortpreserve byable(recall)
 		
 		*Stratify except the last loop for the overall
 		if (`i' < `=`nlevels' + 1') & ("`stratify'" != "") {
-			local strataif `"if `by' == `i'"'
-			local ilab:label `by' `i'
+			local icode : word `i' of  `codelevels'
+			local strataif `"if `by' == `icode'"'
+			local ilab:label `by' `icode'
 			local stratalab `":`by' = `ilab'"'
 			local ilab = ustrregexra("`ilab'", " ", "_")
 			local byrownames = "`byrownames' `by':`ilab'"
@@ -1121,13 +1122,13 @@ program define metapreg, eclass sortpreserve byable(recall)
 
 			*Check if there is enough data in each strata
 			//Number of obs in the analysis
-			qui egen `obsid' = group(`rid') if `by' == `i'
+			qui egen `obsid' = group(`rid') if `by' == `icode'
 			qui summ `obsid'
 			local Nobs= r(max)
 			drop `obsid'	
 
 			//Number of studies in the analysis
-			qui egen `uniq' = group(`studyid') if `by' == `i'
+			qui egen `uniq' = group(`studyid') if `by' == `icode'
 			qui summ `uniq'
 			local Nuniq = r(max)
 			drop `uniq'	

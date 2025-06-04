@@ -83,60 +83,377 @@ BORDERLINE DYSKARYOSIS |     0.42      0.03      0.42      0.37      0.48       
 NOTE: % centiles obtained from 800 simulations of the posterior distribution
 
 
-&lt;img src=&quot;11.png&quot; &gt;
-
-
+&lt;img src=&quot;11.svg&quot; &gt;
 </code></pre>
-<p>The</p>
-<pre><code>    1.2 Different models by triage group
-	  ---
+<p>1.2 Different models by triage group &mdash;</p>
+<p>With the by(tgroup) option in Example1.1 the conditional estimates in each group are identical.  To fit different models and obtain seperate tables and graphs for each group, use instead the by prefix instead i.e bysort tgroup:  or by tgroup: if tgroup is already sorted. The option rc0 ensures that the program runs in all groups even when there could be errors encountered in one of the sub-group analysis. Without the option, the program stops running when the first error occurs in one of the groups.</p>
+<p>Fit a logistic regression for each category in triage group with specified x-axis label, Wilson confidence intervals for the studies, e.t.c.</p>
+<pre><code>.  use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
 
-    With the by(tgroup) option in Example1.1 the conditional estimates in each group are identical.  To fit different models and obtain seperate tables and graphs for each group, use instead the by
-    prefix instead i.e bysort tgroup:  or by tgroup: if tgroup is already sorted. The option rc0 ensures that the program runs in all groups even when there could be errors encountered in one of the
-    sub-group analysis. Without the option, the program stops running when the first error occurs in one of the groups.
+. 
+. bys tgroup, rc0: metapreg num denom,  ///
+&gt;         studyid(study) sumtable(abs) noitable  ///
+&gt;         cimethod(wilson)  ///
+&gt;         label(namevar=author, yearvar=year) catpplot nofplot  ///
+&gt;         xlab(.25, 0.5, .75, 1)  ///
+&gt;         subti(Atypical cervical cytology, size(4))  ///
+&gt;         texts(1.5) smooth 
 
-    Fit a logistic regression for each category in triage group with specified x-axis label, Wilson confidence intervals for the studies, e.t.c.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-&gt; tgroup = ASCUS
 
-        . use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
-
-        . #delimit ;
-
-        . bys tgroup, rc0: metapreg num denom,
-            studyid(study)
-            cimethod(wilson)
-            label(namevar=author, yearvar=year) catpplot
-            xlab(.25, 0.5, .75, 1)
-            subti(Atypical cervical cytology, size(4))
-            texts(1.5) smooth;
-
-        . #delimit cr
-
-        
+**************************************************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
 
 
-   1.3 Proportions near 0
-	  ---
-
-    Logistic regression correctly handles the extreme cases appropriately without need for transformation or continuity correction.
-
-    The dataset used in this example produced the top-left graph in figure two in Ioanna Tsoumpou et al. (2009).
-
-        . use http://fmwww.bc.edu/repec/bocode/t/tsoumpou2009cancertreatrevfig2WNL.dta
-
-        .  metapreg p16p p16tot, ///
-            studyid(study) ///
-            label(namevar=author, yearvar=year) catpplot ///
-            sortby(year author) ///
-            xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
-            xline(0, lcolor(black)) ///
-            ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
-            subti(&quot;Cytology = WNL&quot;, size(4) color(blue)) ///
-            pointopt(msymbol(X) msize(2)) ///
-            texts(1.5) smooth gof
-    
+    Number of observations = 20
+    Number of studies = 20
 
 
-    1.4 Proportions near 0 - loglog link
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1      493.24        0.00        0.08       74.08  
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.42       0.02    -19.14       0.00       0.41       0.42  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.43      0.02      0.43      0.40      0.46              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+NOTE: caterpillar plot name -&gt; abscatpplot1
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-&gt; tgroup = ASC-US
+
+**************************************************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 6
+    Number of studies = 6
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1       36.90        0.00        0.05       68.22  
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.37       0.03    -15.72       0.00       0.35       0.39  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.41      0.02      0.41      0.36      0.46              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+NOTE: caterpillar plot name -&gt; abscatpplot2
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-&gt; tgroup = BORDERLINE DYSKARYOSIS
+
+**************************************************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 6
+    Number of studies = 6
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1       32.37        0.00        0.17       75.46  
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.40       0.07     -6.35       0.00       0.35       0.44  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.43      0.04      0.43      0.35      0.51              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+NOTE: caterpillar plot name -&gt; abscatpplot3
+
+
+ &lt;img src=&quot;121.svg&quot; &gt;
+ &lt;img src=&quot;122.svg&quot; &gt;
+ &lt;img src=&quot;123.svg&quot; &gt;
+</code></pre>
+<p>1.3 Stratified analysis by triage group &mdash;</p>
+<p>With the by(tgroup) option in Example1.1 produces three different seperare plots and tables for each triage group.  To combine the plots and the tables into 1 use the options <strong>stratify by(tgroup)</strong></p>
+<p>Fit a logistic regression for each category in triage group with specified x-axis label, Wilson confidence intervals for the studies, e.t.c.</p>
+<pre><code>.  use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
+
+. 
+. metapreg num denom,  ///
+&gt;         by(tgroup) stratify ///
+&gt;         studyid(study) sumtable(abs) noitable  ///
+&gt;         cimethod(wilson)  ///
+&gt;         label(namevar=author, yearvar=year) catpplot nofplot  ///
+&gt;         xlab(.25, 0.5, .75, 1)  ///
+&gt;         subti(Atypical cervical cytology, size(4))  ///
+&gt;         texts(1.5) smooth 
+
+*********************************** Model for :tgroup = ASCUS ***************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 20
+    Number of studies = 20
+
+
+Click to show the raw estimates
+
+*********************************** Model for :tgroup = ASC-US ***************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 6
+    Number of studies = 6
+
+
+Click to show the raw estimates
+
+*********************************** Model for :tgroup = BORDERLINE DYSKARYOSIS ***************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 6
+    Number of studies = 6
+
+
+Click to show the raw estimates
+
+*********************************** Model for : all studies ***************************************
+    num ~ binomial(p, denom)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 32
+    Number of studies = 32
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+------------------------------------------------------------------------------------------
+                              |       DF       Chisq           p        tau2       I2tau  
+------------------------------+-----------------------------------------------------------
+                 tgroup|ASCUS |        1      493.24        0.00        0.08       74.08  
+                tgroup|ASC-US |        1       36.90        0.00        0.05       68.22  
+tgroup|BORDERLINE DYSKARYOSIS |        1       32.37        0.00        0.17       75.46  
+                  All studies |        1      591.57        0.00        0.07       67.34  
+------------------------------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+--------------------------------------------------------------------------------------------------
+                    Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+------------------------------+-------------------------------------------------------------------
+tgroup|ASCUS                  |                                                                   
+                      Overall |       0.42       0.02    -19.14       0.00       0.41       0.42  
+tgroup|ASC-US                 |                                                                   
+                      Overall |       0.37       0.03    -15.72       0.00       0.35       0.39  
+tgroup|BORDERLINE DYSKARYOSIS |                                                                   
+                      Overall |       0.40       0.07     -6.35       0.00       0.35       0.44  
+All studies                   |                                                                   
+                      Overall |       0.40       0.01    -29.02       0.00       0.39       0.41  
+--------------------------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+---------------------------------------------------------------------------------------------------
+                    Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+------------------------------+--------------------------------------------------------------------
+tgroup|ASCUS                  |                                                                    
+                      Overall |     0.43      0.02      0.43      0.40      0.46              800  
+tgroup|ASC-US                 |                                                                    
+                      Overall |     0.40      0.02      0.40      0.35      0.45              800  
+tgroup|BORDERLINE DYSKARYOSIS |                                                                    
+                      Overall |     0.42      0.04      0.43      0.34      0.51              800  
+All studies                   |                                                                    
+                      Overall |     0.42      0.01      0.42      0.40      0.44              800  
+---------------------------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+
+ &lt;img src=&quot;13.svg&quot; &gt;
+</code></pre>
+<h2><a href="#14-proportions-near-0" id="14-proportions-near-0">1.4 Proportions near 0</a></h2>
+<p>The dataset used in this example produced the top-left graph in figure two in Ioanna Tsoumpou et al. (2009).</p>
+<p>Logistic regression correctly handles the extreme cases appropriately without need for transformation or continuity correction.</p>
+<pre><code>.         use http://fmwww.bc.edu/repec/bocode/t/tsoumpou2009cancertreatrevfig2WNL.dta
+
+. 
+.         metapreg p16p p16tot, ///
+&gt;                 studyid(study) ///
+&gt;                 label(namevar=author, yearvar=year) catpplot nofplot noitable ///
+&gt;                 sortby(year author) ///
+&gt;                 xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
+&gt;                 xline(0, lcolor(black)) ///
+&gt;                 ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
+&gt;                 subti(&quot;Cytology = WNL&quot;, size(4) color(blue)) ///
+&gt;                 pointopt(msymbol(X) msize(2)) ///
+&gt;                 texts(1.5) smooth gof
+
+**************************************************************************
+    p16p ~ binomial(p, p16tot)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 19
+    Number of studies = 19
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |   110.70    112.59  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1      212.06        0.00        2.42       46.96  
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional Summary: log-odds estimates
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SE         t      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |      -2.64       0.43     -6.12       0.00      -3.55      -1.73  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0 vs. H1: Est != 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.07       0.43     -6.12       0.00       0.03       0.15  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.12      0.06      0.17      0.08      0.29              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+
+ &lt;img src=&quot;14.svg&quot; &gt;
+</code></pre>
+<pre><code>    1.4 Proportions near 0 - loglog link
 	---
 
     The loglog regression is an extension of the logistic regression model and is particularly useful when the probability of an event is very small.
@@ -185,7 +502,7 @@ categorical variable and entered in string format.
         Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups and treatment effects (log ORs) are independently normally distributed i.e.
         design(comparative, cov(independent))
 
-        . use https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis110.dta?raw=1
+        . use https://github.com/VNyaga/Metapreg/blob/master/Markdown/hemkens2016analysis110.dta?raw=1
 
         . gsort study -treatment
 
@@ -236,7 +553,7 @@ categorical variable and entered in string format.
         Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups and treatment effects (log ORs) are independently normally distributed i.e.
         design(comparative, cov(independent))
 
-        . use https://github.com/VNyaga/Metapreg/blob/master/Build/bender2018fig2.dta?raw=1
+        . use https://github.com/VNyaga/Metapreg/blob/master/Markdown/bender2018fig2.dta?raw=1
 
         . #delimit ;
 
@@ -283,7 +600,7 @@ categorical variable and entered in string format.
         Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups are homogeneous and treatment effects (log ORs) are normally distributed i.e.
         design(comparative, cov(commonint))
 
-        . use https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis18.dta?raw=1
+        . use https://github.com/VNyaga/Metapreg/blob/master/Markdown/hemkens2016analysis18.dta?raw=1
 
         . gsort study -treatment
 
@@ -438,7 +755,7 @@ categorical variable and entered in string format.
 
         The options stratify by(type) facilitate the estimation of the test positivity ratio for each type, but presented all results presented in a single plot.
 
-        . use &quot;https://github.com/VNyaga/Metapreg/blob/master/Build/repro.dta?raw=1&quot;
+        . use &quot;https://github.com/VNyaga/Metapreg/blob/master/Markdown/repro.dta?raw=1&quot;
 
         . metapreg pp pn np nn, ///
             design(mpair, cov(commonslope)) ///

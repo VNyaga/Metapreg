@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- This is a Stata 17.0 generated SVG file (http://www.stata.com) -->
+
+<svg version="1.1" width="5.500in" height="4.000in" viewBox="0 0 3960 2880" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>Stata Graph - abscatpplot</desc>
+	<rect x="0" y="0" width="3960" height="2880" style="fill:#EAF2F3;stroke:none"/>
+	<rect x="0.00" y="0.00" width="3959.88" height="2880.00" style="fill:#FFFFFF"/>
+	<rect x="2.88" y="2.88" width="3954.12" height="2874.24" style="fill:none;stroke:#FFFFFF;stroke-width:5.76"/>
+	<rect x="130.80" y="250.60" width="3728.22" height="2498.59" style="fill:#FFFFFF"/>
+	<rect x="133.68" y="253.48" width="3722.46" height="2492.83" style="fill:none;stroke:#FFFFFF;stroke-width:5.76"/>
+	<line x1="130.80" y1="351.58" x2="3859.02" y2="351.58" style="stroke:#C0C0C0;stroke-width:5.76"/>
+	<line x1="1032.94" y1="2572.84" x2="2753.31" y2="2572.84" style="stroke:#000000;stroke-width:5.76"/>
+	<text x="1893.00" y="2701.10" style="font-family:'Helvetica';font-size:43.19px;fill:#000000" text-anchor="middle">Proportion</text>
+	<line x1="1032.94" y1="2572.84" x2="1032.94" y2="2585.47" style="stroke:#000000;stroke-width:5.76"/>
+	<line x1="1606.40" y1="2572.84" x2="1606.40" y2="2585.47" style="stroke:#000000;stroke-width:5.76"/>
+	<line x1="2179.86" y1="2572.84" x2="2179.86" y2="2585.47" style="stroke:#000000;stroke-width:5.76"/>
+	<line x1="2753.31" y1="2572.84" x2="2753.31" y2="2585.47" style="stroke:#000000;stroke-width:5.76"/>
+	<text x="1032.82" y="2638.36" style="font-family:'Helvetica';font-size:43.19px;fill:#000000" text-anchor="middle">.25</text>
+	<text x="1606.28" y="2638.36" style="font-family:'Helvetica';font-size:43.19px;fill:#000000" text-anchor="middle">.5</text>
+	<text x="2179.86" y="2638.36" style="font-family:'Helvetica';font-size:43.19px;fill:#000000" text-anchor="middle">.75</text>
+	<text x="2753.31" y="2638.36" style="font-family:'Helvetica';font-size:43.19px;fill:#000000" text-anchor="middle">1</text>
+	<text x="236.12" y="329.11" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">study</text>
+	<text x="236.12" y="429.48" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">tgroup = ASCUS</text>
+	<text x="236.12" y="479.72" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Nieh (2005)</text>
+	<text x="236.12" y="529.84" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Palma (2005)</text>
+	<text x="236.12" y="580.08" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Solomon (2001)</text>
+	<text x="236.12" y="630.20" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Kulasingam (2002)</text>
+	<text x="236.12" y="680.45" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Monsonego (2006)</text>
+	<text x="236.12" y="730.69" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Lonky (2003)</text>
+	<text x="236.12" y="780.81" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Wensveen (2003)</text>
+	<text x="236.12" y="831.06" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Bergeron (2006)</text>
+	<text x="236.12" y="881.30" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Andersson (2005)</text>
+	<text x="236.12" y="931.42" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Rowe (2004)</text>
+	<text x="236.12" y="981.67" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Bergeron (2000)</text>
+	<text x="236.12" y="1031.91" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Lytwyn (2000)</text>
+	<text x="236.12" y="1082.03" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Manos (1999)</text>
+	<text x="236.12" y="1132.27" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Kiatpongsan (2006)</text>
+	<text x="236.12" y="1182.52" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Kendall (2005)</text>
+	<text x="236.12" y="1232.64" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Pretorius (2002)</text>
+	<text x="236.12" y="1282.88" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Ronco (2007)</text>
+	<text x="236.12" y="1333.00" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Shlay (2000)</text>
+	<text x="236.12" y="1383.25" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Morin (2001)</text>
+	<text x="236.12" y="1433.49" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Giovannelli (2005)</text>
+	<text x="236.12" y="1483.61" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Group Summary (Isq = 74.08%, p = 0.00)</text>
+	<text x="236.12" y="1584.10" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">tgroup = ASC-US</text>
+	<text x="236.12" y="1634.22" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Kelly (2006)</text>
+	<text x="236.12" y="1684.46" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">You (2007)</text>
+	<text x="236.12" y="1734.71" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Ko (2006)</text>
+	<text x="236.12" y="1784.83" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Selvaggi (2006)</text>
+	<text x="236.12" y="1835.07" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Wright (2006)</text>
+	<text x="236.12" y="1885.19" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Bruner (2004)</text>
+	<text x="236.12" y="1935.44" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Group Summary (Isq = 68.22%, p = 0.00)</text>
+	<text x="236.12" y="2035.80" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">tgroup = BORDERLINE DYSKARYOSIS</text>
+	<text x="236.12" y="2086.04" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Cuschieri (2007)</text>
+	<text x="236.12" y="2136.29" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Guyot (2003)</text>
+	<text x="236.12" y="2186.41" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Moss (2006)</text>
+	<text x="236.12" y="2236.65" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Rebello (2001)</text>
+	<text x="236.12" y="2286.90" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Zielinski (2001)</text>
+	<text x="236.12" y="2337.02" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Cuzick (2003)</text>
+	<text x="236.12" y="2387.26" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Group Summary (Isq = 75.46%, p = 0.00)</text>
+	<text x="236.12" y="2537.87" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Population Summary (Isq = 67.34%, p = 0.00)</text>
+	<text x="2881.40" y="329.11" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Proportion (95% CI)</text>
+	<text x="2881.40" y="479.72" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.74 (0.63, 0.83)</text>
+	<text x="2881.40" y="529.84" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.70 (0.62, 0.77)</text>
+	<text x="2881.40" y="580.08" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.57 (0.55, 0.59)</text>
+	<text x="2881.40" y="630.20" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.51 (0.45, 0.57)</text>
+	<text x="2881.40" y="680.45" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.48 (0.37, 0.59)</text>
+	<text x="2881.40" y="730.69" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.46 (0.40, 0.52)</text>
+	<text x="2881.40" y="780.81" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.45 (0.37, 0.53)</text>
+	<text x="2881.40" y="831.06" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.44 (0.42, 0.47)</text>
+	<text x="2881.40" y="881.30" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.44 (0.32, 0.58)</text>
+	<text x="2881.40" y="931.42" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.44 (0.38, 0.50)</text>
+	<text x="2881.40" y="981.67" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.43 (0.34, 0.53)</text>
+	<text x="2881.40" y="1031.91" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.29, 0.53)</text>
+	<text x="2881.40" y="1082.03" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.39 (0.36, 0.43)</text>
+	<text x="2881.40" y="1132.27" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.39 (0.29, 0.49)</text>
+	<text x="2881.40" y="1182.52" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.34 (0.33, 0.35)</text>
+	<text x="2881.40" y="1232.64" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.32 (0.29, 0.35)</text>
+	<text x="2881.40" y="1282.88" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.31 (0.28, 0.35)</text>
+	<text x="2881.40" y="1333.00" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.31 (0.25, 0.38)</text>
+	<text x="2881.40" y="1383.25" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.29 (0.25, 0.34)</text>
+	<text x="2881.40" y="1433.49" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.23 (0.15, 0.32)</text>
+	<text x="2881.40" y="1634.22" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.73 (0.59, 0.83)</text>
+	<text x="2881.40" y="1684.46" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.46 (0.43, 0.49)</text>
+	<text x="2881.40" y="1734.71" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.38, 0.42)</text>
+	<text x="2881.40" y="1784.83" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.36, 0.43)</text>
+	<text x="2881.40" y="1835.07" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.34 (0.32, 0.37)</text>
+	<text x="2881.40" y="1885.19" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.27 (0.19, 0.37)</text>
+	<text x="2881.40" y="2086.04" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.61 (0.53, 0.67)</text>
+	<text x="2881.40" y="2136.29" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.52 (0.33, 0.71)</text>
+	<text x="2881.40" y="2186.41" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.46 (0.44, 0.47)</text>
+	<text x="2881.40" y="2236.65" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.41 (0.31, 0.53)</text>
+	<text x="2881.40" y="2286.90" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.35 (0.29, 0.41)</text>
+	<text x="2881.40" y="2337.02" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.26 (0.19, 0.34)</text>
+	<text x="3253.14" y="329.11" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">Smooth Est (95% CI)</text>
+	<text x="3253.14" y="479.72" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.58 (0.51, 0.69)</text>
+	<text x="3253.14" y="529.84" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.61 (0.56, 0.69)</text>
+	<text x="3253.14" y="580.08" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.56 (0.54, 0.59)</text>
+	<text x="3253.14" y="630.20" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.49 (0.44, 0.55)</text>
+	<text x="3253.14" y="680.45" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.44 (0.37, 0.54)</text>
+	<text x="3253.14" y="730.69" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.45 (0.40, 0.51)</text>
+	<text x="3253.14" y="780.81" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.44 (0.37, 0.51)</text>
+	<text x="3253.14" y="831.06" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.44 (0.42, 0.47)</text>
+	<text x="3253.14" y="881.30" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.42 (0.34, 0.53)</text>
+	<text x="3253.14" y="931.42" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.43 (0.38, 0.49)</text>
+	<text x="3253.14" y="981.67" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.42 (0.35, 0.50)</text>
+	<text x="3253.14" y="1031.91" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.32, 0.50)</text>
+	<text x="3253.14" y="1082.03" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.39 (0.36, 0.43)</text>
+	<text x="3253.14" y="1132.27" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.39 (0.32, 0.48)</text>
+	<text x="3253.14" y="1182.52" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.34 (0.33, 0.36)</text>
+	<text x="3253.14" y="1232.64" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.33 (0.30, 0.36)</text>
+	<text x="3253.14" y="1282.88" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.32 (0.29, 0.35)</text>
+	<text x="3253.14" y="1333.00" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.33 (0.28, 0.40)</text>
+	<text x="3253.14" y="1383.25" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.31 (0.26, 0.35)</text>
+	<text x="3253.14" y="1433.49" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.30 (0.23, 0.38)</text>
+	<text x="3253.14" y="1483.61" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.43 (0.40, 0.46)</text>
+	<text x="3253.14" y="1634.22" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.55 (0.42, 0.60)</text>
+	<text x="3253.14" y="1684.46" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.46 (0.42, 0.49)</text>
+	<text x="3253.14" y="1734.71" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.37, 0.43)</text>
+	<text x="3253.14" y="1784.83" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.35, 0.43)</text>
+	<text x="3253.14" y="1835.07" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.34 (0.31, 0.37)</text>
+	<text x="3253.14" y="1885.19" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.32 (0.25, 0.39)</text>
+	<text x="3253.14" y="1935.44" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.40 (0.35, 0.45)</text>
+	<text x="3253.14" y="2086.04" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.56 (0.51, 0.65)</text>
+	<text x="3253.14" y="2136.29" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.43 (0.32, 0.60)</text>
+	<text x="3253.14" y="2186.41" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.46 (0.42, 0.49)</text>
+	<text x="3253.14" y="2236.65" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.41 (0.31, 0.51)</text>
+	<text x="3253.14" y="2286.90" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.36 (0.29, 0.42)</text>
+	<text x="3253.14" y="2337.02" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.31 (0.21, 0.37)</text>
+	<text x="3253.14" y="2387.26" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.43 (0.34, 0.51)</text>
+	<text x="3253.14" y="2537.87" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.42 (0.40, 0.44)</text>
+	<text x="3650.01" y="329.11" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">% Weight</text>
+	<text x="3650.01" y="479.72" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.42</text>
+	<text x="3650.01" y="529.84" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.95</text>
+	<text x="3650.01" y="580.08" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">14.85</text>
+	<text x="3650.01" y="630.20" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">1.77</text>
+	<text x="3650.01" y="680.45" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.46</text>
+	<text x="3650.01" y="730.69" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">1.81</text>
+	<text x="3650.01" y="780.81" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.96</text>
+	<text x="3650.01" y="831.06" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">12.18</text>
+	<text x="3650.01" y="881.30" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.33</text>
+	<text x="3650.01" y="931.42" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">1.77</text>
+	<text x="3650.01" y="981.67" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.71</text>
+	<text x="3650.01" y="1031.91" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.36</text>
+	<text x="3650.01" y="1082.03" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">6.11</text>
+	<text x="3650.01" y="1132.27" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.57</text>
+	<text x="3650.01" y="1182.52" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">43.29</text>
+	<text x="3650.01" y="1232.64" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">5.48</text>
+	<text x="3650.01" y="1282.88" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">4.33</text>
+	<text x="3650.01" y="1333.00" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">1.14</text>
+	<text x="3650.01" y="1383.25" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">2.01</text>
+	<text x="3650.01" y="1433.49" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.50</text>
+	<text x="3650.01" y="1483.61" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">100.00</text>
+	<text x="3650.01" y="1634.22" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.96</text>
+	<text x="3650.01" y="1684.46" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">21.86</text>
+	<text x="3650.01" y="1734.71" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">41.86</text>
+	<text x="3650.01" y="1784.83" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">12.05</text>
+	<text x="3650.01" y="1835.07" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">21.76</text>
+	<text x="3650.01" y="1885.19" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">1.51</text>
+	<text x="3650.01" y="1935.44" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">100.00</text>
+	<text x="3650.01" y="2086.04" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">4.37</text>
+	<text x="3650.01" y="2136.29" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">0.54</text>
+	<text x="3650.01" y="2186.41" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">86.41</text>
+	<text x="3650.01" y="2236.65" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">1.71</text>
+	<text x="3650.01" y="2286.90" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">4.60</text>
+	<text x="3650.01" y="2337.02" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">2.36</text>
+	<text x="3650.01" y="2387.26" style="font-family:'Helvetica';font-size:43.19px;fill:#000000">100.00</text>
+	<rect x="1776.57" y="455.30" width="18.54" height="18.54" style="fill:#B4B4B4"/>
+	<rect x="1780.89" y="459.62" width="9.90" height="9.90" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1857.87" y="502.95" width="23.74" height="23.74" style="fill:#B4B4B4"/>
+	<rect x="1862.19" y="507.27" width="15.10" height="15.10" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1717.41" y="530.92" width="68.04" height="68.04" style="fill:#B4B4B4"/>
+	<rect x="1721.73" y="535.24" width="59.40" height="59.40" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1570.03" y="600.59" width="29.18" height="29.18" style="fill:#B4B4B4"/>
+	<rect x="1574.35" y="604.91" width="20.54" height="20.54" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1463.60" y="655.91" width="19.03" height="19.04" style="fill:#B4B4B4"/>
+	<rect x="1467.92" y="660.23" width="10.40" height="10.40" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1475.36" y="700.83" width="29.43" height="29.43" style="fill:#B4B4B4"/>
+	<rect x="1479.68" y="705.15" width="20.79" height="20.79" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1449.87" y="753.92" width="23.74" height="23.74" style="fill:#B4B4B4"/>
+	<rect x="1454.19" y="758.24" width="15.10" height="15.10" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1443.56" y="784.73" width="62.59" height="62.60" style="fill:#B4B4B4"/>
+	<rect x="1447.88" y="789.05" width="53.95" height="53.96" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1411.63" y="857.38" width="17.55" height="17.55" style="fill:#B4B4B4"/>
+	<rect x="1415.95" y="861.70" width="8.91" height="8.91" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1436.87" y="901.81" width="29.18" height="29.18" style="fill:#B4B4B4"/>
+	<rect x="1441.19" y="906.13" width="20.54" height="20.54" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1413.11" y="955.64" width="21.76" height="21.76" style="fill:#B4B4B4"/>
+	<rect x="1417.43" y="959.96" width="13.12" height="13.12" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1370.91" y="1007.74" width="18.04" height="18.05" style="fill:#B4B4B4"/>
+	<rect x="1375.23" y="1012.06" width="9.40" height="9.41" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1341.83" y="1043.63" width="46.75" height="46.76" style="fill:#B4B4B4"/>
+	<rect x="1346.15" y="1047.95" width="38.11" height="38.12" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1350.99" y="1106.99" width="20.27" height="20.27" style="fill:#B4B4B4"/>
+	<rect x="1355.31" y="1111.31" width="11.63" height="11.63" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1187.64" y="1112.31" width="110.11" height="110.12" style="fill:#B4B4B4"/>
+	<rect x="1191.96" y="1116.63" width="101.47" height="101.48" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1187.76" y="1195.23" width="44.77" height="44.78" style="fill:#B4B4B4"/>
+	<rect x="1192.08" y="1199.55" width="36.13" height="36.14" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1175.39" y="1247.33" width="40.81" height="40.82" style="fill:#B4B4B4"/>
+	<rect x="1179.71" y="1251.65" width="32.17" height="32.18" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1213.38" y="1305.37" width="25.22" height="25.22" style="fill:#B4B4B4"/>
+	<rect x="1217.70" y="1309.69" width="16.58" height="16.58" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1151.01" y="1353.01" width="30.42" height="30.42" style="fill:#B4B4B4"/>
+	<rect x="1155.33" y="1357.33" width="21.78" height="21.78" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1137.15" y="1408.58" width="19.53" height="19.53" style="fill:#B4B4B4"/>
+	<rect x="1141.47" y="1412.90" width="10.89" height="10.89" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1705.66" y="1607.33" width="23.74" height="23.74" style="fill:#B4B4B4"/>
+	<rect x="1709.98" y="1611.65" width="15.10" height="15.10" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1473.38" y="1628.86" width="80.91" height="80.91" style="fill:#B4B4B4"/>
+	<rect x="1477.70" y="1633.18" width="72.27" height="72.27" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1324.88" y="1665.24" width="108.63" height="108.63" style="fill:#B4B4B4"/>
+	<rect x="1329.20" y="1669.56" width="99.99" height="99.99" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1336.76" y="1738.63" width="62.35" height="62.35" style="fill:#B4B4B4"/>
+	<rect x="1341.08" y="1742.95" width="53.71" height="53.71" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1207.19" y="1779.59" width="80.66" height="80.66" style="fill:#B4B4B4"/>
+	<rect x="1211.51" y="1783.91" width="72.02" height="72.02" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1185.17" y="1856.32" width="27.70" height="27.70" style="fill:#B4B4B4"/>
+	<rect x="1189.48" y="1860.64" width="19.06" height="19.06" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1713.45" y="2050.61" width="40.81" height="40.82" style="fill:#B4B4B4"/>
+	<rect x="1717.77" y="2054.93" width="32.17" height="32.18" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1441.95" y="2111.13" width="20.02" height="20.03" style="fill:#B4B4B4"/>
+	<rect x="1446.27" y="2115.45" width="11.38" height="11.39" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1428.09" y="2095.29" width="152.19" height="152.19" style="fill:#B4B4B4"/>
+	<rect x="1432.41" y="2099.61" width="143.55" height="143.55" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1378.34" y="2207.04" width="28.93" height="28.94" style="fill:#B4B4B4"/>
+	<rect x="1382.66" y="2211.36" width="20.29" height="20.30" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1262.51" y="2250.85" width="41.80" height="41.81" style="fill:#B4B4B4"/>
+	<rect x="1266.83" y="2255.17" width="33.17" height="33.17" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<rect x="1150.76" y="2305.79" width="32.40" height="32.40" style="fill:#B4B4B4"/>
+	<rect x="1155.08" y="2310.11" width="23.76" height="23.76" style="fill:none;stroke:#B4B4B4;stroke-width:8.64"/>
+	<line x1="1894.61" y1="464.57" x2="2369.19" y2="464.57" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1887.81" y1="514.69" x2="2214.75" y2="514.69" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1714.80" y1="564.94" x2="1807.49" y2="564.94" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1495.64" y1="615.06" x2="1767.27" y2="615.06" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1300.74" y1="665.30" x2="1819.99" y2="665.30" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1383.40" y1="715.54" x2="1650.33" y2="715.54" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1318.93" y1="765.67" x2="1682.26" y2="765.67" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1427.09" y1="815.91" x2="1530.05" y2="815.91" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1184.16" y1="866.15" x2="1782.12" y2="866.15" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1337.00" y1="916.27" x2="1604.30" y2="916.27" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1248.64" y1="966.52" x2="1664.44" y2="966.52" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1115.85" y1="1016.76" x2="1682.13" y2="1016.76" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1295.42" y1="1066.88" x2="1436.00" y2="1066.88" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1135.41" y1="1117.13" x2="1588.46" y2="1117.13" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1216.96" y1="1167.37" x2="1266.71" y2="1167.37" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1132.56" y1="1217.49" x2="1268.81" y2="1217.49" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1107.07" y1="1267.73" x2="1258.41" y2="1267.73" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1037.27" y1="1317.85" x2="1333.41" y2="1317.85" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1032.94" y1="1368.10" x2="1240.72" y2="1368.10" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1032.94" y1="1418.34" x2="1202.36" y2="1418.34" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1814.05" y1="1619.07" x2="2360.78" y2="1619.07" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1456.04" y1="1669.32" x2="1586.85" y2="1669.32" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1334.03" y1="1719.56" x2="1425.48" y2="1719.56" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1284.15" y1="1769.68" x2="1453.32" y2="1769.68" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1183.05" y1="1819.92" x2="1301.73" y2="1819.92" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1032.94" y1="1870.04" x2="1300.74" y2="1870.04" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1685.10" y1="2070.90" x2="2001.04" y2="2070.90" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1215.60" y1="2121.14" x2="2082.71" y2="2121.14" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1469.53" y1="2171.26" x2="1543.41" y2="2171.26" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1167.71" y1="2221.51" x2="1666.79" y2="2221.51" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1117.09" y1="2271.75" x2="1408.03" y2="2271.75" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1032.94" y1="2321.87" x2="1248.76" y2="2321.87" style="stroke:#D0D0D0;stroke-width:36.00"/>
+	<line x1="1629.05" y1="464.57" x2="2033.09" y2="464.57" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1747.60" y1="514.69" x2="2048.93" y2="514.69" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1703.67" y1="564.94" x2="1803.78" y2="564.94" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1470.52" y1="615.06" x2="1724.33" y2="615.06" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1297.52" y1="665.30" x2="1702.55" y2="665.30" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1375.85" y1="715.54" x2="1625.46" y2="715.54" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1318.93" y1="765.67" x2="1636.97" y2="765.67" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1422.26" y1="815.91" x2="1531.28" y2="815.91" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1230.45" y1="866.15" x2="1666.79" y2="866.15" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1336.50" y1="916.27" x2="1586.10" y2="916.27" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1267.45" y1="966.52" x2="1617.17" y2="966.52" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1193.07" y1="1016.76" x2="1615.31" y2="1016.76" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1296.65" y1="1066.88" x2="1439.09" y2="1066.88" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1194.31" y1="1117.13" x2="1563.46" y2="1117.13" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1212.50" y1="1167.37" x2="1273.76" y2="1167.37" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1142.96" y1="1217.49" x2="1280.44" y2="1217.49" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1122.04" y1="1267.73" x2="1273.14" y2="1267.73" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1097.42" y1="1317.85" x2="1366.94" y2="1317.85" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1066.11" y1="1368.10" x2="1271.66" y2="1368.10" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1418.34" x2="1320.04" y2="1418.34" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1426.22" y1="1619.07" x2="1829.77" y2="1619.07" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1433.64" y1="1669.32" x2="1581.90" y2="1669.32" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1318.93" y1="1719.56" x2="1435.75" y2="1719.56" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1273.51" y1="1769.68" x2="1449.86" y2="1769.68" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1178.72" y1="1819.92" x2="1313.48" y2="1819.92" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1033.07" y1="1870.04" x2="1349.87" y2="1870.04" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1623.23" y1="2070.90" x2="1957.73" y2="2070.90" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1187.01" y1="2121.14" x2="1842.39" y2="2121.14" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1423.00" y1="2171.26" x2="1588.95" y2="2171.26" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1173.89" y1="2221.51" x2="1635.48" y2="2221.51" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1119.32" y1="2271.75" x2="1427.83" y2="2271.75" style="stroke:#000000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="2321.87" x2="1297.52" y2="2321.87" style="stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1769.08,464.57 1785.84,447.82 1802.59,464.57 1785.84,481.32" style="fill:#000000"/>
+	<polygon points="1775.19,464.57 1785.84,453.93 1796.48,464.57 1785.84,475.21" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1852.99,514.82 1869.74,498.06 1886.49,514.82 1869.74,531.57" style="fill:#000000"/>
+	<polygon points="1859.10,514.82 1869.74,504.17 1880.38,514.82 1869.74,525.46" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1734.68,564.94 1751.43,548.18 1768.19,564.94 1751.43,581.69" style="fill:#000000"/>
+	<polygon points="1740.79,564.94 1751.43,554.29 1762.08,564.94 1751.43,575.58" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1567.87,615.18 1584.62,598.43 1601.37,615.18 1584.62,631.93" style="fill:#000000"/>
+	<polygon points="1573.98,615.18 1584.62,604.54 1595.26,615.18 1584.62,625.82" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1456.37,665.42 1473.12,648.67 1489.87,665.42 1473.12,682.18" style="fill:#000000"/>
+	<polygon points="1462.48,665.42 1473.12,654.78 1483.76,665.42 1473.12,676.07" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1473.32,715.54 1490.07,698.79 1506.83,715.54 1490.07,732.30" style="fill:#000000"/>
+	<polygon points="1479.43,715.54 1490.07,704.90 1500.72,715.54 1490.07,726.19" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1444.98,765.79 1461.74,749.04 1478.49,765.79 1461.74,782.54" style="fill:#000000"/>
+	<polygon points="1451.09,765.79 1461.74,755.15 1472.38,765.79 1461.74,776.43" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1458.10,816.03 1474.85,799.28 1491.60,816.03 1474.85,832.78" style="fill:#000000"/>
+	<polygon points="1464.21,816.03 1474.85,805.39 1485.50,816.03 1474.85,826.68" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1403.65,866.15 1420.40,849.40 1437.15,866.15 1420.40,882.91" style="fill:#000000"/>
+	<polygon points="1409.76,866.15 1420.40,855.51 1431.04,866.15 1420.40,876.80" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1434.71,916.40 1451.46,899.65 1468.22,916.40 1451.46,933.15" style="fill:#000000"/>
+	<polygon points="1440.82,916.40 1451.46,905.75 1462.11,916.40 1451.46,927.04" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1407.24,966.52 1423.99,949.77 1440.74,966.52 1423.99,983.27" style="fill:#000000"/>
+	<polygon points="1413.35,966.52 1423.99,955.88 1434.63,966.52 1423.99,977.16" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1363.18,1016.76 1379.94,1000.01 1396.69,1016.76 1379.94,1033.51" style="fill:#000000"/>
+	<polygon points="1369.29,1016.76 1379.94,1006.12 1390.58,1016.76 1379.94,1027.40" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1348.46,1067.01 1365.21,1050.25 1381.96,1067.01 1365.21,1083.76" style="fill:#000000"/>
+	<polygon points="1354.57,1067.01 1365.21,1056.36 1375.85,1067.01 1365.21,1077.65" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1344.37,1117.13 1361.13,1100.37 1377.88,1117.13 1361.13,1133.88" style="fill:#000000"/>
+	<polygon points="1350.48,1117.13 1361.13,1106.48 1371.77,1117.13 1361.13,1127.77" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1225.95,1167.37 1242.70,1150.62 1259.45,1167.37 1242.70,1184.12" style="fill:#000000"/>
+	<polygon points="1232.06,1167.37 1242.70,1156.73 1253.34,1167.37 1242.70,1178.01" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1193.40,1217.61 1210.15,1200.86 1226.90,1217.61 1210.15,1234.37" style="fill:#000000"/>
+	<polygon points="1199.51,1217.61 1210.15,1206.97 1220.79,1217.61 1210.15,1228.26" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1179.04,1267.73 1195.80,1250.98 1212.55,1267.73 1195.80,1284.49" style="fill:#000000"/>
+	<polygon points="1185.15,1267.73 1195.80,1257.09 1206.44,1267.73 1195.80,1278.38" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1209.24,1317.98 1225.99,1301.23 1242.74,1317.98 1225.99,1334.73" style="fill:#000000"/>
+	<polygon points="1215.35,1317.98 1225.99,1307.34 1236.63,1317.98 1225.99,1328.62" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1149.47,1368.22 1166.22,1351.47 1182.97,1368.22 1166.22,1384.97" style="fill:#000000"/>
+	<polygon points="1155.58,1368.22 1166.22,1357.58 1176.86,1368.22 1166.22,1378.87" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1130.16,1418.34 1146.92,1401.59 1163.67,1418.34 1146.92,1435.09" style="fill:#000000"/>
+	<polygon points="1136.27,1418.34 1146.92,1407.70 1157.56,1418.34 1146.92,1428.99" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1700.77,1619.20 1717.53,1602.44 1734.28,1619.20 1717.53,1635.95" style="fill:#000000"/>
+	<polygon points="1706.88,1619.20 1717.53,1608.55 1728.17,1619.20 1717.53,1629.84" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1497.08,1669.32 1513.83,1652.56 1530.59,1669.32 1513.83,1686.07" style="fill:#000000"/>
+	<polygon points="1503.19,1669.32 1513.83,1658.67 1524.48,1669.32 1513.83,1679.96" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1362.44,1719.56 1379.19,1702.81 1395.95,1719.56 1379.19,1736.31" style="fill:#000000"/>
+	<polygon points="1368.55,1719.56 1379.19,1708.92 1389.84,1719.56 1379.19,1730.20" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1351.18,1769.80 1367.93,1753.05 1384.68,1769.80 1367.93,1786.56" style="fill:#000000"/>
+	<polygon points="1357.29,1769.80 1367.93,1759.16 1378.57,1769.80 1367.93,1780.45" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1230.77,1819.92 1247.52,1803.17 1264.28,1819.92 1247.52,1836.68" style="fill:#000000"/>
+	<polygon points="1236.88,1819.92 1247.52,1809.28 1258.17,1819.92 1247.52,1830.57" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1182.26,1870.17 1199.01,1853.42 1215.77,1870.17 1199.01,1886.92" style="fill:#000000"/>
+	<polygon points="1188.37,1870.17 1199.01,1859.53 1209.66,1870.17 1199.01,1880.81" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1717.11,2071.02 1733.86,2054.27 1750.61,2071.02 1733.86,2087.77" style="fill:#000000"/>
+	<polygon points="1723.22,2071.02 1733.86,2060.38 1744.50,2071.02 1733.86,2081.66" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1435.21,2121.14 1451.96,2104.39 1468.71,2121.14 1451.96,2137.89" style="fill:#000000"/>
+	<polygon points="1441.32,2121.14 1451.96,2110.50 1462.60,2121.14 1451.96,2131.78" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1487.43,2171.39 1504.18,2154.63 1520.93,2171.39 1504.18,2188.14" style="fill:#000000"/>
+	<polygon points="1493.54,2171.39 1504.18,2160.74 1514.82,2171.39 1504.18,2182.03" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1376.05,2221.51 1392.81,2204.75 1409.56,2221.51 1392.81,2238.26" style="fill:#000000"/>
+	<polygon points="1382.16,2221.51 1392.81,2210.86 1403.45,2221.51 1392.81,2232.15" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1266.66,2271.75 1283.41,2255.00 1300.16,2271.75 1283.41,2288.50" style="fill:#000000"/>
+	<polygon points="1272.77,2271.75 1283.41,2261.11 1294.05,2271.75 1283.41,2282.39" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<polygon points="1150.21,2321.99 1166.96,2305.24 1183.71,2321.99 1166.96,2338.75" style="fill:#000000"/>
+	<polygon points="1156.32,2321.99 1166.96,2311.35 1177.61,2321.99 1166.96,2332.64" style="fill:none;stroke:#000000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1368.10" x2="1071.55" y2="1347.06" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1368.10" x2="1071.55" y2="1389.14" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1418.34" x2="1071.55" y2="1397.30" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1418.34" x2="1071.55" y2="1439.38" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1870.04" x2="1071.55" y2="1849.01" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="1870.04" x2="1071.55" y2="1891.08" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="2321.87" x2="1071.55" y2="2300.83" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1032.94" y1="2321.87" x2="1071.55" y2="2342.91" stroke-linecap="round" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1368.80" y1="1468.46" x2="1435.25" y2="1488.64" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1269.55" y1="1920.29" x2="1385.38" y2="1940.34" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1245.30" y1="2372.11" x2="1441.81" y2="2392.16" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1372.64" y1="2522.72" x2="1421.89" y2="2542.77" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1435.25" y1="1488.64" x2="1512.10" y2="1468.46" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1385.38" y1="1940.34" x2="1492.30" y2="1920.29" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1441.81" y1="2392.16" x2="1626.20" y2="2372.11" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1421.89" y1="2542.77" x2="1477.08" y2="2522.72" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1512.10" y1="1468.46" x2="1435.25" y2="1448.42" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1492.30" y1="1920.29" x2="1385.38" y2="1900.24" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1626.20" y1="2372.11" x2="1441.81" y2="2352.07" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1477.08" y1="2522.72" x2="1421.89" y2="2502.67" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1435.25" y1="1448.42" x2="1368.80" y2="1468.46" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1385.38" y1="1900.24" x2="1269.55" y2="1920.29" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1441.81" y1="2352.07" x2="1245.30" y2="2372.11" style="stroke:#FF0000;stroke-width:8.64"/>
+	<line x1="1421.89" y1="2502.67" x2="1372.64" y2="2522.72" style="stroke:#FF0000;stroke-width:8.64"/>
+	<circle cx="2162.41" cy="464.57" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="2062.17" cy="514.82" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1761.33" cy="564.94" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1631.77" cy="615.18" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1557.89" cy="665.42" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1515.57" cy="715.54" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1497.87" cy="765.79" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1478.19" cy="816.03" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1473.99" cy="866.15" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1468.67" cy="916.40" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1451.34" cy="966.52" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1385.01" cy="1016.76" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1364.72" cy="1067.01" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1351.47" cy="1117.13" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1241.58" cy="1167.37" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1199.01" cy="1217.61" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1180.58" cy="1267.73" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1176.99" cy="1317.98" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1128.35" cy="1368.22" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="2123.55" cy="1619.20" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1521.14" cy="1669.32" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1379.32" cy="1719.56" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1367.31" cy="1769.80" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1241.21" cy="1819.92" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1076.01" cy="1870.17" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1847.84" cy="2071.02" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1656.15" cy="2121.14" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1506.29" cy="2171.39" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1407.53" cy="2221.51" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1256.31" cy="2271.75" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<circle cx="1056.08" cy="2321.99" r="14.97" style="fill:none;stroke:#808080;stroke-width:8.64"/>
+	<line x1="1421.89" y1="2572.84" x2="1421.89" y2="2549.82" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2529.65" x2="1421.89" y2="2506.63" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2486.46" x2="1421.89" y2="2463.44" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2443.27" x2="1421.89" y2="2420.25" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2400.08" x2="1421.89" y2="2377.06" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2356.89" x2="1421.89" y2="2333.75" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2313.70" x2="1421.89" y2="2290.56" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2270.39" x2="1421.89" y2="2247.37" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2227.20" x2="1421.89" y2="2204.18" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2184.01" x2="1421.89" y2="2160.99" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2140.82" x2="1421.89" y2="2117.80" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2097.63" x2="1421.89" y2="2074.61" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2054.44" x2="1421.89" y2="2031.42" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="2011.25" x2="1421.89" y2="1988.23" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1968.06" x2="1421.89" y2="1945.04" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1924.87" x2="1421.89" y2="1901.85" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1881.68" x2="1421.89" y2="1858.66" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1838.49" x2="1421.89" y2="1815.47" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1795.30" x2="1421.89" y2="1772.28" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1752.11" x2="1421.89" y2="1729.09" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1708.92" x2="1421.89" y2="1685.90" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1665.73" x2="1421.89" y2="1642.71" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1622.54" x2="1421.89" y2="1599.52" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1579.35" x2="1421.89" y2="1556.33" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1536.16" x2="1421.89" y2="1513.14" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1492.97" x2="1421.89" y2="1469.95" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1449.78" x2="1421.89" y2="1426.63" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1406.59" x2="1421.89" y2="1383.44" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1363.27" x2="1421.89" y2="1340.25" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1320.08" x2="1421.89" y2="1297.06" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1276.89" x2="1421.89" y2="1253.87" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1233.70" x2="1421.89" y2="1210.68" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1190.51" x2="1421.89" y2="1167.49" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1147.32" x2="1421.89" y2="1124.30" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1104.13" x2="1421.89" y2="1081.11" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1060.94" x2="1421.89" y2="1037.92" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="1017.75" x2="1421.89" y2="994.73" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="974.56" x2="1421.89" y2="951.54" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="931.37" x2="1421.89" y2="908.35" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="888.18" x2="1421.89" y2="865.16" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="844.99" x2="1421.89" y2="821.97" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="801.80" x2="1421.89" y2="778.78" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="758.61" x2="1421.89" y2="735.59" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="715.42" x2="1421.89" y2="692.40" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="672.23" x2="1421.89" y2="649.21" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="629.04" x2="1421.89" y2="606.02" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="585.85" x2="1421.89" y2="562.83" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="542.66" x2="1421.89" y2="519.64" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="499.47" x2="1421.89" y2="476.33" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="456.28" x2="1421.89" y2="433.14" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="412.97" x2="1421.89" y2="389.95" style="stroke:#FF0000;stroke-width:5.76"/>
+	<line x1="1421.89" y1="369.78" x2="1421.89" y2="351.58" style="stroke:#FF0000;stroke-width:5.76"/>
+	<text x="1994.97" y="198.65" style="font-family:'Helvetica';font-size:115.21px;fill:#000000" text-anchor="middle">Atypical cervical cytology</text>
+</svg>
