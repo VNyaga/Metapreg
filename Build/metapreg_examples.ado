@@ -250,7 +250,7 @@ program define metapreg_example_two_two_four
 	
 	#delimit ;
 	metapreg cases_tb population bcg, 
-		studyid(study) 
+		studyid(study) model(mixed, intmethod(mv))
 		design(comparative, cov(commonslope))	
 		/*inference(bayesian) bwd($wdir)*/ 
 		outplot(rr) 
@@ -270,7 +270,7 @@ program define metapreg_example_two_two_five
 	preserve
 	use "http://fmwww.bc.edu/repec/bocode/b/bcg.dta", clear
 	di ". metapreg cases_tb population lat,  /// "
-	di "	studyid(study) ///"
+	di "	studyid(study) model(mixed, intmethod(mv)) ///"
 	di "	sumtable(all) by(bcg)  ///"
 	di "	sortby(lat) ///"
 	di "	xlab(0, 0.05, 0.1) /// "
@@ -284,7 +284,7 @@ program define metapreg_example_two_two_five
 	
 	metapreg cases_tb population lat,  /// 
 		/*inference(bayesian) bwd($wdir)*/ /// 
-		studyid(study) ///
+		studyid(study) model(mixed, intmethod(mv)) ///
 		sortby(lat) by(bcg) ///
 		xlab(0, 0.05, 0.15) /// 
 		xtick(0, 0.05, 0.15)  /// 
@@ -301,7 +301,7 @@ program define metapreg_example_two_two_six
 	use "http://fmwww.bc.edu/repec/bocode/b/bcg.dta", clear
 	
 	di ". metapreg cases_tb population bcg lat,  ///" 
-	di "	studyid(study) ///"
+	di "	studyid(study) model(mixed, intmethod(mv)) ///"
 	di "	sortby(lat) ///"
 	di "	design(comparative, cov(commonslope))  ///"
 	di "	outplot(rr) ///"
@@ -316,7 +316,7 @@ program define metapreg_example_two_two_six
 
 	metapreg cases_tb population bcg lat,  /// 
 		/*inference(bayesian) bwd($wdir)*/ /// 
-		studyid(study) ///
+		studyid(study) model(mixed, intmethod(mv)) ///
 		sortby(lat) ///
 		design(comparative, cov(commonslope))  ///
 		outplot(rr) ///
