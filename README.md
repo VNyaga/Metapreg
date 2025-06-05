@@ -163,7 +163,7 @@ NOTE: % centiles obtained from 800 simulations of the posterior distribution
 NOTE: caterpillar plot name -> abscatpplot1
 
 ```
-![Figure1.2.1](/Build/121.png)
+![Figure1.2.1](/Markdown/121.png)
 ```
 -> tgroup = ASC-US
 
@@ -214,7 +214,7 @@ NOTE: % centiles obtained from 800 simulations of the posterior distribution
 
 NOTE: caterpillar plot name -> abscatpplot2
 ```
-![Figure1.2.2](/Build/122.png)
+![Figure1.2.2](/Markdown/122.png)
 ```
 -> tgroup = BORDERLINE DYSKARYOSIS
 
@@ -265,10 +265,10 @@ NOTE: % centiles obtained from 800 simulations of the posterior distribution
 
 NOTE: caterpillar plot name -> abscatpplot3
 ```
-![Figure1.2.3](/Build/123.png)
+![Figure1.2.3](/Markdown/123.png)
 
 ### 1.3 Stratified analysis by triage group
-The use of by prefix **bysort tgroup, rc0:** in Example 1.2 produced three different seperare plots and tables for each triage group. To combine the plots and the consolidate the tables into one use the options **stratify by(tgroup)** instead. 
+The use of by prefix **bysort tgroup, rc0:** in Example 1.2 produced three seperare plots and tables for each triage group. To combine the plots and the consolidate the tables into one use the options **stratify by(tgroup)** instead. 
 
 ```
 metapreg num denom,  ///
@@ -381,7 +381,7 @@ All studies                   |
 NOTE: % centiles obtained from 800 simulations of the posterior distribution
 
 ```
-![Figure1.3](/Build/13.png)
+![Figure1.3](/Markdown/13.png)
 
 ### 1.4 Proportions near 0
 The dataset used in this example produced the top-left graph in figure two in Ioanna Tsoumpou et al. (2009). First, load the dataset:
@@ -401,3 +401,265 @@ metapreg p16p p16tot, ///
                 pointopt(msymbol(X) msize(2)) ///
                 texts(1.5) smooth gof
 ```
+This produces the following Stata results:
+```
+ p16p ~ binomial(p, p16tot)
+    logit(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 19
+    Number of studies = 19
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |   110.70    112.59  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1      212.06        0.00        2.42       46.96  
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean  SE(logit)  t(logit)      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.07       0.43     -6.12       0.00       0.03       0.15  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.12      0.06      0.17      0.08      0.29              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+```
+![Figure1.4](/Markdown/14.png)
+
+### 1.5 Proportions near 0 - Loglog link
+The loglog regression is an extension of the logistic regression model and is particularly useful when event probabilities are very close to zero like in example 1.4.
+To use the loglog link, add the option **link(loglog)**
+```
+metapreg p16p p16tot, link(loglog) ///
+	studyid(study) ///
+	label(namevar=author, yearvar=year) catpplot nofplot noitable ///
+	sortby(year author) sumtable(abs) ///
+	xlab(0, .1, .2, 0.3, 0.4, 0.5) ///
+	xline(0, lcolor(black)) ///
+	ti(Positivity of p16 immunostaining, size(4) color(blue)) ///
+	subti("Cytology = WNL", size(4) color(blue)) ///
+	pointopt(msymbol(X) msize(2)) ///
+	texts(1.5) smooth gof
+```
+This produces the following Stata results. Compared to the logit link, the model fit with the loglog link is slightly better as indicated by the lower BIC.
+```
+p16p ~ binomial(p, p16tot)
+    loglog(p) = mu + study
+    study ~ N(0, tau2)
+
+
+    Number of observations = 19
+    Number of studies = 19
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |   108.93    110.81  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------
+           |       DF       Chisq           p        tau2       I2tau  
+-----------+-----------------------------------------------------------
+     Model |        1      213.84        0.00        0.42              
+-----------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean  SE(log~g)  t(loglog)      P&gt;|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.08       0.17      5.38       0.00       0.03       0.17  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 0.5 vs. H1: Est != 0.5
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.12      0.05      0.16      0.07      0.26              787  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+```
+![Figure1.5](/Markdown/15.png)
+
+## Meta-regression
+### 2.1 Independent studies
+The use of **stratify by(tgroup)** in Example 1.3 only allows informal testing of differences between the sub-groups. The formal testing is perfomed by fitting a logistic regression with triage used as a categorical covariate.
+
+First, load the dataset:
+```
+ use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
+```
+The option **sumtable(rd rr)** requests for summary tables of the risk differences and risk ratios, while **summaryonly** directs the program to present only the summary diamonds in the graph.
+```
+metapreg num denom tgroup, ///
+	studyid(study) ///
+	sumtable(rd rr) catpplot nofplot noitable ///
+	cimethod(exact) ///
+	label(namevar=author, yearvar=year) ///
+	xlab(.25, 0.5, .75) ///
+	subti(Atypical cervical cytology, size(4)) ///
+	texts(1.5) summaryonly
+```
+This produces the following Stata results:
+```
+num ~ binomial(p, denom)
+    logit(p) = mu + tgroup + study
+    study ~ N(0, tau2)
+
+    Base levels
+
+        Variable -- Base Level
+        tgroup -- ASCUS
+
+
+    Number of observations = 32
+    Number of studies = 32
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------
+           |       DF       Chisq           p        tau2  
+-----------+-----------------------------------------------
+     Model |        1      561.75        0.00        0.08  
+-----------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) &gt; 0
+
+****************************************************************************************
+            Conditional summary: Proportion Difference
+****************************************************************************************
+
+-------------------------------------------------------------------------------------------
+             Parameter |       Mean         SE         t      P&gt;|t|    t Lower    t Upper  
+-----------------------+-------------------------------------------------------------------
+tgroup                 |                                                                   
+                 ASCUS |       0.00       0.00                            0.00       0.00  
+                ASC-US |       0.01       0.01      1.84       0.08      -0.00       0.03  
+BORDERLINE DYSKARYOSIS |      -0.04       0.01     -4.32       0.00      -0.06      -0.02  
+-------------------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Wald-type test for nonlinear hypothesis
+
+    H0: All RD equal vs. H1: Some RD different
+
+-------------------------------------------
+ Parameter |     chi2        df         p  
+-----------+-------------------------------
+    tgroup |    27.97         2      0.00  
+-------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Difference 
+
+--------------------------------------------------------------------------------------------
+             Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------------------+--------------------------------------------------------------------
+tgroup                 |                                                                    
+                 ASCUS |     0.00      0.00      0.00      0.00      0.00                   
+                ASC-US |     0.01      0.03      0.01     -0.05      0.08              800  
+BORDERLINE DYSKARYOSIS |    -0.01      0.03     -0.01     -0.08      0.05              800  
+--------------------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+****************************************************************************************
+            Conditional summary: Proportion Ratio
+****************************************************************************************
+
+-------------------------------------------------------------------------------------------
+             Parameter |       Mean    SE(lrr)    t(lrr)      P&gt;|t|    t Lower    t Upper  
+-----------------------+-------------------------------------------------------------------
+tgroup                 |                                                                   
+                 ASCUS |       1.00       0.00                            1.00       1.00  
+                ASC-US |       0.96       0.02     -1.82       0.08       0.93       1.00  
+BORDERLINE DYSKARYOSIS |       1.10       0.02      4.43       0.00       1.05       1.14  
+-------------------------------------------------------------------------------------------
+NOTE: H0: Est = 1 vs. H1: Est != 1
+
+****************************************************************************************
+
+Wald-type test for nonlinear hypothesis
+
+    H0: All (log)RR equal vs. H1: Some (log)RR different
+
+-------------------------------------------
+ Parameter |     chi2        df         p  
+-----------+-------------------------------
+    tgroup |    29.34         2      0.00  
+-------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Ratio 
+
+--------------------------------------------------------------------------------------------
+             Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------------------+--------------------------------------------------------------------
+tgroup                 |                                                                    
+                 ASCUS |     1.00      0.00      1.00      1.00      1.00                   
+                ASC-US |     0.97      0.08      0.97      0.82      1.12              800  
+BORDERLINE DYSKARYOSIS |     1.03      0.08      1.02      0.88      1.18              800  
+--------------------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+```
+![Figure2.1](/Markdown/21.png)
+
+The results are interpreted as follows: conditional on the random-effect, there are differences between the groups, however, these differences disappear at the population level.
+
+### 2.2 Comparative studies
+#### Frequentist vs Bayesian estimation
+Frequentist statistics represent the frequency of outcomes under long sequences of hypothetical trials.  In this approach, maximum likelihood estimation is used to obtain the
+model parameters.
+
