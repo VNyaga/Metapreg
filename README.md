@@ -1303,8 +1303,10 @@ NOTE: % centiles obtained from 7500 simulations of the posterior distribution
         | after it is no longer needed.
         Click to erase the dataset
 ```
-The Bayesian estimate of the treatment effect between-study variance is 0.15.   
+The Bayesian estimate of the treatment effect between-study variance is 0.15. 
+
 ![Figure 2.2.3b](/Markdown/223b.png)
+
 The population-averaged summary RR was 0.22 [0.05, 0.71]. The credible interval is wider than the frequentist confidence interval 0.20 (0.06, 0.63). 
 
 ### 2.2.4 Interaction between categorical and continous covariates
@@ -1410,6 +1412,7 @@ Population-averaged estimates: Proportion Ratio
 NOTE: % centiles obtained from 800 simulations of the posterior distribution
 ```
 ![Figure 2.2.6](/Markdown/226.png)
+
 Replay the estimation results:
 ```
 estimates replay metapreg_modest
@@ -1449,4 +1452,6 @@ study: Identity              |
 ------------------------------------------------------------------------------
 LR test vs. logistic model: chibar2(01) = 2504.11     Prob >= chibar2 = 0.0000
 ```
-The interaction term from **metapreg** and the coefficient for lat using **metareg** as was done by Sharp (1998) match closely, -0.0333459(-0.0388067, -0.027885) vs. -0.0315724(-0.0436704, -0.0194744).
+The interaction term from **metapreg** and the coefficient for lat using **metareg** as was done by Sharp (1998) match closely, i.e. -0.0333459(-0.0388067, -0.027885) vs. -0.0315724(-0.0436704, -0.0194744).
+
+### 2.2.5 Interaction between two categorical covariates
