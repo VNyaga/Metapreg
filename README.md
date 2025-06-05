@@ -1106,14 +1106,347 @@ The Bayesian estimate of the between-study variance components are 0.05 (varianc
 ![Figure 2.2.2b](/Markdown/222b.png)
 The population-averaged summary RR is 2.75 (1.90, 4.35). The credible interval is wider than the frequentist confidence interval. 
 
-### 2.2.3 Frequentist approach under-estimates the between-study variance in meta-analysis of three studies
-Hemkens et al. (2016) investigated the risk of cardiovascular mortality after long-term colchicine use.  The meta-analysis included seven studies, two with double-zero events and three with single-zero events. First, load the dataset:
+### 2.2.3 Frequentist approach under-estimates the between-study variance in meta-analysis of sparse studies
+Hemkens et al. (2016) investigated the risk of cardiovascular mortality after long-term colchicine use.  The meta-analysis included seven studies, two with double-zero events and three with single-zero events. First, load the dataset and sort it accordingly:
 ```
+use "https://github.com/VNyaga/Metapreg/blob/master/Build/hemkens2016analysis18.dta?raw=1"
+
+gsort study -treatment
 ```
 Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups are homogeneous and treatment effects (log ORs) are normally distributed i.e.
 **design(comparative, cov(commonint))**
 ```
+metapreg event total treatment, ///
+	studyid(study) ///
+	design(comparative, cov(commonint)) ///
+	smooth gof catpplot nofplot sumtable(rd rr) noitable ///
+	outplot(rr) xline(1) sumstat(Risk Ratio) ///
+	xlab(0.01, 1, 100) logscale ///
+	texts(1.75) astext(60)
 ```
 This produces the following Stata results:
 ```
+ events ~ binomial(p, total)
+    logit(p) = mu + treatment + treatment.study + study
+    treatment.study ~ N(0, sigma2)
+
+    Base levels
+
+        Variable -- Base Level
+        treatment -- Control
+
+
+    Number of observations = 14
+    Number of studies = 7
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |    34.46     35.73  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------------------------------
+           |       DF       Chisq           p        tau2      sigma2       I2tau     I2sigma  
+-----------+-----------------------------------------------------------------------------------
+     Model |        1        0.00                    0.00        0.00        0.00      100.00  
+-----------------------------------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) > 0
+
+****************************************************************************************
+            Conditional summary: Proportion Difference
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SE         t      P>|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.02       0.01      2.78       0.02       0.00       0.04  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Difference 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.02      0.01      0.02      0.01      0.04              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+****************************************************************************************
+            Conditional summary: Proportion Ratio
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean    SE(lrr)    t(lrr)      P>|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.20       0.63     -2.54       0.03       0.05       0.84  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 1 vs. H1: Est != 1
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Ratio 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.20      0.16      0.20      0.06      0.63              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
 ```
+The frequentist estimate of the treatment effect between-study variance is very close zero (4.69e-33) reducing the model to fixed-effects logistic regression. 
+![Figure 2.2.3f](/Markdown/223f.png)
+The population-averaged summary RR is 0.20 (0.06, 0.63).
+
+To switch to Bayesian estimation, add the options **inference(bayesian) and bwd($wdir)**. 
+```
+ metapreg event total treatment, ///
+	studyid(study) ///
+	design(comparative, cov(commonint)) ///
+	inference(bayesian) bwd($wdir) ///
+	smooth gof catpplot nofplot sumtable(rd rr) noitable ///
+	outplot(rr) sumstat(Risk Ratio) ///
+	xlab(0.01, 1, 100) logscale ///
+	xline(1) texts(1.75) astext(60)
+```
+This produces the following Stata results:
+```
+events ~ binomial(p, total)
+    logit(p) = mu + treatment + treatment.study + study
+    treatment.study ~ N(0, sigma2)
+
+    Base levels
+
+        Variable -- Base Level
+        treatment -- Control
+
+
+    Number of observations = 14
+    Number of studies = 7
+
+
+Goodness of Fit Criterion
+
+        |  Avg DIC      Avg log(ML)  
+--------+----------------------------
+  Value |    34.67            -4.66  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------------------------------
+           | Delta ML     log(BF)    Post P~b        tau2      sigma2       I2tau     I2sigma  
+-----------+-----------------------------------------------------------------------------------
+     Model |      -15       15.44        1.00        0.00        0.15        0.00      100.00  
+-----------------------------------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) > 0
+
+****************************************************************************************
+            Conditional summary: Proportion Difference
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SD      MCSE     Median  eti Lower  eti Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.02       0.01      0.00       0.02       0.01       0.04  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Difference 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.02      0.01      0.02      0.01      0.03             7500  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 7500 simulations of the posterior distribution
+
+****************************************************************************************
+            Conditional summary: Proportion Ratio
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SD      MCSE     Median  eti Lower  eti Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.24       0.17      0.01       0.19       0.04       0.68  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Ratio 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.26      0.17      0.22      0.05      0.71             7500  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 7500 simulations of the posterior distribution
+
+        | The bayesian estimation commands saved a dataset C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults\metapreg_bayesest.dta
+        | C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults\metapreg_bayesest.dta
+        | containing the MCMC samples of the parameters to the disk.
+        | It is your responsibility to erase the dataset
+        | after it is no longer needed.
+        Click to erase the dataset
+```
+The Bayesian estimate of the treatment effect between-study variance is 0.15.   
+![Figure 2.2.3b](/Markdown/223b.png)
+The population-averaged summary RR was 0.22 [0.05, 0.71]. The credible interval is wider than the frequentist confidence interval 0.20 (0.06, 0.63). 
+
+### 2.2.4 Interaction between categorical and continous covariates
+The data used in this example were presented in table IV of Berkey et al. (1995). Sharp (1998) used the data to demonstrate meta-analysis of odds-ratios with the **meta** command and investigaged the effect of latitude on BCG vaccination with the **metareg** command. The **meta** and **metareg** commands work on a dataset containing an estimate of the effect and its variability or confidence interval, for each study.
+
+Their analysis suggested that BCG vaccination was more effective at higher absolute latitude. First, load the dataset:
+```
+use "http://fmwww.bc.edu/repec/bocode/b/bcg.dta", clear
+```
+Fit a logistic regression model with *bcg*, a categorical variable for the arm and *lat*, a continous variable with absolute latitude.
+Activated by the option **interaction**, introducing an interaction term in the model allows to assess whether the log OR for arm vary by absolute latitude.
+```
+metapreg cases_tb population bcg lat, ///
+	studyid(study) model(mixed, intmethod(mv)) ///
+	sortby(lat) ///
+	design(comparative, cov(commonslope)) ///
+	outplot(rr) sumtable(rd rr) noitable ///
+	interaction ///
+	xlab(0, 1, 2) ///
+	xtick(0, 1, 2) ///
+	rcols(cases_tb population) ///
+	astext(80) ///
+	texts(1.5) logscale smooth gof
+```
+This produces the following Stata results:
+```
+
+    cases_tb ~ binomial(p, population)
+    logit(p) = mu + bcg + lat + lat*bcg + study
+    study ~ N(0, tau2)
+
+    Base levels
+
+        Variable -- Base Level
+        bcg -- No
+
+
+    Number of observations = 26
+    Number of studies = 13
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |   247.50    253.79  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------------------------------
+           |       DF       Chisq           p        tau2      sigma2       I2tau     I2sigma  
+-----------+-----------------------------------------------------------------------------------
+     Model |        1     2504.11        0.00        1.26        0.00                          
+-----------------------------------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) > 0
+
+****************************************************************************************
+            Conditional summary: Proportion Difference
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SE         t      P>|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.02       0.01      2.42       0.02       0.00       0.03  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Difference 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.03      0.02      0.03      0.01      0.07              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+****************************************************************************************
+            Conditional summary: Proportion Ratio
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean    SE(lrr)    t(lrr)      P>|t|    t Lower    t Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       0.49       0.05    -14.90       0.00       0.45       0.54  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 1 vs. H1: Est != 1
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Ratio 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     0.55      0.03      0.56      0.51      0.62              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+```
+![Figure 2.2.6](/Markdown/226.png)
+Replay the estimation results:
+```
+estimates replay metapreg_modest
+```
+This producest the following results:
+```
+Mixed-effects logistic regression               Number of obs     =         26
+Binomial variable: population
+Group variable: study                           Number of groups  =         13
+
+                                                Obs per group:
+                                                              min =          2
+                                                              avg =        2.0
+                                                              max =          2
+
+Integration points =   7                        Wald chi2(4)      =     453.80
+Log likelihood = -118.75083                     Prob > chi2       =     0.0000
+
+------------------------------------------------------------------------------
+    cases_tb | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          mu |  -6.601802   .8197557    -8.05   0.000    -8.208493    -4.99511
+             |
+         bcg |
+        Yes  |   .3995109   .0822356     4.86   0.000      .238332    .5606897
+         lat |   .0735971   .0226449     3.25   0.001     .0292138    .1179804
+             |
+   bcg#c.lat |
+        Yes  |  -.0333459   .0027862   -11.97   0.000    -.0388067    -.027885
+------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+  Random-effects parameters  |   Estimate   Std. err.     [95% conf. interval]
+-----------------------------+------------------------------------------------
+study: Identity              |
+                     var(mu) |   1.261433   .5078444      .5730283    2.776848
+------------------------------------------------------------------------------
+LR test vs. logistic model: chibar2(01) = 2504.11     Prob >= chibar2 = 0.0000
+```
+The interaction term from **metapreg** and the coefficient for lat using **metareg** as was done by Sharp (1998) match closely, -0.0333459(-0.0388067, -0.027885) vs. -0.0315724(-0.0436704, -0.0194744).
