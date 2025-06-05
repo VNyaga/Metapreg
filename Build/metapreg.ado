@@ -2525,7 +2525,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		di _n
 		di _n
 		di _n
-		di as re "{pmore}| The bayesian estimation commands saved a dataset `bayesest'.dta {p_end}" 
+		di as re "{pmore}| The bayesian estimation commands saved a dataset {p_end}" 
 		di 		 "{pmore}| `bayesest'.dta {p_end}" 
 		di as re "{pmore}| containing the MCMC samples of the parameters to the disk.{p_end}" 		
 		di as re "{pmore}| It is your responsibility to erase the dataset {p_end}" 

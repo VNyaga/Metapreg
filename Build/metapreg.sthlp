@@ -319,6 +319,7 @@ to propagate uncertainity about the estimates({help metapreg##GH2007:Gelman and 
 {pmore}
 {cmd: inference(bayesian)} Bayesian statistics offer both practical utility and arguably greater interpretability.
 
+{pmore}
 The Bayesian approach is particularly advantageous when handling small study sizes, zero-event studies, 
 and between-study heterogeneity across few studies. The Bayesian framework enhances estimation by incorporating weakly informative prior distributions based on plausible assumptions 
 and yielding full posterior distributions for model parameters.
@@ -794,8 +795,8 @@ The loglog regression is an extension of the logistic regression model and is pa
 {cmd: 2.1 Independent studies}
 
 {pmore}
- The use of {cmd: by(tgroup)} in {help metapreg##example_one_one:Example1.1} only allows informal testing of heterogeneity between the sub-groups.
- The formal testing is perfomed by fitting a logistic regression with triage used as a categorical variable and {cmd:entered in string format}. 
+ The use of {cmd: by(tgroup)} in {help metapreg##example_one_one:Example 1.2} only allows informal testing of differences between the sub-groups.
+ The formal testing is perfomed by fitting a logistic regression with triage used as a categorical covariate. 
  
 {pmore2}
 {stata "use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta":. use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta}
