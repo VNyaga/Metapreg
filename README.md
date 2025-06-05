@@ -899,7 +899,7 @@ Population-averaged estimates: Proportion Ratio
 --------------------------------------------------------------------------------
 NOTE: % centiles obtained from 7500 simulations of the posterior distribution
 
-        | The bayesian estimation commands saved a dataset C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults\metapreg_bayesest.dta
+        | The bayesian estimation commands saved a dataset 
         | C:\DATA\WIV\Projects\Stata\Metapreg\mcmcresults\metapreg_bayesest.dta
         | containing the MCMC samples of the parameters to the disk.
         | It is your responsibility to erase the dataset
@@ -913,3 +913,207 @@ The Bayesian estimate of the between-study variance components are 0.81 (varianc
 
 The population-averaged summary RR is 2.52 (0.09, 483.71), which is smaller and closer to 1 than the frequentist estimate 1.4e+05(19408.17, 8.7e+05).
 
+### 2.2.2 Frequentist approach under-estimates the between-study variance in meta-analysis of three studies
+Bender et al. (2018) conducted a meta-analysis of three studies evaluating the risk of fever following sipuleucel-T therapy in asymptomatic or minimally symptomatic metastatic castrate-resistant prostate cancer. First, load the dataset:
+```
+use "https://github.com/VNyaga/Metapreg/blob/master/Build/bender2018fig2.dta?raw=1"
+```
+Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups and treatment effects (log ORs) are independently normally distributed i.e.
+**design(comparative, cov(independent))**
+```
+metapreg event total treatment,  ///
+	studyid(study) design(comparative, cov(independent))  ///
+	smooth gof catpplot nofplot noitable cimethod(,wald)  ///
+	outplot(rr) xline(1) sumstat(Risk Ratio)  ///
+	xlab(1, 5, 30) logscale  ///
+	texts(2) astext(70)
+```
+This produces the following Stata results:
+```
+event ~ binomial(p, total)
+    logit(p) = mu + treatment + treatment.study + study
+    study ~ N(0, tau2)
+    treatment.study ~ N(0, sigma2)
+
+    Base levels
+
+        Variable -- Base Level
+        treatment -- Control
+
+
+    Number of observations = 6
+    Number of studies = 3
+
+
+Goodness of Fit Criterion
+
+        |      AIC       BIC  
+--------+---------------------
+  Value |    30.41     29.99  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------------------------------
+           |       DF       Chisq           p        tau2      sigma2       I2tau     I2sigma  
+-----------+-----------------------------------------------------------------------------------
+     Model |        2        3.58                    0.00        0.00       46.98       53.02  
+-----------------------------------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) > 0
+
+****************************************************************************************
+            Conditional summary: Proportion Difference
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SE         z      P>|z|    z Lower    z Upper  
+-----------+-------------------------------------------------------------------
+   Overall |      -0.19       0.03     -6.39       0.00      -0.24      -0.13  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Difference 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |    -0.19      0.03     -0.19     -0.24     -0.13              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+****************************************************************************************
+            Conditional summary: Proportion Ratio
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean    SE(lrr)    z(lrr)      P>|z|    z Lower    z Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       2.62       0.19      5.05       0.00       1.80       3.81  
+-------------------------------------------------------------------------------
+NOTE: H0: Est = 1 vs. H1: Est != 1
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Ratio 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     2.62      0.50      2.63      1.83      3.71              800  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 800 simulations of the posterior distribution
+
+```
+The frequentist estimates for the between-study variance components are both very close to zero reducing the model to fixed-effects logistic regression.
+![Figure 2.2.2f](/Markdown/222f.png)
+The population-averaged summary RR is 2.63 (1.83, 3.71).
+
+Switch to Bayesian estimation by adding the options **inference(bayesian) and bwd($wdir)**. The global macro **wdir** was declared earlier.
+```
+metapreg event total treatment,  inference(bayesian) bwd($wdir) ///
+	studyid(study) design(comparative, cov(independent))  ///
+	smooth gof catpplot nofplot noitable cimethod(,wald)  ///
+	outplot(rr) xline(1) sumstat(Risk Ratio)  ///
+	xlab(1, 5, 30) logscale  ///
+	texts(2) astext(70)
+```
+This produces the following Stata results:
+```
+event ~ binomial(p, total)
+    logit(p) = mu + treatment + treatment.study + study
+    study ~ N(0, tau2)
+    treatment.study ~ N(0, sigma2)
+
+    Base levels
+
+        Variable -- Base Level
+        treatment -- Control
+
+
+    Number of observations = 6
+    Number of studies = 3
+
+
+Goodness of Fit Criterion
+
+        |  Avg DIC      Avg log(ML)  
+--------+----------------------------
+  Value |    36.24           -15.03  
+
+
+Click to show the raw estimates
+
+****************************************************************************************
+
+Test of heterogeneity - LR Test: RE model vs FE model
+
+-----------------------------------------------------------------------------------------------
+           | Delta ML     log(BF)    Post P~b        tau2      sigma2       I2tau     I2sigma  
+-----------+-----------------------------------------------------------------------------------
+     Model |       -6        6.45        1.00        0.05        0.06       44.31       55.69  
+-----------------------------------------------------------------------------------------------
+NOTE: H0: Between-study variance(s) = 0  vs. H1: Between-study variance(s) > 0
+
+****************************************************************************************
+            Conditional summary: Proportion Difference
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SD      MCSE     Median  eti Lower  eti Upper  
+-----------+-------------------------------------------------------------------
+   Overall |      -0.19       0.07      0.00      -0.19      -0.34      -0.05  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Difference 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |    -0.19      0.03     -0.19     -0.25     -0.13             7500  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 7500 simulations of the posterior distribution
+
+****************************************************************************************
+            Conditional summary: Proportion Ratio
+****************************************************************************************
+
+-------------------------------------------------------------------------------
+ Parameter |       Mean         SD      MCSE     Median  eti Lower  eti Upper  
+-----------+-------------------------------------------------------------------
+   Overall |       2.76       0.82      0.04       2.67       1.41       4.70  
+-------------------------------------------------------------------------------
+
+****************************************************************************************
+
+Population-averaged estimates: Proportion Ratio 
+
+--------------------------------------------------------------------------------
+ Parameter |     Mean        SE    Median     Lower     Upper      Sample size  
+-----------+--------------------------------------------------------------------
+   Overall |     2.84      0.65      2.75      1.90      4.35             7500  
+--------------------------------------------------------------------------------
+NOTE: % centiles obtained from 7500 simulations of the posterior distribution
+
+```
+The Bayesian estimate of the between-study variance components are 0.05 (variance of control group event probabilities in the logit scale) and 0.06 (treatment-effects in log OR scale). 
+![Figure 2.2.2b](/Markdown/222b.png)
+The population-averaged summary RR is 2.75 (1.90, 4.35). The credible interval is wider than the frequentist confidence interval. 
+
+### 2.2.3 Frequentist approach under-estimates the between-study variance in meta-analysis of three studies
+Hemkens et al. (2016) investigated the risk of cardiovascular mortality after long-term colchicine use.  The meta-analysis included seven studies, two with double-zero events and three with single-zero events. First, load the dataset:
+```
+```
+Fit a mixed-effects logistic regression model assuming event probabilities (logit scale) in the control groups are homogeneous and treatment effects (log ORs) are normally distributed i.e.
+**design(comparative, cov(commonint))**
+```
+```
+This produces the following Stata results:
+```
+```
