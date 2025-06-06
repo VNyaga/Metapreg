@@ -1309,6 +1309,26 @@ The Bayesian estimate of the treatment effect between-study variance is 0.15.
 
 The population-averaged summary RR was 0.22 [0.05, 0.71]. The credible interval is wider than the frequentist confidence interval 0.20 (0.06, 0.63). 
 
+### 2.2.4 Interaction between two categorical covariates
+This dataset, based on a Cochrane review, was used to evaluate the impact of missing data on clinical outcomes. The outcome of interest is clinical improvement and risk ratios (RRs) larger than 1 favour haloperidol over placebo in treatment of schizophrenia. Chaimani et al. (2014) fitted the fixed effect as well as random effects models for log RR using **metan**. They also conducted a subgroup analysis where studies were classified according to thr presenence or absence of missing outcome data in bith arms. 
+
+Chaimani et al. (2014) states
+>A common misconception about subgroup analyses is that results differ between subgroups when the summary effect for one subgroup is statistically significant and not for the other. However, inference on subgroup differences should be based on an interaction test (i.e. the test for subgroup differences ) that compares statistically the two subgroup means accounting for their uncertainty. Differences between subgroups can be also identified visually by looking at the overlap of the CIs in their summary estimates.
+
+First, load the dataset and sort it so that for each study, the first row contains data from the placebo arm. For graphical aesthetics, rename the **response** variable to a shorter name **n**:
+
+```
+ use "http://fmwww.bc.edu/repec/bocode/s/schizo.dta", clear
+
+ gen n = response
+ 
+ gen studyid = firstauthor + " " + string(year)
+ 
+ gsort studyid -arm
+```
+ 
+regularization is explicitly introduced via penalization methods like ridge, Lasso and penalized ML logistic regression 
+
 ### 2.2.4 Interaction between categorical and continous covariates
 The data used in this example were presented in table IV of Berkey et al. (1995). Sharp (1998) used the data to demonstrate meta-analysis of odds-ratios with the **meta** command and investigaged the effect of latitude on BCG vaccination with the **metareg** command. The **meta** and **metareg** commands work on a dataset containing an estimate of the effect and its variability or confidence interval, for each study.
 
@@ -1454,4 +1474,4 @@ LR test vs. logistic model: chibar2(01) = 2504.11     Prob >= chibar2 = 0.0000
 ```
 The interaction term from **metapreg** and the coefficient for lat using **metareg** as was done by Sharp (1998) match closely, i.e. -0.0333459(-0.0388067, -0.027885) vs. -0.0315724(-0.0436704, -0.0194744).
 
-### 2.2.5 Interaction between two categorical covariates
+
