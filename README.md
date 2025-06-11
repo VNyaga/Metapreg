@@ -13,6 +13,11 @@ To install the development version directly, type
 ```
 net install metapreg, from("https://raw.githubusercontent.com/VNyaga/Metapreg/master/Build/")
 ```
+# Table of contents
+
+[Intercept-only model](#intercept-only-model)
+[Meta-regression](#meta-regression)
+	
 ## Intercept-only model
 ### 1.1 Summary by triage group
 The dataset used in examples 1.1-1.2 was used previously to produce Figure 1 in Marc Arbyn et al.(2009). First, load the dataset:
