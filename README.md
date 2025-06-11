@@ -13,8 +13,46 @@ To install the development version directly, type
 ```
 net install metapreg, from("https://raw.githubusercontent.com/VNyaga/Metapreg/master/Build/")
 ```
+## Table of contents - Examples
+1. [Intercept-only model](#intercept-only-model)
+   
+	- [1.1 Summary by group](#11-summary-by-group)
+
+	- [1.2 Different models by triage group](#12-different-models-by-group)
+
+	- [1.3 Stratified analysis by triage group](#13-stratified-analysis-by-group)
+
+	- [1.4 Proportions near 0](#14-proportions-near-0)
+
+	- [1.5 Proportions near 0 - Loglog link](#15-proportions-near-0---loglog-link)
+
+2. [Meta-regression](#meta-regression)
+ 	- [2.1 Independent studies](#21-independent-studies)
+	- [2.2 Comparative studies](#22-comparative-studies)
+     		- [2.2.1 Non-convergence issues in frequentist estimation when proportions near 0](#221-non-convergence-issues-in-frequentist-estimation-when-proportions-near-0)
+     	  
+		- [2.2.2 Frequentist approach under-estimates the between-study variance in meta-analysis of three studies](#222-frequentist-approach-under-estimates-the-between-study-variance-in-meta-analysis-of-three-studies)
+     	  
+		- [2.2.3 Frequentist approach under-estimates the between-study variance in meta-analysis of sparse studies](#223-frequentist-approach-under-estimates-the-between-study-variance-in-meta-analysis-of-sparse-studies)
+       
+		- [2.2.4 Interaction between two categorical covariates](#224-interaction-between-two-categorical-covariates)
+       
+		- [2.2.4 Interaction between categorical and continous covariates](#224-interaction-between-categorical-and-continous-covariates)
+	- [2.3 Matched studies](#23-matched-studies)
+  
+		- [2.3.1 Comparison of two tests in reproducibility studies](#231-comparison-of-two-tests-in-reproducibility-studies)
+   
+ 		- [2.3.2 Contrast-based network meta-analysis](#232-contrast-based-network-meta-analysis)
+	
+## Frequentist vs Bayesian estimation
+In the frequentist approach, maximum likelihood estimation is used to obtain the model parameters. Maximum likelihood algorithms often struggle with convergence when event probabilities approach zero, as the likelihood function becomes flat, leading to large or undefined estimates and standard errors. They also struggle with estimation of between-study variance components when only a few studies are available. 
+
+The Bayesian approach incoorporates weakly informative priors based on plausible assumptions to overcome non-convergence issues in extreme sparsity or zero-event scenarios. In such cases, the prior distribution provides necessary information to stabilize estimates, yielding more reasonable and statistically defensible results even with limited data. The inverse-gamma (scale and shape = 0.01) is used as the default prior for the between-study variance. This prior is conditionally conjugate for the variance components thereby enhancing computational efficiency and numerical stability.
+
+Bayesian computations take increasingly longer time with increasing number of studies. However, Bayesian estimation is not always essential for large datasets, where frequentist estimates can be sufficient.  
+
 ## Intercept-only model
-### 1.1 Summary by triage group
+### 1.1 Summary by group
 The dataset used in examples 1.1-1.2 was used previously to produce Figure 1 in Marc Arbyn et al.(2009). First, load the dataset:
 ```
 use http://fmwww.bc.edu/repec/bocode/a/arbyn2009jcellmolmedfig1.dta
@@ -97,7 +135,7 @@ NOTE: % centiles obtained from 800 simulations of the posterior distribution
 ```
 ![Figure1.1](/Markdown/11.png)
 
-### 1.2 Different models by triage group
+### 1.2 Different models by group
 With the **by(tgroup)** option in Example 1.1 the conditional estimates in each group are identical. To fit different models and obtain seperate tables and graphs for each group, use instead the by prefix instead i.e **bysort tgroup:**  or **by tgroup:** if **tgroup** is already sorted. 
 
 ```
@@ -267,7 +305,7 @@ NOTE: caterpillar plot name -> abscatpplot3
 ```
 ![Figure1.2.3](/Markdown/123.png)
 
-### 1.3 Stratified analysis by triage group
+### 1.3 Stratified analysis by group
 The use of by prefix **bysort tgroup, rc0:** in Example 1.2 produced three seperare plots and tables for each triage group. To combine the plots and the consolidate the tables into one use the options **stratify by(tgroup)** instead. 
 
 ```
@@ -659,13 +697,6 @@ NOTE: % centiles obtained from 800 simulations of the posterior distribution
 The results are interpreted as follows: conditional on the random-effect, there are differences between the groups, however, these differences disappear at the population level.
 
 ### 2.2 Comparative studies
-#### Frequentist vs Bayesian estimation
-In the frequentist approach, maximum likelihood estimation is used to obtain the model parameters. Maximum likelihood algorithms often struggle with convergence when event probabilities approach zero, as the likelihood function becomes flat, leading to large or undefined estimates and standard errors. They also struggle with estimation of between-study variance components when only a few studies are available. 
-
-The Bayesian approach incoorporates weakly informative priors based on plausible assumptions to overcome non-convergence issues in extreme sparsity or zero-event scenarios. In such cases, the prior distribution provides necessary information to stabilize estimates, yielding more reasonable and statistically defensible results even with limited data. The inverse-gamma (scale and shape = 0.01) is used as the default prior for the between-study variance. This prior is conditionally conjugate for the variance components thereby enhancing computational efficiency and numerical stability.
-
-Bayesian computations take increasingly longer time with increasing number of studies. However, Bayesian estimation is not always essential for large datasets, where frequentist estimates can be sufficient.  
-
 ### 2.2.1 Non-convergence issues in frequentist estimation when proportions near 0
 Hemkens et al. (2016) investigated the risk of fatal stroke after long-term colchicine use.  Three out of four studies contained double-zero events. First, load the dataset:
 ```
