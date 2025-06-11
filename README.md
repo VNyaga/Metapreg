@@ -15,8 +15,8 @@ net install metapreg, from("https://raw.githubusercontent.com/VNyaga/Metapreg/ma
 ```
 # Table of contents
 
-[Intercept-only model](#intercept-only-model)
-[Meta-regression](#meta-regression)
+1. [Intercept-only model](#intercept-only-model)
+2. [Meta-regression](#meta-regression)
 	
 ## Intercept-only model
 ### 1.1 Summary by triage group
