@@ -330,7 +330,7 @@ program define metapreg_example_two_two_six
 	restore
 end
 
-//2.2.7
+//2.2.7  ---Check the differences!!!
 program define metapreg_example_two_two_seven
 	preserve
 	use "http://fmwww.bc.edu/repec/bocode/s/schizo.dta", clear
@@ -338,7 +338,7 @@ program define metapreg_example_two_two_seven
 	di ""
 	di ". metapreg response total arm missingdata,  /// "
 	di "	studyid(firstauthor) ///"
-	di "	sortby(year) link(loglog) ///"
+	di "	sortby(year)  ///"
 	di "	sumtable(all) ///"
 	di "	design(comparative, cov(commonslope))   ///"
 	di "	outplot(rr) ///"
@@ -354,11 +354,11 @@ program define metapreg_example_two_two_seven
 
 	set more off
 	
-	gsort firstauthor arm
+	gsort firstauthor -arm
 	
 	metapreg response total arm missingdata, /// 
 		studyid(firstauthor) ///
-		sortby(year) link(loglog) ///
+		sortby(year)  ///
 		sumtable(all) ///
 		design(comparative, cov(commonslope))  ///
 		outplot(rr) ///

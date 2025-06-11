@@ -6292,18 +6292,7 @@ end
 				local ++ncontreg
 			}
 		}
-				
-		/*mat `outmatrixp' = J(`=`byncatreg' + `ncatreg'', 2, .)
-		forvalues r = 1(1)`byncatreg' {
-			mat `outmatrixp'[`r', 1] = (`bycatregmatrixout'[`r',1] - invttail((`df'), 0.5-`level'/200) * sqrt(`bycatregmatrixout'[`r',2]^2 + `TAU21'^2  + `TAU22'^2))
-			mat `outmatrixp'[`r', 2] = (`bycatregmatrixout'[`r',1] + invttail((`df'), 0.5-`level'/200)* sqrt(`bycatregmatrixout'[`r',2]^2 + `TAU21'^2 + `TAU22'^2))
-		}
-		forvalues r = `=`byncatreg' + 1'(1)`=`byncatreg' + `ncatreg''{
-			mat `outmatrixp'[`r', 1] = (`catregmatrixout'[`=`r' - `byncatreg'', 1] - invttail((`df'), 0.5-`level'/200) * sqrt(`catregmatrixout'[`=`r' - `byncatreg'', 2]^2 + `TAU21'^2  + `TAU22'^2))
-			mat `outmatrixp'[`r', 2] = (`catregmatrixout'[`=`r' - `byncatreg'', 1] + invttail((`df'), 0.5-`level'/200)* sqrt(`catregmatrixout'[`=`r' - `byncatreg'', 2]^2 + `TAU21'^2  + `TAU22'^2))
-		}
-		*/
-		
+						
 		//Stack the matrices
 		if (`ncatreg' > 0 & `byncatreg' > 0) {
 			mat `matrixout' =  `bycatregmatrixout' \ `catregmatrixout'
@@ -6324,15 +6313,12 @@ end
 		
 		mat `matrixout' = (`matrixout', `tstats')
 		
-		//t distribution
-		*if "`scimethod'" == "t" {
-			forvalues r = 1(1)`=`byncatreg' + `ncatreg' + `ncontreg''  {
-					local tstat = `matrixout'[`r', 3]
-					mat `matrixout'[`r', 7] = ttail(`df', abs(`tstat'))*2
-					mat `matrixout'[`r', 8] = `matrixout'[`r', 1] - invttail((`df'), 0.5-`level'/200) * `matrixout'[`r', 2]
-					mat `matrixout'[`r', 9] = `matrixout'[`r', 1] + invttail((`df'), 0.5-`level'/200) * `matrixout'[`r', 2]
-			}
-		*}
+		forvalues r = 1(1)`=`byncatreg' + `ncatreg' + `ncontreg''  {
+				local tstat = `matrixout'[`r', 3]
+				mat `matrixout'[`r', 7] = ttail(`df', abs(`tstat'))*2
+				mat `matrixout'[`r', 8] = `matrixout'[`r', 1] - invttail((`df'), 0.5-`level'/200) * `matrixout'[`r', 2]
+				mat `matrixout'[`r', 9] = `matrixout'[`r', 1] + invttail((`df'), 0.5-`level'/200) * `matrixout'[`r', 2]
+		}
 		
 		local catrownames = ""
 		if "`mcbnetwork'`pcbnetwork'" != "" {
@@ -6605,30 +6591,7 @@ program define postsim, rclass
 	local  modellrruci  "`4'"
 	local  modeloruci "`5'"
 	local  modelloruci	"`6'"
-	
-	/*qui {
-		replace `modelp' = .
-		replace `modelrr' = .
-		replace `modelrd' = .
-		replace `modellrr' = .
-		replace `modelor' = .
-		replace `modellor' = .
 		
-		replace `modelplci' = .
-		replace `modelrrlci' = .
-		replace `modelrdlci' = .
-		replace `modellrrlci' = .
-		replace `modelorlci' = .
-		replace `modellorlci' = .
-		
-		replace `modelpuci' = .
-		replace `modelrruci' = .
-		replace `modelrduci' = .
-		replace `modellrruci' = .
-		replace `modeloruci' = .
-		replace `modelloruci' = . 
-	}*/
-	
 	if "`link'" == "cloglog" {
 		local invfn "invcloglog"
 	}
@@ -6660,8 +6623,6 @@ program define postsim, rclass
 		gen `insample' = e(sample) /** mu*/
 		
 		if strpos("`model'", "bayes") == 0 {
-			//Restore estimates
-			*estimates restore `estimates'
 			local predcmd = e(predict)
 			
 			//Coefficients estimates and varcov
@@ -6760,20 +6721,12 @@ program define postsim, rclass
 						
 						gen `reff' = `reff1'*2.`varx' + `reff2' 
 						gen `sreff' = sqrt(`sreff1'^2 + `sreff2'^2)	
-						/*
-						gen `reff' = `reff1'*`varx' + `reff2' 
-						gen `sreff' = sqrt(`sreff1'^2 + `sreff2'^2)	
-						
-						gen `reff' = `reff1'*`varx' + `reff2' 
-						gen `sreff' = sqrt(`varx'^2 * `sreff1'^2 + `sreff2'^2)
-						*/		
 					}
 					else {
 						gen `reff' = `reff1' + `reff2' 
 						gen `sreff' = sqrt(`sreff1'^2 + `sreff2'^2)	
 					}
-													
-					*gen `eta' = `feff' + `reff' //linear predictor				
+															
 					gen `modelse' = sqrt(`sreff1'^2 + `sreff2'^2 + `sfeff'^2) if `insample'==1
 				}
 				
@@ -6803,7 +6756,6 @@ program define postsim, rclass
 				egen `rid' = seq() if `insample'==1  //rowid
 				
 				if "`comparative'`mcbnetwork'`aliasdesign'`mpair'" != ""  {
-				*if "`abnetwork'" == "" & "`aliasdesign'" != "comparative" {
 					replace `modelrr' = `modelp'[_n] / `modelp'[_n-1] if (`gid'[_n]==`gid'[_n-1]) & (`idpair' == 2)
 					replace `modelrd' = -`modelp'[_n] + `modelp'[_n-1] if (`gid'[_n]==`gid'[_n-1]) & (`idpair' == 2)
 					replace `modellrr' = ln(`modelrr')
@@ -7223,7 +7175,6 @@ program define postsim, rclass
 						//EB re 
 						sum `reff' if `rid' == `j' 
 						local reff_`j' = r(mean)
-						
 							
 						if `pair' == 1 {
 							//re - same per study				
@@ -7257,7 +7208,6 @@ program define postsim, rclass
 					}
 										
 					if "`comparative'`mcbnetwork'`aliasdesign'`mpair'" != ""  {
-					*if "`abnetwork'" == "" | "`aliasdesign'" == "comparative" {
 						//Create the pairs
 						gen `phat_`pair'`index'' = `phat`j''
 						
@@ -7322,18 +7272,7 @@ program define postsim, rclass
 					tempvar phat_`pair'`index'
 					
 					if "`comparative'`mcbnetwork'`aliasdesign'`mpair'" != ""  {
-
 						gen `phat_`pair'`index'' = `phat`j''
-						
-						/*if `pair' == 2 {
-							tempvar rrhat`index' rdhat`index' lrrhat`index' orhat`index' lorhat`index'
-							
-							gen `rrhat`index'' = `phat_2`index'' / `phat_1`index''
-							gen `rdhat`index'' = -`sign'`phat_2`index'' + `sign'`phat_1`index''
-							gen `lrrhat`index'' = ln(`rrhat`index'')
-							gen `orhat`index'' = (`phat_2`index''/(1 - `phat_2`index'')) / (`phat_1`index'' /(1 - `phat_1`index''))
-							gen `lorhat`index'' = ln(`orhat`index'')
-						}*/
 					}
 				}	
 			}
@@ -8157,7 +8096,6 @@ program define postsim, rclass
 		
 	//Return matrices
 	if "`todo'" =="p" {
-		*mat colnames `popabsout' = Mean SE Median Lower Upper Total Events Studies Ones Zeros
 		mat colnames `popabsout' = Mean SE Median Lower Upper Sample_size
 		return matrix outmatrix = `popabsout'
 	}
@@ -8936,26 +8874,30 @@ syntax, estimates(string) [marginlist(string) scimethod(string) varx(varname) by
 
 	//Expression for logodds prediction
 	if "`link'" == "cloglog" {
-		local expression "expression(logit(invcloglog(predict(xb))))"
+		local expression "expression(logit(invcloglog(predict(xb))))"  //logit
+		local expressionp "expression(invcloglog(predict(xb)))"  //p
 	}
 	else if "`link'" == "loglog" {
 		if "`model'" == "crbetabin" {
-			local expression "expression(-logit(exp(-exp(-(predict(xb))))))"
+			local expression "expression(-logit(exp(-exp(-(predict(xb))))))"  //logit
+			local expressionp "expression(exp(-exp(-(predict(xb)))))"  //p
 		}
 		else {
-			local expression "expression(-logit(invcloglog(predict(xb))))"
+			local expression "expression(logit(1-invcloglog(predict(xb))))"  //logit
+			local expressionp "expression(1-invcloglog(predict(xb)))"  //p
 		}
 	}
 	else if "`link'" == "log" {
 		local expression "expression(logit(predict(ir)))"
 	}
 	else {
-		local expression "expression(predict(xb))"
-		local expressionrd "expression(invlogit(predict(xb)))"
+		local expression "expression(predict(xb))"     //logit
+		local expressionp "expression(invlogit(predict(xb)))"  //p
 	}
 	if "`model'" == "cbbetabin" {
 		local expression "expression(xb() - _b[_cons]) at(mu==1)"
 	}
+		
 	qui {
 		//Approximate sampling distribution critical value
 		estimates restore `estimates'
@@ -9020,7 +8962,8 @@ syntax, estimates(string) [marginlist(string) scimethod(string) varx(varname) by
 		//RD
 		
 		estimates restore `estimates'
-		margins `marginlist', `expressionrd' over(`by') post level(`level')
+		*margins `marginlist', `expressionrd' over(`by') post level(`level')
+		margins `marginlist', `expressionp' over(`by') post level(`level') //work at p level
 		nlcom `EstRDexpression', post level(`level')
 		mat `RDcoef' = e(b)
 		mat `RDV' = e(V)
@@ -9058,7 +9001,7 @@ syntax, estimates(string) [marginlist(string) scimethod(string) varx(varname) by
 		
 		//RR
 		estimates restore `estimates'
-		margins `marginlist', `expression' over(`by') post level(`level')
+		margins `marginlist', `expression' over(`by') post level(`level') //work at logit level
 		nlcom `EstRRlnexpression', post level(`level')
 		mat `lRRcoef' = e(b)
 		mat `lRRV' = e(V)
@@ -9096,7 +9039,7 @@ syntax, estimates(string) [marginlist(string) scimethod(string) varx(varname) by
 		
 		//OR
 		estimates restore `estimates'
-		margins `marginlist', `expression' over(`by') post level(`level')
+		margins `marginlist', `expression' over(`by') post level(`level')  //work at logit level
 		nlcom `EstORlnexpression', post level(`level')
 		mat `lORcoef' = e(b)
 		mat `lORV' = e(V)
@@ -9235,8 +9178,9 @@ end
 				local expressionrd "expression(exp(-exp(-(predict(xb)))))"  //p
 			}
 			else {
-				local expression "expression(-logit(invcloglog(predict(xb))))"  //logit
-				local expressionrd "expression(1-invcloglog(predict(xb)))"  //logit
+				*local expression "expression(-logit(invcloglog(predict(xb))))"  //logit
+				local expression "expression(logit(1-invcloglog(predict(xb))))"  //logit
+				local expressionrd "expression(1-invcloglog(predict(xb)))"  //p
 			}
 		}
 		else if "`link'" == "log" {

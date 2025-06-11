@@ -1305,7 +1305,7 @@ The interaction term from {cmd:metapreg} and the coefficient for lat using {cmd:
 {synoptline}
 
 {pmore2}
-{cmd : 2.2.7 Sparse data - loglog link - interaction between covariates}
+{cmd : 2.2.7 Sparse data -  interaction between covariates}
 
 {pmore2}
 Using {help metan}, {help metapreg##Chaimani_etal2014:Chaimani et al. (2014)} informaly assessed the difference in treatment effect of haloperidol compared to placebo in treating schizophrenia.
@@ -1331,7 +1331,7 @@ The {cmd:interaction} term allows to test whether the risk-ratios for arm differ
 {cmd:. metapreg response total arm missingdata,  ///}
 {p_end}
 {pmore3}
-{cmd:studyid(firstauthor) link(loglog) ///}
+{cmd:studyid(firstauthor) ///}
 {p_end}
 {pmore3}
 {cmd:sortby(year) ///}
