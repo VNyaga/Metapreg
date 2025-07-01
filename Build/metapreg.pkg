@@ -1,27 +1,31 @@
-v 1.5.1
-d metapreg Stata module to perform fixed, random and mixed effects meta-analysis, meta-regression and network meta-analysis of proportions
+v 2.0.0
+d metapreg Stata module to perform fixed, random and mixed effects meta-analysis, meta-regression and 
+network meta-analysis of proportions in the frequentist or the bayesian framework.
 d This routine provides procedures for pooling proportions in a 
 d meta-analysis of multiple studies study and/or displays the results 
-d in a forest plot. The population-averaged estimates are obtained from the binomial distribution, logistic regression or 
-d the logistic-normal random model. 
+d in a forest plot. The population-averaged estimates are obtained from the binomial distribution, logistic regression,
+d the logistic-normal random, or the beta-binomial model. 
 d One or more covariates are allowed into 
 d the model to explain heterogeneity in the proportions. 
 d With paired data, a model with two additive components of variance can be fitted. 
 d One component represents variance within the units, the other variance between units. 
-d Furthermore, a forest plot of relative ratios can also be presented.
+d Furthermore, a forest plot of relative metrics can also be presented.
 d
 d KW: meta-analysis
 d KW: meta-regression
+d KW: network meta-analysis
 d KW: fixed effects
 d KW: random effects
 d KW: mixed effects
 d KW: proportions
 d KW: binomial
-d KW: network meta-analysis
+d KW: beta-binomial 
+d KW: frequentist estimation
+d KW: Bayesian estimation
 d
 d Requires: Stata version 14
 d
-d Distribution-Date: 20230914
+d Distribution-Date: 20250701
 d
 d Author: Victoria N Nyaga, Belgian Cancer Center/Unit of Cancer Epidemiology, Brussels
 d Support: email Victoria.NyawiraNyaga@sciensano.be
@@ -30,6 +34,7 @@ f lmetapreg.mlib
 f metapreg.ado	
 f metapreg.sthlp
 f metapreg_examples.ado
-f bcg.dta
-f matched.dta
-f schizo.dta
+f bender2018fig2.dta
+f hemkens2016analysis18.dta
+f repro.dta
+f hemkens2016analysis110.dta

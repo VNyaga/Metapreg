@@ -1168,10 +1168,10 @@ The risk-ratios are requested with the option {cmd:outplot(rr)}.
 {cmd: .metapreg cases_tb population bcg,  /// }
 {p_end}
 {pmore3}
-{cmd: studyid(study) ///}
+{cmd: studyid(study) model(mixed, intmethod(mv)) ///}
 {p_end}
 {pmore3}
-{cmd: design(comparative)	///}
+{cmd: design(comparative, cov(commonslope))	///}
 {p_end}
 {pmore3}
 {cmd: outplot(rr) ///}
@@ -1217,7 +1217,7 @@ We investigate whether altitude has an effect on the vaccination by including {c
 {cmd: .metapreg cases_tb population lat,  /// }
 {p_end}
 {pmore3}
-{cmd: studyid(study) ///}
+{cmd: studyid(study) model(mixed, intmethod(mv)) ///}
 {p_end}
 {pmore3}
 {cmd: sortby(lat) by(bcg)  ///}
@@ -1269,7 +1269,7 @@ The interaction term from {cmd:metapreg} and the coefficient for lat using {cmd:
 {cmd:. metapreg cases_tb population bcg lat,  /// }
 {p_end}
 {pmore3}
-{cmd:studyid(study) ///}
+{cmd:studyid(study) model(mixed, intmethod(mv)) ///}
 {p_end}
 {pmore3}
 {cmd:sortby(lat) ///}

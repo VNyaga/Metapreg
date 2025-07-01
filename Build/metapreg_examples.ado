@@ -24,10 +24,11 @@ program define metapreg_example_one_one
 	di "	texts(1.25)  smooth gof	"
 
 	set more off
-	metapreg num denom,  ///
+
+	metapreg num denom,   ///
 		studyid(study) ///
 		by(tgroup) ///
-		/*inference(bayesian) bwd($wdir)*/  /// 
+		/*inference(bayesian) bwd($wdir) */ /// 
 		cimethod(exact) ///
 		label(namevar=author, yearvar=year) catpplot  ///
 		xlab(.25, 0.5, .75, 1) ///
@@ -49,8 +50,9 @@ program define metapreg_example_one_two
 	di "	texts(1.5) smooth"
 
 	set more off
+
 	bys tgroup, rc0: metapreg num denom,  ///
-		/*inference(bayesian) bwd($wdir)*/  /// 
+		/*inference(bayesian) bwd($wdir)*/ /// 
 		studyid(study) ///
 		cimethod(wilson) ///
 		label(namevar=author, yearvar=year) catpplot ///
@@ -108,7 +110,7 @@ program define metapreg_example_one_four
 	di "	texts(1.5) smooth gof"
 
 	set more off
-
+		
 	metapreg p16p p16tot, link(loglog) ///		
 		studyid(study) sumtable(all) ///
 		label(namevar=author, yearvar=year) catpplot ///
@@ -136,17 +138,17 @@ program define metapreg_example_two_one
 	di "	subti(Atypical cervical cytology, size(4)) ///"
 	di "	texts(1.5)  summaryonly"
 	
-
 	set more off
+	
 	metapreg num denom tgroup,  ///
 		/*inference(bayesian) bwd($wdir)*/ /// 
 		studyid(study) ///
 		cimethod(exact) ///
-		sumtable(rd rr)  ///
+		sumtable(all)  ///
 		label(namevar=author, yearvar=year)  ///
 		xlab(.25, 0.5, .75) ///
 		subti(Atypical cervical cytology, size(4)) ///
-		texts(1.5)  summaryonly
+		texts(1.5)  summaryonly 
 	restore
 end
 
@@ -166,6 +168,7 @@ program define metapreg_example_two_two_one
 	gsort study -treatment
 
 	set more off
+
 	metapreg events total treatment,   ///
 	studyid(study)  design(comparative, cov(independent))   ///
 	/*inference(bayesian) bwd($wdir)*/ ///
@@ -189,7 +192,8 @@ program define metapreg_example_two_two_two
 	di "	xlab(1, 5, 30) logscale  ///"
 	di "	texts(2) astext(70)"
 
-	set more off	
+	set more off
+	
 	metapreg event total treatment,  ///
 	studyid(study) design(comparative, cov(independent))  ///
 	smooth gof  catpplot nofplot cimethod(,wald)  ///
@@ -218,7 +222,9 @@ program define metapreg_example_two_two_three
 	di "	texts(1.75) astext(60)" 
 
 	gsort study -treatment	
-		
+	
+	set more off	
+	
 	metapreg event total treatment,   ///
 		studyid(study) ///
 		design(comparative, cov(commonint))  ///
@@ -236,7 +242,7 @@ program define metapreg_example_two_two_four
 	use "http://fmwww.bc.edu/repec/bocode/b/bcg.dta", clear
 	
 	di ". metapreg cases_tb population bcg,  ///" 
-	di "	studyid(study) ///"
+	di "	studyid(study) model(mixed, intmethod(mv)) ///"
 	di "	design(comparative, cov(commonslope)) ///"
 	di "	outplot(rr) ///"
 	di "	sumstat(Risk ratio) ///"
@@ -281,6 +287,7 @@ program define metapreg_example_two_two_five
 	di "	texts(1.5)  smooth "
 		
 	set more off
+
 	
 	metapreg cases_tb population lat,  /// 
 		/*inference(bayesian) bwd($wdir)*/ /// 
@@ -313,7 +320,7 @@ program define metapreg_example_two_two_six
 	di "	texts(1.5) logscale smooth gof" 
 	
 	set more off
-
+	
 	metapreg cases_tb population bcg lat,  /// 
 		/*inference(bayesian) bwd($wdir)*/ /// 
 		studyid(study) model(mixed, intmethod(mv)) ///
@@ -343,8 +350,8 @@ program define metapreg_example_two_two_seven
 	di "	design(comparative, cov(commonslope))   ///"
 	di "	outplot(rr) ///"
 	di "	interaction ///"
-	di "	xlab(0, 5, 15) /// "
-	di "	xtick(0, 5, 15)  ///" 
+	di "	xlab(0.5, 5, 20) /// "
+	di "	xtick(0.5, 5, 20)  ///" 
 	di "	sumstat(Rel Ratio) ///"
 	di "	lcols(response total) /// "
 	di "	astext(70) /// "
@@ -353,18 +360,19 @@ program define metapreg_example_two_two_seven
 			
 
 	set more off
-	
+
 	gsort firstauthor -arm
-	
+
 	metapreg response total arm missingdata, /// 
 		studyid(firstauthor) ///
 		sortby(year)  ///
 		sumtable(all) ///
 		design(comparative, cov(commonslope))  ///
+		/*inference(bayesian) bwd($wdir)*/  /// 
 		outplot(rr) ///
 		interaction ///
-		xlab(0, 0.5, 1.5) /// 
-		xtick(0, .5, 1.5)  /// 
+		xlab(0.5, 5, 20) /// 
+		xtick(0.5, 5, 20)  /// 
 		sumstat(Rel Ratio) ///
 		lcols(response total) /// 
 		astext(70) texts(1.5)  /// 
@@ -389,10 +397,11 @@ program define metapreg_example_two_three_one
 	
 	
 	set more off
+
 	metapreg pp pn np nn,  ///
 		design(mpair, cov(commonslope)) ///
 		/*inference(bayesian) bwd($wdir)*/  /// 
-		studyid(paper) ///
+		studyid(paper) sumtable(all) ///
 		stratify by(type) ///
 		xlab(0.5, 1, 2) ///
 		sumstat(Positivity Ratio) ///
@@ -420,10 +429,10 @@ program define metapreg_example_two_three_two
 	di "	texts(1.5) logscale  "
 	
 	set more off
-	
+			
 	metapreg a b c d index comparator,  /// 
 		/*inference(bayesian) bwd($wdir)*/  /// 
-		studyid(study) ///
+		studyid(study)  ///
 		model(fixed)  /// 
 		design(mcbnetwork) ///
 		by(comparator) ///
@@ -432,7 +441,7 @@ program define metapreg_example_two_three_two
 		sumstat(Ratio) ///
 		lcols(a b c d comparator index) /// 
 		astext(80) /// 
-		texts(1.5) logscale smooth
+		texts(1.5) logscale smooth gof
 			
 	restore
 end
