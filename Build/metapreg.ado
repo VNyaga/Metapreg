@@ -507,7 +507,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			
 			//Collect the matrices
 			mat `rawesti' = r(rawest)
-			
+						
 			if "`getmodeli'" != "crbetabin" mat `popabsouti' = r(popabsout)
 			mat `exactabsouti' = r(exactabsout)
 			local mdf = r(mdf) //mdf = 0 if saturated
@@ -717,18 +717,21 @@ program define metapreg, eclass sortpreserve byable(recall)
 	
 	cap drop  `numsid'	
 	qui keep if mu == 1  //for cbbetabin
-	//Format output matrices
-	format_outmatrices , hetout(`hetout') scimethod(`scimethod') `stratify' ///
-		i(`i') p(`p') model(`model') inference(`inference') design(`design') ///
-		rawest(`rawest') absout(`absout') rrout(`rrout') rdout(`rdout') orout(`orout') ///
-		`ratios' cov(`cov')
 	
-	mat `neorawest' = r(rawest)
-	mat `neoabsout' = r(absout)
-	if "`ratios'" == "" {
-		mat `neorrout' = r(rrout)
-		mat `neordout' = r(rdout)
-		mat `neoorout' = r(orout)
+	//Format output matrices
+	if "`model'" != "hexact" {
+		format_outmatrices , hetout(`hetout') scimethod(`scimethod') `stratify' ///
+			i(`i') p(`p') model(`model') inference(`inference') design(`design') ///
+			rawest(`rawest') absout(`absout') rrout(`rrout') rdout(`rdout') orout(`orout') ///
+			`ratios' cov(`cov')
+		
+		mat `neorawest' = r(rawest)
+		mat `neoabsout' = r(absout)
+		if "`ratios'" == "" {
+			mat `neorrout' = r(rrout)
+			mat `neordout' = r(rdout)
+			mat `neoorout' = r(orout)
+		}
 	}
 
 	// Suppress overall if stratified & comparative
@@ -1818,41 +1821,43 @@ program define format_outmatrices, rclass
     }
 
     // Matrix subsetting
-    if "`scimethod'" == "t" {
-        mat `neorawest' = (`rawest'[1..., 1..3], `rawest'[1..., 7..9])
-        mat `neoabsout' = (`absout'[1..., 1..3], `absout'[1..., 7..9])
-        if "`ratios'" == "" {
-            mat `neorrout' = (`rrout'[1..., 1..3], `rrout'[1..., 7..9])
-            mat `neordout' = (`rdout'[1..., 1..3], `rdout'[1..., 7..9])
-            mat `neoorout' = (`orout'[1..., 1..3], `orout'[1..., 7..9])
-        }
-    }
-    else if inlist("`scimethod'", "wald", "eti") {
-        mat `neorawest' = `rawest'[1..., 1..6]
-        mat `neoabsout' = `absout'[1..., 1..6]
-        if "`ratios'" == "" {
-            mat `neorrout' = `rrout'[1..., 1..6]
-            mat `neordout' = `rdout'[1..., 1..6]
-            mat `neoorout' = `orout'[1..., 1..6]
-        }
-    }
-    else if "`scimethod'" == "hpd" {
-        mat `neorawest' = (`rawest'[1..., 1..4], `rawest'[1..., 7..8])
-        mat `neoabsout' = (`absout'[1..., 1..4], `absout'[1..., 7..8])
-        if "`ratios'" == "" {
-            mat `neorrout' = (`rrout'[1..., 1..4], `rrout'[1..., 7..8])
-            mat `neordout' = (`rdout'[1..., 1..4], `rdout'[1..., 7..8])
-            mat `neoorout' = (`orout'[1..., 1..4], `orout'[1..., 7..8])
-        }
-    }
+		if "`scimethod'" == "t" {
+			mat `neorawest' = (`rawest'[1..., 1..3], `rawest'[1..., 7..9])
+			mat `neoabsout' = (`absout'[1..., 1..3], `absout'[1..., 7..9])
+			if "`ratios'" == "" {
+				mat `neorrout' = (`rrout'[1..., 1..3], `rrout'[1..., 7..9])
+				mat `neordout' = (`rdout'[1..., 1..3], `rdout'[1..., 7..9])
+				mat `neoorout' = (`orout'[1..., 1..3], `orout'[1..., 7..9])
+			}
+		}
+		else if inlist("`scimethod'", "wald", "eti") {
+			mat `neorawest' = `rawest'[1..., 1..6]
+			mat `neoabsout' = `absout'[1..., 1..6]
+			if "`ratios'" == "" {
+				mat `neorrout' = `rrout'[1..., 1..6]
+				mat `neordout' = `rdout'[1..., 1..6]
+				mat `neoorout' = `orout'[1..., 1..6]
+			}
+		}
+		else if "`scimethod'" == "hpd" {
+			mat `neorawest' = (`rawest'[1..., 1..4], `rawest'[1..., 7..8])
+			mat `neoabsout' = (`absout'[1..., 1..4], `absout'[1..., 7..8])
+			if "`ratios'" == "" {
+				mat `neorrout' = (`rrout'[1..., 1..4], `rrout'[1..., 7..8])
+				mat `neordout' = (`rdout'[1..., 1..4], `rdout'[1..., 7..8])
+				mat `neoorout' = (`orout'[1..., 1..4], `orout'[1..., 7..8])
+			}
+		}
 
-    return matrix rawest = `neorawest'
-    return matrix absout = `neoabsout'
-    if "`ratios'" == "" {
-        return matrix rrout = `neorrout'
-        return matrix rdout = `neordout'
-        return matrix orout = `neoorout'
-    }
+		return matrix rawest = `neorawest'
+
+		if "`ratios'" == "" {
+			return matrix rrout = `neorrout'
+			return matrix rdout = `neordout'
+			return matrix orout = `neoorout'
+		}
+	
+	return matrix absout = `neoabsout'
 end
 
 **++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4341,9 +4346,6 @@ program define fitmodel_frequentist, rclass
 		if "`link'" == "logit" { 
 			capture `echo' binreg `events' `regexpression' if `touse', noconstant n(`total') ml `modelopts' l(`level')
 		}
-		else if "`link'" == "log" { 
-			capture `echo' poisson `events' `regexpression' if `touse', noconstant  exposure(`total') `modelopts' l(`level')	
-		}
 		else {
 			capture `echo' glm `events' `regexpression' if `touse', noconstant family(binomial `total') link(cloglog) ml `modelopts' l(`level')	
 		}
@@ -4545,9 +4547,6 @@ program define fitmodel_frequentist, rclass
 	if (`success' != 0) & ("`model'" == "random") {	
 		if "`link'" == "logit" { 
 			capture `echo' binreg `events' `regexpression' if `touse', noconstant n(`total') ml `modelopts' l(`level')
-		}
-		else if "`link'" == "log"   {
-			capture `echo' glm `events' `regexpression' if `touse', noconstant family(poisson) exposure(`total') link(log) ml `modelopts' l(`level')	
 		}
 		else {
 			capture `echo' glm `events' `regexpression' if `touse', noconstant family(binomial `total') link(cloglog) ml `modelopts' l(`level')	
