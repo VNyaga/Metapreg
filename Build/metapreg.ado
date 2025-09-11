@@ -114,6 +114,17 @@ program define metapreg, eclass sortpreserve byable(recall)
 		POwer(integer 0)		
 		Level(integer 95) 
 		LABEL(string) 
+
+		outplot(string) //abs|rr|or|lor|lrr|rd
+		SUMTable(string) //none|logit|abs|rr|or|all
+		SUMMARYonly
+		SUMStat(string)
+		STAt(string) //median|mean ; median is default
+		
+		/*options that go to the forest plot*/
+		FOptions(string asis) /*Options specific to the forest plot*/
+		COptions(string asis) /*Options specific to the catterpilar plot*/
+
 		noGRaph //Synonym with nofplot
 		noFPlot
 		CATPplot
@@ -121,15 +132,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		noOVerall 
 		noITAble
 		noWT
-		outplot(string) //abs|rr|or|lor|lrr|rd
-		SUMTable(string) //none|logit|abs|rr|or|all
-		SUMMARYonly
-		SUMStat(string)
-		STAt(string) //median|mean ; median is default
-		FOptions(string asis) /*Options specific to the forest plot*/
-		COptions(string asis) /*Options specific to the catterpilar plot*/
-
-		/*passthrough options that go to the forest plot*/
+		
 		noOVLine 
 		noSTats 
 		noBox
@@ -761,21 +764,19 @@ program define metapreg, eclass sortpreserve byable(recall)
 	qui save "`master'"
 	
 	//Show itable and graphs
-	if "`itable'" == "" | "`graph'" == "" {
-		
+	if "`itable'" == "" | "`graph'" == "" {		
 		itable_graph_loop `modeles' `modellci' `modeluci' `event' `nonevent' `total' `studyid' `rid'  `use' `neolabel' , master(`master') ///
 			outplot(`outplot') id(`id') cid(`cid') es(`es') se(`se') lci(`lci') uci(`uci') grptotal(`grptotal') ///
 			design(`design') aliasdesign(`aliasdesign') `logscale' `subgroup' by(`by') first(`first') ///
 			ipair(`ipair') idpair(`idpair') assignment(`assignment') p(`p') pcont(`pcont') ///
 			depvars(`depvars') sortby(`sortby') regressors(`regressors') level(`level') power(`power')  ///
-			`smooth' `summaryonly'  `overall' `download' `stratify' `enhance' stat(`stat') ///
+			`smooth' `summaryonly'  `overall' `download' `stratify' `enhance'  stat(`stat') ///
 			rrout(`rrout') poprrout(`poprrout') rdout(`rdout') poprdout(`poprdout') poplrrout(`poplrrout') orout(`orout') poporout(`poporout') ///
 			poplorout(`poplorout') exactorout(`exactorout') absout(`absout') popabsout(`popabsout') exactabsout(`exactabsout') ///
-			absoutp(`absoutp') hetout(`hetout') dp(`dp') model(`model') `wt' `graph' `catpplot' coptions(`coptions') foptions(`foptions') ciopts(`ciopts') ooptions(`ooptions') ///
-			diamopts(`diamopts') olineopts(`olineopts') pointopts(`pointopts') boxopts(`boxopts')  `subline' ///
+			absoutp(`absoutp') hetout(`hetout') dp(`dp') model(`model') `wt' `graph' `fplot' `catpplot' coptions(`coptions') foptions(`foptions') ciopts(`ciopts') ooptions(`ooptions') ///
+			diamopts(`diamopts') olineopts(`olineopts') pointopts(`pointopts') boxopts(`boxopts')  `subline' `xline' `ovline' lcols(`lcols') rcols(`rcols') ///
 			texts(`texts') astext(`astext') xlabel(`xlabel') pxlabel(`pxlabel') rxlabel(`rxlabel') varxlabs(`varxlabs') varx(`varx') ///
-			typevarx(`typevarx') catreg(`catreg') sumstat(`susmtat') cimethod(`cimethod') scimethod(`scimethod') inference(`inference')
-			
+			typevarx(`typevarx') catreg(`catreg') sumstat(`susmtat') cimethod(`cimethod') scimethod(`scimethod') inference(`inference') `itable'	
 	}
 		
 	//Show the model comparison results
@@ -993,7 +994,8 @@ program define validate_by, rclass
         // If not string, check if labelled numeric
         capture label list `by'
         if _rc != 0 {
-            di as error "The by() variable should be a string or coded integer"
+            di as error "Ensure that the by() variable is a string or coded integer."
+			di as error "Or rename label for by() variable to `by'"
             exit 198
         }
     }
@@ -1738,7 +1740,7 @@ program define show_replay_link
 			if strpos("`cleanlab'", "/") != 0 {
 				local cleanlab = ustrregexra("`cleanlab'", "/", "_")
 			}
-            local cleanlab = "`ilab'" + "$by_index_"
+            local cleanlab = "`cleanlab'" + "$by_index_"
             if strlen("`cleanlab'") > 20 {
                 local cleanlab = abbrev("`cleanlab'", 15)
                 if strpos("`cleanlab'", "~") != 0 {
@@ -2203,18 +2205,17 @@ end
 *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 cap program drop itable_graph_loop
 program define itable_graph_loop
-
     syntax varlist, master(string asis) [outplot(string asis) id(name) cid(name) es(name) se(name) lci(name) uci(name) grptotal(name) ///
-        design(string) aliasdesign(string) logscale subgroup by(varname) first(varname) ///
+        design(string) aliasdesign(string) logscale noSUBgroup by(varname) first(varname) ///
 		ipair(varname) idpair(varname) assignment(varname)  ///
         depvars(varlist) sortby(string) regressors(varlist) p(integer 0) power(integer 0) pcont(integer 0) level(string)   ///
-		smooth summaryonly prediction overall download stratify enhance stat(string) ///
+		smooth summaryonly prediction noOVErall download stratify enhance stat(string) ///
         rrout(name) poprrout(name) rdout(name) poprdout(name) poplrrout(name) orout(name) poporout(name) ///
         poplorout(string) exactorout(string) absout(string) popabsout(string) exactabsout(string) ///
-		absoutp(name) hetout(name) dp(integer 2) model(string) wt graph catpplot coptions(string asis) foptions(string asis) ciopts(string asis) ooptions(string asis) ///
-        diamopts(string asis) olineopts(string asis) pointopts(string asis) boxopts(string asis)  subline ///
+		absoutp(name) hetout(name) dp(integer 2) model(string) noWT noGRaph noFPlot catpplot coptions(string asis) foptions(string asis) ciopts(string asis) ooptions(string asis) ///
+        diamopts(string asis) olineopts(string asis) pointopts(string asis) BOXOpts(string asis)  subline XLIne(passthru) noOVLine lcols(varlist) rcols(varlist) ///
         texts(string) astext(string) xlabel(string asis) pxlabel(string asis) rxlabel(string asis) varxlabs(string asis) varx(varname) ///
-		typevarx(string) catreg(varlist) sumstat(string) cimethod(string asis) scimethod(string) inference(string)]
+		typevarx(string) catreg(varlist) sumstat(string) cimethod(string asis) scimethod(string) inference(string) noITAble noBOX]
 	
 	//Assign the local macros
 	tokenize `varlist'
@@ -2282,9 +2283,6 @@ program define itable_graph_loop
     
 	
     if "`metric'" != "abs" & "`design'" == "abnetwork" & "`aliasdesign'" == "" local smooth 
-
-
-
         if inlist("`design'", "mcbnetwork", "pcbnetwork", "mpair") {
             reshape_wide `modeles' `modellci' `modeluci' `event' `nonevent' `total' `studyid' `rid', ///
                 mes(`mes') mlci(`mlci') muci(`muci') design(`design') ipair(`ipair') idpair(`idpair') assignment(`assignment')
@@ -2295,7 +2293,6 @@ program define itable_graph_loop
             icimethod(`icimethod') lcols(`lcols') rcols(`rcols')  sortby(`sortby') by(`by')  ///
             modeles(`mes') modellci(`mlci') modeluci(`muci') `smooth'
 			
-
         local neodepvars = r(depvars)
         local neorcols = r(rcols)
         local neolcols = r(lcols)
@@ -2332,7 +2329,7 @@ program define itable_graph_loop
             else if strpos("`metric'", "abs") != 0 & "`pxlabel'" != "" local neoxlabel "xlabel(`pxlabel')"
             else if strpos("`metric'", "r") != 0 & "`rxlabel'" != "" local neoxlabel "xlabel(`rxlabel')"
 
-            local goptions "`fplot' `neolcols' `neorcols' `overall' `ovline' `stats' `box' `double' `neoastext' `ciopts' `diamopts' `olineopts' `pointopts' `boxopts'  `subline' `neotexts' `neoxlabel' `xline' `xtick' `neologscale' `ooptions'"
+            local goptions "`fplot' `neolcols' `neorcols' `overall' `ovline' `stats' `box' `double' `neoastext' `ciopts' `diamopts' `olineopts' `pointopts' `boxopts'  `subline' `neotexts' `neoxlabel' `xline' `ovline' `xtick' `neologscale' `ooptions'"
 			
             metapplotcheck, `summaryonly' `goptions'
             local goptions = r(plotopts)
@@ -2391,7 +2388,7 @@ program define metric_logic, rclass
 
     syntax varlist, METRIC(string) [ SUMSTAT(string) CIMETHOD(string) ///
         DESIGN(string) ALIASDESIGN(string) LOGSCALE  SMOOTH ///
-        VARX(varname)  TYPEVARX(string) CATREG(string) SUBGROUP ///
+        VARX(varname)  TYPEVARX(string) CATREG(string) 	noSUBgroup ///
         BY(varname) FIRST(varname) STUDYID(varname) ]
 		
 	tokenize `varlist'
@@ -4416,6 +4413,7 @@ program define fitmodel_frequentist, rclass
 		local converged = e(converged)
 		
 		//Try dnumerical and intmethod(gh) second time
+		/*
 		if  ("`fitcommand'" == "melogit") & (`success' != 0) & strpos(`"`modelopts'"', "dnumerical") == 0 & strpos(`"`modelopts'"', "intme") == 0 {
 			
 			local ++try
@@ -4428,6 +4426,7 @@ program define fitmodel_frequentist, rclass
 			local success = _rc
 			local converged = e(converged)
 		}
+		*/
 		
 		//Got to meqrlogit if melogit fails
 		if  ("`fitcommand'" == "melogit") & (`success' != 0)  {
@@ -4809,7 +4808,7 @@ program define fitmodel_bayesian, rclass
 				else if `refsampling' == 2  {
 					local blockslopes = `"block({`events':i.`sid'#2.`varx'}, reffects)"'
 				}
-				if strpos("`varprior'", "gamma") != 0 { 
+				if strpos("`varprior'", "igamma") != 0 { 
 					local blocksigma = `"block(`parmsigma', gibbs)"'
 					local blocktau = `"block(`parmtau', gibbs)"'
 				}
@@ -4855,7 +4854,7 @@ program define fitmodel_bayesian, rclass
 			else if `refsampling' == 3 {
 				local blocksid = `"reffects(`sid')"'
 			}
-			if strpos("`varprior'", "gamma") != 0 { 
+			if strpos("`varprior'", "igamma") != 0 { 
 				local blocktau = `"block(`parmtau', gibbs)"'
 			}
 			else {
@@ -6196,7 +6195,7 @@ end
 cap program drop disptab
 program define disptab
 	#delimit ;
-	syntax varlist, [nosubgroup nooverall level(integer 95) sumstat(string asis) model(string)
+	syntax varlist, [noSUBgroup noOVErall level(integer 95) sumstat(string asis) model(string)
 	dp(integer 2) power(integer 0) nowt smooth icimethod(string) scimethod(string) groupvar(varname) 
 	design(string) aliasdesign(string) outplot(string) summaryonly stat(string) inference(string)]
 	;
@@ -13260,9 +13259,9 @@ end
 		predciopts(string)
 		SUBLine 
 		TEXts(real 1.0) 
-		XLAbel(string) 
-		XLIne(string) 
-		XTick(string)
+		XLAbel(string asis) 
+		XLIne(string asis) 
+		XTick(string asis)
 		GRID
 		GRAphsave(string asis)
 		prediction
@@ -14177,11 +14176,11 @@ end
 		else {
 			local xlineval = `1'
 		}
-		if "`3'" == "" {
+		if "`3'" != "" {
 			local xlineopts = "`3'"
 		}
 		else {
-			local xlineopts = "lcolor(black)"
+			local xlineopts = "lcolor(gs10)"
 		}
 		local xlineCommand `" (pci `=`DYmax'-2' `xlineval' `borderline' `xlineval', `xlineopts') "'
 	}
