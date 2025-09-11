@@ -118,7 +118,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		outplot(string) //abs|rr|or|lor|lrr|rd
 		SUMTable(string) //none|logit|abs|rr|or|all
 		SUMMARYonly
-		SUMStat(string)
+		SUMStat(string asis)
 		STAt(string) //median|mean ; median is default
 		
 		/*options that go to the forest plot*/
@@ -776,7 +776,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 			absoutp(`absoutp') hetout(`hetout') dp(`dp') model(`model') `wt' `graph' `fplot' `catpplot' coptions(`coptions') foptions(`foptions') ciopts(`ciopts') ooptions(`ooptions') ///
 			diamopts(`diamopts') olineopts(`olineopts') pointopts(`pointopts') boxopts(`boxopts')  `subline' `xline' `ovline' lcols(`lcols') rcols(`rcols') ///
 			texts(`texts') astext(`astext') xlabel(`xlabel') pxlabel(`pxlabel') rxlabel(`rxlabel') varxlabs(`varxlabs') varx(`varx') ///
-			typevarx(`typevarx') catreg(`catreg') sumstat(`susmtat') cimethod(`cimethod') scimethod(`scimethod') inference(`inference') `itable'	
+			typevarx(`typevarx') catreg(`catreg') sumstat(`sumstat') cimethod(`cimethod') scimethod(`scimethod') inference(`inference') `itable'	
 	}
 		
 	//Show the model comparison results
@@ -2215,7 +2215,7 @@ program define itable_graph_loop
 		absoutp(name) hetout(name) dp(integer 2) model(string) noWT noGRaph noFPlot catpplot coptions(string asis) foptions(string asis) ciopts(string asis) ooptions(string asis) ///
         diamopts(string asis) olineopts(string asis) pointopts(string asis) BOXOpts(string asis)  subline XLIne(passthru) noOVLine lcols(varlist) rcols(varlist) ///
         texts(string) astext(string) xlabel(string asis) pxlabel(string asis) rxlabel(string asis) varxlabs(string asis) varx(varname) ///
-		typevarx(string) catreg(varlist) sumstat(string) cimethod(string asis) scimethod(string) inference(string) noITAble noBOX]
+		typevarx(string) catreg(varlist) sumstat(string asis) cimethod(string asis) scimethod(string) inference(string) noITAble noBOX]
 	
 	//Assign the local macros
 	tokenize `varlist'
@@ -2386,7 +2386,7 @@ end
 cap program drop metric_logic
 program define metric_logic, rclass
 
-    syntax varlist, METRIC(string) [ SUMSTAT(string) CIMETHOD(string) ///
+    syntax varlist, METRIC(string) [ SUMSTAT(string asis) CIMETHOD(string) ///
         DESIGN(string) ALIASDESIGN(string) LOGSCALE  SMOOTH ///
         VARX(varname)  TYPEVARX(string) CATREG(string) 	noSUBgroup ///
         BY(varname) FIRST(varname) STUDYID(varname) ]
