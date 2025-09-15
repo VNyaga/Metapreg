@@ -116,7 +116,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 		LABEL(string) 
 
 		outplot(string) //abs|rr|or|lor|lrr|rd
-		SUMTable(string) //none|logit|abs|rr|or|all
+		SUMTable(string asis) //none|logit|abs|rr|or|all
 		SUMMARYonly
 		SUMStat(string asis)
 		STAt(string) //median|mean ; median is default
@@ -749,7 +749,7 @@ program define metapreg, eclass sortpreserve byable(recall)
 	
 	
 	//Print summary tables and other statistics
-	print_summtables , model(`model') sumtable(`sumtable') p(`p') dp(`dp') power(`power') ///
+	print_summtables, model(`model') sumtable(`sumtable') p(`p') dp(`dp') power(`power') ///
 		inference(`inference') cov(`cov') typevarx(`typevarx') catreg(`catreg') ///
 		`continuous' popabsout(`popabsout') neoabsout(`neoabsout') neorawest(`neorawest') ///
 		hetout(`hetout') nsims(`nsims') ///
@@ -1867,22 +1867,23 @@ end
 cap program drop print_summtables
 program define print_summtables
 
-    syntax , MODEL(string) [SUMTABLE(string asis) P(integer 0) DP(integer 2) POWER(integer 0) ///
-        INFERENCE(string) COV(string) TYPEVARX(string) CATREG(string asis) ///
-        CONTINUOUS POPABSOUT(name) NEOABSOUT(name) NEORAWEST(name) ///
-        HETOUT(name) NSIMS(integer 800) ///
-        NEORDOUT(name) POPRDOUT(name) NLTESTRD(name) ///
-        NEORROUT(name) POPRROUT(name) NLTESTRR(name) ///
-        NEOOROUT(name) POPOROUT(name) NLTESTOR(name) ///
-        EXACTABSOUT(name) EXACTOROUT(name) INLTEST(string)]
+    syntax, model(string) [sumtable(string asis) p(integer 0) dp(integer 2) power(integer 0) ///
+        inference(string) cov(string) typevarx(string) catreg(string asis) ///
+        continuous popabsout(name) neoabsout(name) neorawest(name) ///
+        hetout(name) nsims(integer 800) ///
+        neordout(name) poprdout(name) nltestrd(name) ///
+        neorrout(name) poprrout(name) nltestrr(name) ///
+        neoorout(name) poporout(name) nltestor(name) ///
+        exactabsout(name) exactorout(name) inltest(string)]
 
+	di "`sumtable'"
     // === Exact fixed effect models ===
     if "`model'" == "hexact" {
-        if inlist("`sumtable'", "abs", "all") | ("`sumtable'" == "")  {
+        if strpos("`sumtable'", "abs") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == "") {
             printmat, matrixout(`exactabsout') type(exactabs) p(`p') dp(`dp') power(`power') `continuous' model(`model') inference(`inference')
         }
 
-        if (inlist("`sumtable'", "or", "all") | ("`sumtable'" == "")) & ("`catreg'" != "" | "`typevarx'" == "i" ) {
+        if (strpos("`sumtable'", "or") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == "")) & ("`catreg'" != "" | "`typevarx'" == "i" ) {
             cap confirm matrix `exactorout'
             if _rc == 0 {
                 printmat, matrixout(`exactorout') type(exactor) p(`p') dp(`dp') power(`power') model(`model')
@@ -1893,19 +1894,19 @@ program define print_summtables
 
     // === Random-effects / other models ===
 	//Between-study variance components
-    if strpos("`model'", "random") != 0 | "`model'"=="betabin" {
+    if strpos("`model'", "random") != 0 | "`model'" == "betabin" {
         printmat, matrixout(`hetout') type(het) dp(`dp') model(`model')
     }
 
 	//Raw estimates
-    if inlist("`sumtable'", "logit", "all") | ("`sumtable'" == "") {
+    if strpos("`sumtable'", "logit") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == "") {
         if "`cov'" != "freeint" {
             printmat, matrixout(`neorawest') type(raw) p(`p') dp(`dp') power(`power') `continuous' model(`model') inference(`inference')
         }
     }
 	
 	//Proportions
-    if inlist("`sumtable'", "abs", "all") | ("`sumtable'" == "") {
+    if strpos("`sumtable'", "abs") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == ""){
 		//Conditional estimates
         if "`cov'" != "freeint" {
             printmat, matrixout(`neoabsout') type(abs) p(`p') dp(`dp') power(`power') `continuous' model(`model') inference(`inference')
@@ -1917,7 +1918,7 @@ program define print_summtables
     }
 
     // === Risk Difference ===
-    if inlist("`sumtable'", "rd", "all") | ("`sumtable'" == "") {
+    if strpos("`sumtable'", "rd") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == "") {
         if "`cov'" != "freeint" & ("`catreg'" != "" | "`typevarx'" == "i") {
             cap confirm matrix `neordout'
             if _rc == 0 {
@@ -1941,7 +1942,7 @@ program define print_summtables
     }
 
     // === Risk Ratio ===
-    if inlist("`sumtable'", "rr", "all") | ("`sumtable'" == "") {
+    if strpos("`sumtable'", "rr") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == ""){
         if "`cov'" != "freeint" & ("`catreg'" != "" | "`typevarx'" == "i") {
             cap confirm matrix `neorrout'
             if _rc == 0 {
@@ -1965,7 +1966,7 @@ program define print_summtables
     }
 
     // === Odds Ratio ===
-    if inlist("`sumtable'", "or", "all") | ("`sumtable'" == "") {
+    if strpos("`sumtable'", "or") != 0 |  strpos("`sumtable'", "all") != 0  | ("`sumtable'" == "") {
         if "`cov'" != "freeint" & ("`catreg'" != "" | "`typevarx'" == "i") {
             cap confirm matrix `neoorout'
             if _rc == 0 {
