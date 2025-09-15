@@ -2345,7 +2345,7 @@ program define itable_graph_loop
                 local neofrcols = r(rcols)
             }
             else {
-                local neofoptions = "`goptions'"
+                local neofoptions = `"`goptions'"'
                 if "`neoglcols'" != "" local neoflcols = "`neoglcols'"
                 if "`neogrcols'" != "" local neofrcols = "`neogrcols'"
             }
