@@ -1,5 +1,5 @@
 # Metapreg 
- A routing for meta-analysis, meta-regression and network meta-analysis of proportions from binomial data using generalized linear models in the frequentist and Bayesian approach.
+ A routine for meta-analysis, meta-regression and network meta-analysis of proportions from binomial data using generalized linear models in the frequentist and Bayesian approach.
  The program fits a fixed, random-effects, or a mixed-effects model assuming binomial, common-rho beta-binomial or binomial-normal distribution with a logit, loglog or the cloglog link to the data.
 
 The command requires Stata 14.1 or later versions. Stata 16.1 or later versions is required to perform the bayesian analysis.
